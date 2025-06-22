@@ -1,6 +1,13 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NewReleases
@@ -23,10 +30,29 @@ fun IngredientChipEditor(
     onRequestCreatePantryItem: suspend (String) -> PantryItem,
     onToggleShoppingStatus: (PantryItem) -> Unit
 ) {
+    // 1) States
     var newIngredient by remember { mutableStateOf("") }
+    var suggestionExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    // 2) Prepare suggestion list
+    val suggestions = remember(newIngredient, allPantryItems) {
+        if (newIngredient.isBlank()) emptyList()
+        else allPantryItems
+            .filter {
+                it.name.contains(newIngredient.trim(), ignoreCase = true)
+            }
+            .take(5)
+    }
+
+    // 3) bringIntoView helper
+    val bringRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(suggestionExpanded) {
+        if (suggestionExpanded) bringRequester.bringIntoView()
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // --- existing chips ---
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -40,69 +66,121 @@ fun IngredientChipEditor(
                     selected = isInShoppingList,
                     onClick = {
                         pantryItem?.let {
-                            val updatedItem = it.copy(addToShoppingList = !it.addToShoppingList)
-                            onToggleShoppingStatus(updatedItem)
+                            onToggleShoppingStatus(it.copy(addToShoppingList = !it.addToShoppingList))
                         }
                     },
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(ingredient.name)
-                            if (isInShoppingList)
+                            if (isInShoppingList) {
                                 Icon(
-                                    imageVector = Icons.Default.ShoppingCart,
-                                    contentDescription = "In Shopping List",
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = null,
                                     modifier = Modifier.size(16.dp).padding(start = 4.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
-                            if (ingredient.hasScanCode)
+                            }
+                            if (ingredient.hasScanCode) {
                                 Icon(
                                     Icons.Default.QrCode2,
-                                    contentDescription = "Scannable",
+                                    contentDescription = null,
                                     modifier = Modifier.size(16.dp).padding(start = 4.dp)
                                 )
-                            if (ingredient.pantryItemId == null)
+                            }
+                            if (ingredient.pantryItemId == null) {
                                 Icon(
                                     Icons.Default.NewReleases,
-                                    contentDescription = "New",
+                                    contentDescription = null,
                                     modifier = Modifier.size(16.dp).padding(start = 4.dp)
                                 )
+                            }
                         }
                     },
                     trailingIcon = {
                         IconButton(onClick = {
                             onIngredientsChange(ingredients - ingredient)
                         }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove")
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove ingredient"
+                            )
                         }
                     }
                 )
             }
         }
 
+        // --- input + suggestions ---
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedTextField(
-                value = newIngredient,
-                onValueChange = { newIngredient = it },
-                placeholder = { Text("Add ingredient") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .bringIntoViewRequester(bringRequester)
+            ) {
+                OutlinedTextField(
+                    value = newIngredient,
+                    onValueChange = {
+                        newIngredient = it
+                        suggestionExpanded = it.isNotBlank()
+                    },
+                    placeholder = { Text("Add ingredient") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                AnimatedVisibility(visible = suggestionExpanded && suggestions.isNotEmpty()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(vertical = 4.dp)
+                    ) {
+                        items(suggestions) { item ->
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        // pick an existing pantry item
+                                        onIngredientsChange(
+                                            ingredients + RecipeIngredientUI(
+                                                name = item.name,
+                                                pantryItemId = item.id
+                                            )
+                                        )
+                                        newIngredient = ""
+                                        suggestionExpanded = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Button(onClick = {
                 val trimmed = newIngredient.trim()
                 if (trimmed.isNotEmpty()) {
                     coroutineScope.launch {
-                        val match = allPantryItems.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
+                        // exact match? else create
+                        val match = allPantryItems.firstOrNull {
+                            it.name.equals(trimmed, ignoreCase = true)
+                        }
                         val pantryItem = match ?: onRequestCreatePantryItem(trimmed)
-
-                        val newEntry = RecipeIngredientUI(
-                            name = pantryItem.name,
-                            pantryItemId = pantryItem.id
+                        onIngredientsChange(
+                            ingredients + RecipeIngredientUI(
+                                name = pantryItem.name,
+                                pantryItemId = pantryItem.id
+                            )
                         )
-                        onIngredientsChange(ingredients + newEntry)
                         newIngredient = ""
+                        suggestionExpanded = false
                     }
                 }
             }) {
@@ -111,6 +189,3 @@ fun IngredientChipEditor(
         }
     }
 }
-
-fun <T> List<T>.replace(old: T, new: T): List<T> =
-    map { if (it == old) new else it }
