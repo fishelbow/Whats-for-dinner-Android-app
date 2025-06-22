@@ -164,7 +164,12 @@ fun ScanningNavHost(navController: NavHostController) {
             val viewModel: ScanViewModel = hiltViewModel()
             val uiState by viewModel.uiState.collectAsState()
 
+            val shouldScan = !uiState.promptNewItemDialog &&
+                    !uiState.promptLinkScanCodeDialog &&
+                    !uiState.scanSuccess
+
             ScanningTab(
+                shouldScan = shouldScan,
                 onScanResult = { scannedCode ->
                     viewModel.scan(scannedCode)
                 }
@@ -215,6 +220,7 @@ fun ScanningNavHost(navController: NavHostController) {
         }
     }
 }
+
 // ────────────────────────────────────────────────
 // 4) Reusable ScreenContent Composable
 // ────────────────────────────────────────────────

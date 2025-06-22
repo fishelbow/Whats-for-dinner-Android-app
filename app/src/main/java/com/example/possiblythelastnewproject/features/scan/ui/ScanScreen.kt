@@ -11,6 +11,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -27,9 +29,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
+import kotlinx.coroutines.delay
 
 @Composable
-fun ScanningTab(onScanResult: (String) -> Unit) {
+fun ScanningTab(
+    shouldScan: Boolean,
+    onScanResult: (String) -> Unit
+) {
     val ctx = LocalContext.current
     val activity = remember(ctx) {
         (ctx as? ComponentActivity)
@@ -79,7 +85,24 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
         }
     }
 
-    // stroke width for border + padding to inset the PreviewView
+    // Automatically pause/resume scanning from shouldScan
+    LaunchedEffect(shouldScan) {
+        cameraManager?.let {
+            if (shouldScan) it.resumeScanning()
+            else it.pauseScanning()
+        }
+    }
+
+    // Pulse effect when scan resumes
+    var showPulse by remember { mutableStateOf(false) }
+    LaunchedEffect(shouldScan) {
+        if (shouldScan) {
+            showPulse = true
+            delay(500)
+            showPulse = false
+        }
+    }
+
     val stroke = 2.dp
 
     // --- PREVIEW MODE ONLY ---
@@ -91,7 +114,6 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Black box + white border
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,7 +122,6 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
                     .background(Color.Black)
             )
             Spacer(Modifier.height(16.dp))
-            // Toggle button
             var previewPaused by remember { mutableStateOf(false) }
             Button(onClick = { previewPaused = !previewPaused }) {
                 Text(if (previewPaused) "Resume Scanning" else "Pause Scanning")
@@ -117,7 +138,6 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1) Camera container: border + rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -125,7 +145,6 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
                 .border(stroke, Color.White, RoundedCornerShape(8.dp))
                 .clip(RoundedCornerShape(8.dp))
         ) {
-            // 2) inset by stroke so PreviewView sits *inside* the border
             val innerMod = Modifier
                 .matchParentSize()
                 .padding(stroke)
@@ -142,8 +161,7 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
                                     lifecycleOwner,
                                     this@apply,
                                     DataExtractor(),
-                                    object :
-                                        CameraScanCallback {
+                                    object : CameraScanCallback {
                                         override fun onScanResult(data: String) =
                                             onScanResult(data)
 
@@ -154,19 +172,33 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
                                 ).also { it.startCamera() }
                                 removeOnAttachStateChangeListener(this)
                             }
+
                             override fun onViewDetachedFromWindow(v: View) = Unit
                         })
                     }
                 }
             )
+
+            if (showPulse) {
+                Box(
+                    Modifier
+                        .align(Alignment.Center)
+                        .size(100.dp)
+                        .graphicsLayer {
+                            scaleX = 1.2f
+                            scaleY = 1.2f
+                            alpha = 0.6f
+                        }
+                        .background(Color.Green.copy(alpha = 0.5f), shape = CircleShape)
+                )
+            }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // 3) Pause/Resume button
         Button(onClick = {
             if (isPaused) cameraManager?.resumeScanning()
-            else           cameraManager?.pauseScanning()
+            else cameraManager?.pauseScanning()
             isPaused = !isPaused
         }) {
             Text(if (isPaused) "Resume Scanning" else "Pause Scanning")
@@ -177,5 +209,5 @@ fun ScanningTab(onScanResult: (String) -> Unit) {
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
 private fun ScanningTabPreview() {
-    ScanningTab(onScanResult = {})
+    ScanningTab(shouldScan = true, onScanResult = {})
 }
