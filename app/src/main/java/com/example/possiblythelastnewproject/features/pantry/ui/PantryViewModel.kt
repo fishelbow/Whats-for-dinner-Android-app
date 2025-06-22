@@ -1,6 +1,7 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
@@ -162,6 +163,20 @@ class PantryViewModel @Inject constructor(
             }
             if (!nameExists && pantryItem.name.isNotBlank()) {
                 repository.insert(pantryItem)
+            }
+        }
+    }
+    fun updateScanCode(id: Long, scannedCode: String) {
+        viewModelScope.launch {
+            val duplicate = pantryItems.value.any { it.scanCode == scannedCode && it.id != id }
+            if (duplicate) {
+                Log.w("PantryViewModel", "Duplicate PLU/Barcode: $scannedCode already used.")
+                // Optional: emit a Snackbar, dialog, or update UI state to notify
+                return@launch
+            }
+
+            pantryItems.value.find { it.id == id }?.let { item ->
+                repository.update(item.copy(scanCode = scannedCode))
             }
         }
     }
