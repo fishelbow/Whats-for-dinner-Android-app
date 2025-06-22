@@ -35,6 +35,7 @@ import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipe
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
 import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
 import com.example.possiblythelastnewproject.features.scan.ui.components.CreateFromScanDialog
+import com.example.possiblythelastnewproject.features.scan.ui.componets.LinkScanCodeDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.UpdateItemDialog
 
 // ────────────────────────────────────────────────
@@ -169,35 +170,47 @@ fun ScanningNavHost(navController: NavHostController) {
                 }
             )
 
-            // Show update dialog if item exists
-            uiState.scannedItem?.let { item ->
-                UpdateItemDialog(
-                    item = item,
-                    onDismiss = { viewModel.clearScanResult() },
-                    onConfirmUpdate = { updatedItem ->
-                        viewModel.updateItem(updatedItem)
-                    }
-                )
-            }
+            when {
+                uiState.promptLinkScanCodeDialog && uiState.scannedItem != null -> {
+                    LinkScanCodeDialog(
+                        item = uiState.scannedItem!!,
+                        onConfirmLink = { item ->
+                            viewModel.linkScanCodeToItem(item, uiState.lastScanCode.orEmpty())
+                        },
+                        onDismiss = {
+                            viewModel.clearScanResult()
+                        }
+                    )
+                }
 
-// Show create dialog if item does not exist
-            if (uiState.promptNewItemDialog) {
-                val scanCode = uiState.lastScanCode.orEmpty()
+                uiState.scanSuccess && uiState.scannedItem != null -> {
+                    UpdateItemDialog(
+                        item = uiState.scannedItem!!,
+                        onDismiss = {
+                            viewModel.clearScanResult()
+                        },
+                        onConfirmUpdate = { updatedItem ->
+                            viewModel.updateItem(updatedItem)
+                        }
+                    )
+                }
 
-                CreateFromScanDialog(
-                    scanCode = scanCode,
-                    onConfirm = { name, qty, imageData ->
-                        viewModel.addItem(
-                            PantryItem(
-                                name = name.trim(),
+                uiState.promptNewItemDialog -> {
+                    CreateFromScanDialog(
+                        scanCode = uiState.lastScanCode.orEmpty(),
+                        onConfirm = { name, qty, imageData ->
+                            viewModel.handleManualNameEntry(
+                                name = name,
+                                pendingScanCode = uiState.lastScanCode.orEmpty(),
                                 quantity = qty,
-                                scanCode = scanCode,
                                 imageData = imageData
                             )
-                        )
-                    },
-                    onDismiss = { viewModel.clearScanResult() }
-                )
+                        },
+                        onDismiss = {
+                            viewModel.clearScanResult()
+                        }
+                    )
+                }
             }
         }
     }

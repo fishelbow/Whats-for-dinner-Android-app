@@ -16,6 +16,8 @@ import javax.inject.Inject
 class ScanViewModel @Inject constructor(
     private val repository: ScanRepository
 ) : ViewModel() {
+    private var pendingItemExtras: Triple<Int, ByteArray?, String>? = null
+
 
     private val _uiState = MutableStateFlow<ScanUiState>(ScanUiState())
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
@@ -23,19 +25,34 @@ class ScanViewModel @Inject constructor(
     fun scan(code: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, itemAdded = false) }
-            val match = repository.findByScanCode(code)
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    scannedItem = match,
-                    scanSuccess = match != null,
-                    promptNewItemDialog = match == null,
-                    lastScanCode = code
-                )
+
+            val scanMatch = repository.findByScanCode(code)
+            if (scanMatch != null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        scannedItem = scanMatch,
+                        scanSuccess = true,
+                        promptNewItemDialog = false,
+                        promptLinkScanCodeDialog = false,
+                        lastScanCode = code
+                    )
+                }
+            } else {
+                val nameMatch = repository.findByName(code)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        scannedItem = nameMatch,
+                        scanSuccess = false,
+                        promptNewItemDialog = nameMatch == null,
+                        promptLinkScanCodeDialog = nameMatch != null,
+                        lastScanCode = code
+                    )
+                }
             }
         }
     }
-
     fun addItem(item: PantryItem) = viewModelScope.launch {
         repository.insert(item)
         _uiState.update { it.copy(itemAdded = true) }
@@ -58,5 +75,53 @@ class ScanViewModel @Inject constructor(
                 itemAdded = false
             )
         }
+    }
+
+    fun handleManualNameEntry(
+        name: String,
+        pendingScanCode: String,
+        quantity: Int,
+        imageData: ByteArray?
+    ) = viewModelScope.launch {
+        val existingItem = repository.findByName(name.trim())
+        if (existingItem != null) {
+            pendingItemExtras = Triple(quantity, imageData, name)
+            _uiState.update {
+                it.copy(
+                    scannedItem = existingItem,
+                    lastScanCode = pendingScanCode,
+                    promptLinkScanCodeDialog = true
+                )
+            }
+        } else {
+            val newItem = PantryItem(
+                name = name.trim(),
+                quantity = quantity,
+                scanCode = pendingScanCode,
+                imageData = imageData
+            )
+            addItem(newItem)
+        }
+    }
+
+
+    fun linkScanCodeToItem(item: PantryItem, scanCode: String) = viewModelScope.launch {
+        val (qty, image, _) = pendingItemExtras ?: Triple(0, null, "")
+        val updated = item.copy(
+            scanCode = scanCode,
+            quantity = item.quantity + qty,
+            imageData = item.imageData ?: image
+        )
+        repository.updateItem(updated)
+        _uiState.update {
+            it.copy(
+                scannedItem = null,
+                scanSuccess = false,
+                promptLinkScanCodeDialog = false,
+                promptNewItemDialog = false,  // 👈 add this line
+                itemAdded = true
+            )
+        }
+        pendingItemExtras = null
     }
 }

@@ -15,6 +15,12 @@ class ScanRepository @Inject constructor(
 
     suspend fun insert(item: PantryItem) {
         pantryItemDao.insertPantryItem(item)
+    }
 
+    suspend fun updateItem(item: PantryItem) {
+        pantryItemDao.updatePantryItem(item)
+    }
+    suspend fun findByName(name: String): PantryItem? {
+        return pantryItemDao.getByName(name)
     }
 }
