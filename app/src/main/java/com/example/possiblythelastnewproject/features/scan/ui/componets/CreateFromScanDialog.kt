@@ -1,7 +1,5 @@
-package com.example.possiblythelastnewproject.features.scan.ui.components
+package com.example.possiblythelastnewproject.features.scan.ui.componets
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -13,8 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.possiblythelastnewproject.core.utils.compressImageFromUri
-import kotlinx.coroutines.launch
+import com.example.possiblythelastnewproject.core.utils.imagePicker
 
 @Composable
 fun CreateFromScanDialog(
@@ -23,26 +20,22 @@ fun CreateFromScanDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
+    // Local state for name, quantity, and image bytes.
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
-    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            coroutineScope.launch {
-                val compressed = compressImageFromUri(context, it, 300, 300, 80)
-                imageBytes = compressed
-            }
-        }
+    // Use your universal image picker. It returns a lambda;
+    // here we update imageBytes when the user picks an image.
+    val launchImagePicker = imagePicker { newBytes ->
+        imageBytes = newBytes
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("New Item from Scan") },
         text = {
-            Column {
+            Column(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -56,8 +49,9 @@ fun CreateFromScanDialog(
                     singleLine = true,
                     modifier = Modifier.padding(top = 8.dp)
                 )
+                // Use the universal image picker:
                 TextButton(
-                    onClick = { imageLauncher.launch("image/*") },
+                    onClick = { launchImagePicker() },
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text("Pick Image")
@@ -70,10 +64,14 @@ fun CreateFromScanDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                val qty = quantity.toIntOrNull() ?: 1
-                if (name.isNotBlank()) onConfirm(name.trim(), qty, imageBytes)
-            }) {
+            TextButton(
+                onClick = {
+                    val qty = quantity.toIntOrNull() ?: 1
+                    if (name.isNotBlank()) {
+                        onConfirm(name.trim(), qty, imageBytes)
+                    }
+                }
+            ) {
                 Text("Add to Pantry")
             }
         },

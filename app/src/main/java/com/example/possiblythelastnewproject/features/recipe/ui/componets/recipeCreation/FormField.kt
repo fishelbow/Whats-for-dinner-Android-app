@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -13,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -23,6 +28,10 @@ fun FormField(
     singleLine: Boolean = true,
     heightDp: Int? = null
 ) {
+    // Retrieve the keyboard controller and focus manager
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
     Text(label, style = MaterialTheme.typography.labelMedium)
     Spacer(modifier = Modifier.height(4.dp))
     OutlinedTextField(
@@ -30,11 +39,22 @@ fun FormField(
         onValueChange = onValueChange,
         placeholder = { Text("Enter $label") },
         singleLine = singleLine,
+        keyboardOptions = KeyboardOptions.Default.copy(
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                // Hide the keyboard and clear focus when Done is pressed
+                keyboardController?.hide()
+                focusManager.clearFocus()
+            }
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .then(if (heightDp != null) Modifier.height(heightDp.dp) else Modifier)
     )
 }
+
 @Composable
 fun ColorPicker(
     selectedColor: Color,

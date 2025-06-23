@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
@@ -28,11 +30,15 @@ fun IngredientChipEditor(
     onRequestCreatePantryItem: suspend (String) -> PantryItem,
     onToggleShoppingStatus: (PantryItem) -> Unit
 ) {
-    val scope      = rememberCoroutineScope()
-    var query      by remember { mutableStateOf("") }
-    var expanded   by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var query by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
-    // filter suggestions
+    // Grab the keyboard controller and focus manager to dismiss the keyboard
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    // Filter suggestions based on the query (non-case sensitive)
     val suggestions = remember(query, allPantryItems) {
         if (query.isBlank()) emptyList()
         else allPantryItems
@@ -48,21 +54,36 @@ fun IngredientChipEditor(
         ) {
             items(ingredients) { ingredient ->
                 val pantryItem = allPantryItems.firstOrNull { it.id == ingredient.pantryItemId }
-                val inCart      = pantryItem?.addToShoppingList == true
+                val inCart = pantryItem?.addToShoppingList == true
 
                 InputChip(
-                    selected  = inCart,
-                    onClick   = {
+                    selected = inCart,
+                    onClick = {
                         pantryItem?.let {
                             onToggleShoppingStatus(it.copy(addToShoppingList = !it.addToShoppingList))
                         }
                     },
-                    label     = {
+                    label = {
                         Row {
                             Text(ingredient.name)
-                            if (inCart) Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp).padding(start = 4.dp))
-                            if (ingredient.hasScanCode) Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(16.dp).padding(start = 4.dp))
-                            if (ingredient.pantryItemId == null) Icon(Icons.Default.NewReleases, contentDescription = null, modifier = Modifier.size(16.dp).padding(start = 4.dp))
+                            if (inCart)
+                                Icon(
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                                )
+                            if (ingredient.hasScanCode)
+                                Icon(
+                                    Icons.Default.QrCode2,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                                )
+                            if (ingredient.pantryItemId == null)
+                                Icon(
+                                    Icons.Default.NewReleases,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(start = 4.dp)
+                                )
                         }
                     },
                     trailingIcon = {
@@ -76,42 +97,52 @@ fun IngredientChipEditor(
 
         // Autocomplete + Add button
         Row(
-            modifier            = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ExposedDropdownMenuBox(
-                expanded          = expanded,
+                expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
-                modifier          = Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
                 OutlinedTextField(
-                    value            = query,
-                    onValueChange    = {
-                        query    = it
+                    value = query,
+                    onValueChange = {
+                        query = it
                         expanded = it.isNotBlank() && suggestions.isNotEmpty()
                     },
-                    placeholder      = { Text("Add ingredient") },
-                    singleLine       = true,
-                    keyboardOptions  = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                    keyboardActions  = KeyboardActions(onDone = { expanded = false }),
-                    trailingIcon     = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier         = Modifier
+                    placeholder = { Text("Add ingredient") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            expanded = false
+                            // Hide the keyboard and clear focus.
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                        }
+                    ),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth()
                 )
 
                 ExposedDropdownMenu(
-                    expanded        = expanded,
+                    expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
                     suggestions.forEach { item ->
                         DropdownMenuItem(
-                            text    = { Text(item.name) },
+                            text = { Text(item.name) },
                             onClick = {
-                                onIngredientsChange(
-                                    ingredients + RecipeIngredientUI(item.name, pantryItemId = item.id)
-                                )
-                                query    = ""
+                                // Check if the ingredient already exists (ignore case)
+                                if (ingredients.none { it.name.equals(item.name, ignoreCase = true) }) {
+                                    onIngredientsChange(
+                                        ingredients + RecipeIngredientUI(item.name, pantryItemId = item.id)
+                                    )
+                                }
+                                query = ""
                                 expanded = false
                             }
                         )
@@ -121,14 +152,15 @@ fun IngredientChipEditor(
 
             Button(onClick = {
                 val trimmed = query.trim()
-                if (trimmed.isNotBlank()) {
+                // Only add if query is not blank and the ingredient isn't already added (ignoring case).
+                if (trimmed.isNotBlank() && ingredients.none { it.name.equals(trimmed, ignoreCase = true) }) {
                     scope.launch {
                         val match = allPantryItems.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
                         val pantryItem = match ?: onRequestCreatePantryItem(trimmed)
                         onIngredientsChange(
                             ingredients + RecipeIngredientUI(pantryItem.name, pantryItemId = pantryItem.id)
                         )
-                        query    = ""
+                        query = ""
                         expanded = false
                     }
                 }

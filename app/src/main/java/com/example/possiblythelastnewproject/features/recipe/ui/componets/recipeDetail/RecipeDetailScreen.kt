@@ -33,12 +33,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.possiblythelastnewproject.core.utils.compressImageFromUri
+import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.IngredientChipEditor
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +49,6 @@ fun RecipeDetailScreen(
     navController: NavHostController,
     viewModel: RecipesViewModel = hiltViewModel()
 ) {
-
     val pantryViewModel: PantryViewModel = hiltViewModel()
     val pantryItems by pantryViewModel.allItems.collectAsState()
 
@@ -120,12 +121,10 @@ fun RecipeDetailScreen(
         }
     }
 
-    // Image-picker launcher (unchanged)
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val compressed = compressImageFromUri(context, it, 300, 300, 80)
-            imageData = compressed ?: ByteArray(0)
-        }
+    // New imagePicker integration.
+    // This replaces the inline launcher and now uses your centralized imagePicker utility.
+    val pickImage = imagePicker { byteArray ->
+        imageData = byteArray
     }
 
     Scaffold(
@@ -169,14 +168,15 @@ fun RecipeDetailScreen(
                 .animateContentSize(tween(300)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Hero Image Picker (unchanged)
+            // Hero Image Picker (no layout changes)
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 tonalElevation = 4.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .clickable(enabled = isEditing) { pickImage.launch("image/*") }
+                    // Instead of launching with an intent parameter, simply call your pickImage lambda.
+                    .clickable(enabled = isEditing) { pickImage() }
             ) {
                 if (imageData?.isNotEmpty() == true) {
                     val bmp = BitmapFactory.decodeByteArray(imageData, 0, imageData!!.size)
@@ -220,8 +220,9 @@ fun RecipeDetailScreen(
                         ReadOnlyField("Prep Time", prepTime.text)
                         ReadOnlyField("Cook Time", cookTime.text)
                         ReadOnlyField("Category", category.text)
-
+                        ReadOnlyField("Instructions", instructions.text)
                         Text("Ingredients", style = MaterialTheme.typography.labelMedium)
+
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -266,11 +267,11 @@ fun RecipeDetailScreen(
 
                     // ← EDIT MODE ←
                     else {
-                        EditableField("Name", name)           { name = it }
-                        EditableField("Temperature", temp)     { temp = it }
-                        EditableField("Prep Time", prepTime)   { prepTime = it }
-                        EditableField("Cook Time", cookTime)   { cookTime = it }
-                        EditableField("Category", category)    { category = it }
+                        EditableField("Name", name) { name = it }
+                        EditableField("Temperature", temp) { temp = it }
+                        EditableField("Prep Time", prepTime) { prepTime = it }
+                        EditableField("Cook Time", cookTime) { cookTime = it }
+                        EditableField("Category", category) { category = it }
 
                         // Color picker (unchanged)…
                         val colorOptions = listOf(

@@ -1,7 +1,5 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,70 +13,56 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.possiblythelastnewproject.core.utils.compressImageFromUri
+import androidx.compose.ui.window.Dialog
+import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcodeScanner
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientSearchBar
-import kotlinx.coroutines.launch
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.window.Dialog
-import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcodeScanner
-import com.example.possiblythelastnewproject.features.pantry.ui.componets.BarcodeScanDialog
-
 
 @Composable
 fun PantryScreen(
-viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    // State from ViewModel
     val uiState by viewModel.uiState.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
     val inUseIds by viewModel.inUsePantryItemIds.collectAsState(emptySet())
 
+    // Common local variables
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Local UI state
     var duplicateCodeDetected by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newIngredient by remember { mutableStateOf("") }
     var addImageBytes by remember { mutableStateOf<ByteArray?>(null) }
-
     var showScanDialog by remember { mutableStateOf(false) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
+    // Create two distinct image pickers by calling your universal function.
+    // One is for adding a new ingredient and updates addImageBytes.
+    val launchImagePickerForAdd = imagePicker { imageBytes ->
+        addImageBytes = imageBytes
+    }
+    // The other is for editing an existing ingredient.
+    // It calls a ViewModel function (or could update local state) for the edit image.
+    val launchImagePickerForEdit = imagePicker { imageBytes ->
+        viewModel.updateEditImage(imageBytes)
+    }
+
+    // Filter ingredients based on search query.
     val filteredItems = pantryItems.filter {
         uiState.searchQuery.isBlank() || it.name.contains(uiState.searchQuery, ignoreCase = true)
     }
 
-    val addImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                coroutineScope.launch {
-                    addImageBytes = compressImageFromUri(context, it, 300, 300, 80)
-                }
-            }
-        }
-
-    val viewImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                coroutineScope.launch {
-                    val bytes = compressImageFromUri(context, it, 300, 300, 80)
-                    selectedItem = selectedItem?.copy(imageData = bytes)
-                }
-            }
-        }
-
-    val editImageLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                coroutineScope.launch {
-                    viewModel.updateEditImage(compressImageFromUri(context, it, 300, 300, 80))
-                }
-            }
-        }
-
+    // Main screen scaffold
     Scaffold(
         topBar = {
             IngredientSearchBar(
@@ -92,7 +76,7 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             Box(Modifier.fillMaxSize().padding(padding)) {
                 if (filteredItems.isEmpty()) {
                     Text(
-                        "No ingredients found",
+                        text = "No ingredients found",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -121,7 +105,7 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
         }
     )
 
-// View dialog (non-destructive)
+    // --- View Dialog (non-destructive) ---
     selectedItem?.let { item ->
         AlertDialog(
             onDismissRequest = { selectedItem = null },
@@ -134,44 +118,34 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                         imageData = item.imageData,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    //TODO here is what i need for the white board
                     Spacer(Modifier.height(8.dp))
-
-
                     TextButton(onClick = { showScanDialog = true }) {
-                        Text(if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode" else "Update PLU/Barcode")
+                        Text(
+                            if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
+                            else "Update PLU/Barcode"
+                        )
                     }
-                    // I need a text here that displays the scanCode from the PantryItem
-                    Text(
-                        text = "Scan code:",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Text("Scan code:", style = MaterialTheme.typography.bodySmall)
                     Text(
                         text = item.scanCode ?: "None",
                         style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
                         color = MaterialTheme.colorScheme.primary
                     )
-
-
                 }
             },
             confirmButton = {
                 Row {
-                    TextButton(onClick = { selectedItem = null }) {
-                        Text("Close")
-                    }
+                    TextButton(onClick = { selectedItem = null }) { Text("Close") }
                     TextButton(onClick = {
                         viewModel.startEditing(selectedItem)
                         selectedItem = null
-                    }) {
-                        Text("Edit")
-                    }
+                    }) { Text("Edit") }
                 }
             }
         )
     }
 
-// Add dialog
+    // --- Add Dialog ---
     if (showAddDialog) {
         val nameExists = pantryItems.any { it.name.equals(newIngredient.trim(), ignoreCase = true) }
         AlertDialog(
@@ -197,7 +171,8 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                         imageData = addImageBytes,
                         modifier = Modifier.padding(top = 8.dp)
                     )
-                    TextButton(onClick = { addImageLauncher.launch("image/*") }) {
+                    // Use the image picker for add mode
+                    TextButton(onClick = { launchImagePickerForAdd() }) {
                         Text("Pick Image")
                     }
                     if (nameExists) {
@@ -236,7 +211,7 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
         )
     }
 
-// Edit dialog (unchanged logic)
+    // --- Edit Dialog ---
     uiState.editingItem?.let { item ->
         AlertDialog(
             onDismissRequest = { viewModel.startEditing(null) },
@@ -245,24 +220,21 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                 Column {
                     val previewName = uiState.editName.ifBlank { item.name }
                     val previewQty = uiState.editQuantityText.toIntOrNull() ?: item.quantity
-
                     IngredientCard(
                         ingredient = previewName,
                         quantity = previewQty,
                         imageData = uiState.editImageBytes,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    TextButton(onClick = { editImageLauncher.launch("image/*") }) {
+                    // Use the image picker for edit mode
+                    TextButton(onClick = { launchImagePickerForEdit() }) {
                         Text("Pick Image")
                     }
                     Column(modifier = Modifier.padding(top = 8.dp)) {
                         OutlinedTextField(
                             value = uiState.editName,
                             onValueChange = {
-                                viewModel.updateEditFields(
-                                    it,
-                                    uiState.editQuantityText
-                                )
+                                viewModel.updateEditFields(it, uiState.editQuantityText)
                             },
                             label = { Text("Ingredient Name") },
                             singleLine = true,
@@ -277,9 +249,7 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                             label = { Text("Quantity") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                         )
                     }
                 }
@@ -308,10 +278,9 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
         )
     }
 
-// Delete confirmation
+    // --- Delete Confirmation Dialog ---
     uiState.itemToDelete?.let { item ->
         val isInUse = item.id in inUseIds
-
         AlertDialog(
             onDismissRequest = { viewModel.cancelDelete() },
             title = { Text("Delete Ingredient") },
@@ -329,46 +298,38 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.cancelDelete() }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { viewModel.cancelDelete() }) { Text("Cancel") }
             },
             dismissButton = {
                 TextButton(
-                    onClick = {
-                        if (!isInUse) viewModel.confirmDelete()
-                    },
+                    onClick = { if (!isInUse) viewModel.confirmDelete() },
                     enabled = !isInUse
-                ) {
-                    Text("Yes, Delete")
-                }
+                ) { Text("Yes, Delete") }
             }
         )
     }
 
+    // --- Scan Dialog ---
     if (showScanDialog) {
         Dialog(onDismissRequest = { showScanDialog = false }) {
             Surface(shape = RoundedCornerShape(12.dp)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Scan Barcode")
                     Spacer(Modifier.height(12.dp))
-
                     InlineBarcodeScanner(
                         onResult = { scannedCode ->
                             val isDuplicate = pantryItems.any {
                                 it.scanCode == scannedCode && it.id != selectedItem?.id
                             }
-
                             if (isDuplicate) {
                                 duplicateCodeDetected = true
-                                // Don't update selectedItem.scanCode
+                                // Do not update scan code for duplicate.
                             } else {
                                 selectedItem = selectedItem?.copy(scanCode = scannedCode)
                                 selectedItem?.let {
                                     viewModel.updateScanCode(it.id, scannedCode)
                                 }
                             }
-
                             showScanDialog = false
                         },
                         modifier = Modifier
@@ -380,13 +341,12 @@ viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
         }
     }
 
+    // --- Duplicate Code Alert Dialog ---
     if (duplicateCodeDetected) {
         AlertDialog(
             onDismissRequest = { duplicateCodeDetected = false },
             confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = { duplicateCodeDetected = false }
-                ) { Text("OK") }
+                TextButton(onClick = { duplicateCodeDetected = false }) { Text("OK") }
             },
             title = { Text("Duplicate Code") },
             text = { Text("That scan code is already linked to another item.") }
