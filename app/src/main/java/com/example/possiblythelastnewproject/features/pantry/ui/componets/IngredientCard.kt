@@ -30,6 +30,7 @@ fun IngredientCard(
     quantity: Int = 0,
     defaultImage: ImageVector = Icons.Default.Image,
     modifier: Modifier = Modifier,
+    category: String? = null,
     imageData: ByteArray? = null // move this to the end and give it a default value
 ){
     Card(

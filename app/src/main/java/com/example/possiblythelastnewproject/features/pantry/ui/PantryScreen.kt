@@ -23,6 +23,7 @@ import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcod
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientSearchBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantryScreen(
     viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -34,8 +35,6 @@ fun PantryScreen(
 
     // Common local variables
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     // Local UI state
     var duplicateCodeDetected by remember { mutableStateOf(false) }
@@ -44,7 +43,6 @@ fun PantryScreen(
     var newIngredient by remember { mutableStateOf("") }
     var addImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var showScanDialog by remember { mutableStateOf(false) }
-    var showImageSourceDialog by remember { mutableStateOf(false) }
 
     // Create two distinct image pickers by calling your universal function.
     // One is for adding a new ingredient and updates addImageBytes.
@@ -105,7 +103,7 @@ fun PantryScreen(
         }
     )
 
-    // --- View Dialog (non-destructive) ---
+// --- View Dialog (non-destructive) ---
     selectedItem?.let { item ->
         AlertDialog(
             onDismissRequest = { selectedItem = null },
@@ -116,15 +114,21 @@ fun PantryScreen(
                         ingredient = item.name,
                         quantity = item.quantity,
                         imageData = item.imageData,
+                        category = item.category,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = { showScanDialog = true }) {
-                        Text(
-                            if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
-                            else "Update PLU/Barcode"
-                        )
-                    }
+
+                    Text("Category:", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = item.category.ifBlank { "None" },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
                     Text("Scan code:", style = MaterialTheme.typography.bodySmall)
                     Text(
                         text = item.scanCode ?: "None",
@@ -134,12 +138,23 @@ fun PantryScreen(
                 }
             },
             confirmButton = {
-                Row {
-                    TextButton(onClick = { selectedItem = null }) { Text("Close") }
-                    TextButton(onClick = {
-                        viewModel.startEditing(selectedItem)
-                        selectedItem = null
-                    }) { Text("Edit") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = { showScanDialog = true }) {
+                        Text(
+                            if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
+                            else "Update PLU/Barcode"
+                        )
+                    }
+                    Row {
+                        TextButton(onClick = { selectedItem = null }) { Text("Close") }
+                        TextButton(onClick = {
+                            viewModel.startEditing(item)
+                            selectedItem = null
+                        }) { Text("Edit") }
+                    }
                 }
             }
         )
@@ -148,11 +163,16 @@ fun PantryScreen(
     // --- Add Dialog ---
     if (showAddDialog) {
         val nameExists = pantryItems.any { it.name.equals(newIngredient.trim(), ignoreCase = true) }
+        val categories by viewModel.allCategories.collectAsState()
+        val selectedCategory = uiState.selectedCategory
+        var categoryDropdownExpanded by remember { mutableStateOf(false) }
+
         AlertDialog(
             onDismissRequest = {
                 showAddDialog = false
                 newIngredient = ""
                 addImageBytes = null
+                viewModel.updateSelectedCategory(null)
             },
             title = { Text("Add New Ingredient") },
             text = {
@@ -165,16 +185,53 @@ fun PantryScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     IngredientCard(
                         ingredient = newIngredient.ifBlank { "No Name" },
                         quantity = 1,
                         imageData = addImageBytes,
+                        category = selectedCategory?.name,
                         modifier = Modifier.padding(top = 8.dp)
                     )
-                    // Use the image picker for add mode
+
                     TextButton(onClick = { launchImagePickerForAdd() }) {
                         Text("Pick Image")
                     }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    ExposedDropdownMenuBox(
+                        expanded = categoryDropdownExpanded,
+                        onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedCategory?.name ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Category") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoryDropdownExpanded,
+                            onDismissRequest = { categoryDropdownExpanded = false }
+                        ) {
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category.name) },
+                                    onClick = {
+                                        viewModel.updateSelectedCategory(category)
+                                        categoryDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     if (nameExists) {
                         Text(
                             "This item already exists.",
@@ -187,17 +244,19 @@ fun PantryScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newIngredient.isNotBlank() && !nameExists) {
+                    if (newIngredient.isNotBlank() && !nameExists && selectedCategory != null) {
                         viewModel.addPantryItem(
                             PantryItem(
                                 name = newIngredient.trim(),
                                 quantity = 1,
-                                imageData = addImageBytes
+                                imageData = addImageBytes,
+                                category = selectedCategory.name
                             )
                         )
                         newIngredient = ""
                         addImageBytes = null
                         showAddDialog = false
+                        viewModel.updateSelectedCategory(null)
                     }
                 }) { Text("Add") }
             },
@@ -206,6 +265,7 @@ fun PantryScreen(
                     showAddDialog = false
                     newIngredient = ""
                     addImageBytes = null
+                    viewModel.updateSelectedCategory(null)
                 }) { Text("Cancel") }
             }
         )
@@ -213,6 +273,9 @@ fun PantryScreen(
 
     // --- Edit Dialog ---
     uiState.editingItem?.let { item ->
+        val categories by viewModel.allCategories.collectAsState()
+        var categoryDropdownExpanded by remember { mutableStateOf(false) }
+
         AlertDialog(
             onDismissRequest = { viewModel.startEditing(null) },
             title = { Text("Edit Ingredient") },
@@ -220,16 +283,19 @@ fun PantryScreen(
                 Column {
                     val previewName = uiState.editName.ifBlank { item.name }
                     val previewQty = uiState.editQuantityText.toIntOrNull() ?: item.quantity
+
                     IngredientCard(
                         ingredient = previewName,
                         quantity = previewQty,
                         imageData = uiState.editImageBytes,
+                        category = uiState.editCategory?.name,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    // Use the image picker for edit mode
+
                     TextButton(onClick = { launchImagePickerForEdit() }) {
                         Text("Pick Image")
                     }
+
                     Column(modifier = Modifier.padding(top = 8.dp)) {
                         OutlinedTextField(
                             value = uiState.editName,
@@ -249,8 +315,43 @@ fun PantryScreen(
                             label = { Text("Quantity") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
                         )
+
+                        Spacer(Modifier.height(8.dp))
+                        ExposedDropdownMenuBox(
+                            expanded = categoryDropdownExpanded,
+                            onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.editCategory?.name ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Category") },
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
+                                },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = categoryDropdownExpanded,
+                                onDismissRequest = { categoryDropdownExpanded = false }
+                            ) {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text(category.name) },
+                                        onClick = {
+                                            viewModel.updateEditCategory(category)
+                                            categoryDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -266,6 +367,7 @@ fun PantryScreen(
                     onClick = { if (canDelete) viewModel.promptDelete(item) },
                     enabled = canDelete
                 ) { Text("Delete…") }
+
                 if (!canDelete) {
                     Text(
                         "Still used in a recipe",

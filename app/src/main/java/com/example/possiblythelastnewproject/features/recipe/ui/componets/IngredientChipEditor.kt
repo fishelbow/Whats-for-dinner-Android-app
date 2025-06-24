@@ -30,6 +30,9 @@ fun IngredientChipEditor(
     onRequestCreatePantryItem: suspend (String) -> PantryItem,
     onToggleShoppingStatus: (PantryItem) -> Unit
 ) {
+
+    var showDuplicateDialog by remember { mutableStateOf(false) }
+
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
@@ -137,9 +140,17 @@ fun IngredientChipEditor(
                             text = { Text(item.name) },
                             onClick = {
                                 // Check if the ingredient already exists (ignore case)
-                                if (ingredients.none { it.name.equals(item.name, ignoreCase = true) }) {
+                                if (ingredients.none {
+                                        it.name.equals(
+                                            item.name,
+                                            ignoreCase = true
+                                        )
+                                    }) {
                                     onIngredientsChange(
-                                        ingredients + RecipeIngredientUI(item.name, pantryItemId = item.id)
+                                        ingredients + RecipeIngredientUI(
+                                            item.name,
+                                            pantryItemId = item.id
+                                        )
                                     )
                                 }
                                 query = ""
@@ -149,24 +160,45 @@ fun IngredientChipEditor(
                     }
                 }
             }
-
-            Button(onClick = {
-                val trimmed = query.trim()
-                // Only add if query is not blank and the ingredient isn't already added (ignoring case).
-                if (trimmed.isNotBlank() && ingredients.none { it.name.equals(trimmed, ignoreCase = true) }) {
+        }
+        Button(onClick = {
+            val trimmed = query.trim()
+            if (trimmed.isNotBlank()) {
+                if (ingredients.none { it.name.equals(trimmed, ignoreCase = true) }) {
                     scope.launch {
-                        val match = allPantryItems.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
+                        val match = allPantryItems.firstOrNull {
+                            it.name.equals(trimmed, ignoreCase = true)
+                        }
                         val pantryItem = match ?: onRequestCreatePantryItem(trimmed)
                         onIngredientsChange(
-                            ingredients + RecipeIngredientUI(pantryItem.name, pantryItemId = pantryItem.id)
+                            ingredients + RecipeIngredientUI(
+                                pantryItem.name,
+                                pantryItemId = pantryItem.id
+                            )
                         )
                         query = ""
                         expanded = false
                     }
+                } else {
+                    showDuplicateDialog = true
                 }
-            }) {
-                Text("Add")
             }
+        }) {
+            Text("Add")
+        }
+
+// Move this OUTSIDE the button block:
+        if (showDuplicateDialog) {
+            AlertDialog(
+                onDismissRequest = { showDuplicateDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showDuplicateDialog = false }) {
+                        Text("OK")
+                    }
+                },
+                title = { Text("Duplicate Ingredient") },
+                text = { Text("You’ve already added that item.") }
+            )
         }
     }
 }

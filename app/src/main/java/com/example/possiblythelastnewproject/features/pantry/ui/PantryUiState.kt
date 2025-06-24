@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import com.example.possiblythelastnewproject.features.pantry.data.Category
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
 
 data class PantryUiState(
@@ -11,7 +12,9 @@ data class PantryUiState(
     val editName: String = "",
     val editQuantityText: String = "",
     val editImageBytes: ByteArray? = null,
-    val itemToDelete: PantryItem? = null
+    val itemToDelete: PantryItem? = null,
+    val selectedCategory: Category? = null,
+    val editCategory: Category? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -34,6 +37,8 @@ data class PantryUiState(
             if (!editImageBytes.contentEquals(other.editImageBytes)) return false
         } else if (other.editImageBytes != null) return false
         if (itemToDelete != other.itemToDelete) return false
+        if (selectedCategory != other.selectedCategory) return false
+        if (editCategory != other.editCategory) return false
 
         return true
     }
@@ -48,6 +53,8 @@ data class PantryUiState(
         result = 31 * result + editQuantityText.hashCode()
         result = 31 * result + (editImageBytes?.contentHashCode() ?: 0)
         result = 31 * result + (itemToDelete?.hashCode() ?: 0)
+        result = 31 * result + (selectedCategory?.hashCode() ?: 0)
+        result = 31 * result + (editCategory?.hashCode() ?: 0)
         return result
     }
 }

@@ -6,12 +6,43 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.* // if using extension functions on flows
 
 @Singleton
 class PantryRepository @Inject constructor(
     private val pantryItemDao: PantryItemDao,
-    private val recipePantryItemRepo: RecipePantryItemRepository
+    private val recipePantryItemRepo: RecipePantryItemRepository,
+    private val categoryDao: CategoryDao,
+    private val defaultCategoryNames: List<String> = listOf(
+        "Grains", "Vegetables", "Fruits", "Dairy", "Proteins", "Snacks", "Spices"
+    )
+
+
 ) {
+
+    suspend fun populateDefaultCategoriesIfEmpty() {
+        val current = categoryDao.getAllCategoriesOnce()
+        if (current.isEmpty()) {
+            defaultCategoryNames.forEach { name ->
+                categoryDao.insertCategory(Category(name = name))
+            }
+        }
+    }
+    suspend fun getCategoryByName(name: String): Category? {
+        return categoryDao.getByName(name.trim())
+    }
+
+    suspend fun insertCategory(name: String): Long {
+        val trimmed = name.trim()
+        val existing = categoryDao.getByName(trimmed)
+        return existing?.id ?: categoryDao.insertCategory(Category(name = trimmed))
+    }
+
+    fun getAllCategories(): Flow<List<Category>> {
+        return categoryDao.getAllCategories()
+    }
+
+
     fun getAllPantryItems(): Flow<List<PantryItem>> =
         pantryItemDao.getAllPantryItems()
 

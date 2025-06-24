@@ -76,20 +76,12 @@ fun RecipeDetailScreen(
     var prepTime by remember { mutableStateOf(TextFieldValue(initialData.recipe.prepTime)) }
     var cookTime by remember { mutableStateOf(TextFieldValue(initialData.recipe.cookTime)) }
     var category by remember { mutableStateOf(TextFieldValue(initialData.recipe.category)) }
-    var instructions by remember { mutableStateOf(TextFieldValue(initialData.recipe.instructions)) }
     var newIngredient by remember { mutableStateOf("") }
     var ingredientList by remember {
         mutableStateOf(
             initialData.ingredients.map {
-                RecipeIngredientUI(
-                    name = it.name,
-                    pantryItemId = it.id,
-                    isShoppable = false,
-                    hasScanCode = false
-                )
-            }
-        )
-    }
+                RecipeIngredientUI(name = it.name, pantryItemId = it.id, isShoppable = false, hasScanCode = false) }) }
+    var instructions by remember { mutableStateOf(TextFieldValue(initialData.recipe.instructions)) }
     var cardColor by remember { mutableStateOf(Color(initialData.recipe.color)) }
     var imageData by remember { mutableStateOf(initialData.recipe.imageData) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -220,13 +212,10 @@ fun RecipeDetailScreen(
                         ReadOnlyField("Prep Time", prepTime.text)
                         ReadOnlyField("Cook Time", cookTime.text)
                         ReadOnlyField("Category", category.text)
-                        ReadOnlyField("Instructions", instructions.text)
                         Text("Ingredients", style = MaterialTheme.typography.labelMedium)
 
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             val pantryItemsById = pantryItems.associateBy { it.id }
 
                             ingredientList.forEach { item ->
@@ -252,8 +241,9 @@ fun RecipeDetailScreen(
                                 )
                             }
                         }
+                        HorizontalDivider()
+                        ReadOnlyField("Instructions", instructions.text)
 
-                        Divider()
 
                         Text("Card Color", style = MaterialTheme.typography.labelMedium)
                         Box(
@@ -272,6 +262,25 @@ fun RecipeDetailScreen(
                         EditableField("Prep Time", prepTime) { prepTime = it }
                         EditableField("Cook Time", cookTime) { cookTime = it }
                         EditableField("Category", category) { category = it }
+
+
+                        // Ingredient chip editor (unchanged)…
+                        val pantryViewModel: PantryViewModel = hiltViewModel()
+                        val pantryItems by pantryViewModel.allItems.collectAsState()
+                        IngredientChipEditor(
+                            ingredients = ingredientList,
+                            onIngredientsChange = { ingredientList = it },
+                            allPantryItems = pantryItems,
+                            onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
+                            onToggleShoppingStatus = { updatedItem ->
+                                pantryViewModel.update(updatedItem)
+                            }
+                        )
+                        HorizontalDivider()
+                        // Instructions editor (unchanged)…
+                        EditableField("Instructions", instructions, singleLine = false, heightDp = 140) {
+                            instructions = it
+                        }
 
                         // Color picker (unchanged)…
                         val colorOptions = listOf(
@@ -305,25 +314,7 @@ fun RecipeDetailScreen(
                                 }
                             }
                         }
-
-                        // Ingredient chip editor (unchanged)…
-                        val pantryViewModel: PantryViewModel = hiltViewModel()
-                        val pantryItems by pantryViewModel.allItems.collectAsState()
-                        IngredientChipEditor(
-                            ingredients = ingredientList,
-                            onIngredientsChange = { ingredientList = it },
-                            allPantryItems = pantryItems,
-                            onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
-                            onToggleShoppingStatus = { updatedItem ->
-                                pantryViewModel.update(updatedItem)
-                            }
-                        )
-
-                        // Instructions editor (unchanged)…
-                        EditableField("Instructions", instructions, singleLine = false, heightDp = 140) {
-                            instructions = it
-                        }
-
+                        HorizontalDivider()
                         // SAVE / CANCEL buttons
                         Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                             Button(

@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 
@@ -19,7 +18,6 @@ fun CreateFromScanDialog(
     onConfirm: (String, Int, ByteArray?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
     // Local state for name, quantity, and image bytes.
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }

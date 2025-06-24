@@ -9,6 +9,6 @@ data class ScanUiState(
     val itemAdded: Boolean = false,
     val promptNewItemDialog: Boolean = false,
     val lastScanCode: String? = null,
-    val promptLinkScanCodeDialog: Boolean = false // <-- add this line
-
+    val promptLinkScanCodeDialog: Boolean = false, // <-- add this line
+    val scannerResetTrigger: Long = 0L
 )

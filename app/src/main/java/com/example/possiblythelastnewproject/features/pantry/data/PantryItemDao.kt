@@ -28,8 +28,11 @@ interface PantryItemDao {
     @Delete
     suspend fun deletePantryItem(item: PantryItem)
 
-    @Query("SELECT * FROM PantryItem WHERE name = :name LIMIT 1")
+    @Query("SELECT * FROM pantryItem WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun getByName(name: String): PantryItem?
+
+    @Query("SELECT * FROM pantryItem WHERE category = :category ORDER BY name")
+    fun getItemsByCategory(category: String): Flow<List<PantryItem>>
 
 
 }

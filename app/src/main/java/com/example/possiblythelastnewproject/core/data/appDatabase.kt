@@ -2,6 +2,8 @@ package com.example.possiblythelastnewproject.core.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.example.possiblythelastnewproject.features.pantry.data.Category
+import com.example.possiblythelastnewproject.features.pantry.data.CategoryDao
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
@@ -16,7 +18,8 @@ import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
         Recipe::class,
         PantryItem::class,
         ShoppingListItem::class,
-        RecipePantryItemCrossRef::class
+        RecipePantryItemCrossRef::class,
+        Category::class
     ],
     version = 1,
     exportSchema = false
@@ -27,4 +30,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pantryItemDao(): PantryItemDao
     abstract fun shoppingListDao(): ShoppingListDao
     abstract fun recipeIngredientDao(): RecipePantryItemDao
+    abstract fun categoryDao(): CategoryDao
 }

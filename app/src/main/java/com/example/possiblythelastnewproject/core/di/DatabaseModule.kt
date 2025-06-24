@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
 import com.example.possiblythelastnewproject.core.data.AppDatabase
+import com.example.possiblythelastnewproject.features.pantry.data.CategoryDao
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
 import com.example.possiblythelastnewproject.features.shoppingList.data.ShoppingListDao
@@ -55,4 +56,24 @@ object DatabaseModule {
     fun provideRecipePantryItemDao(appDatabase: AppDatabase): RecipePantryItemDao {
         return appDatabase.recipeIngredientDao()
     }
+
+    @Provides
+    fun provideCategoryDao(appDatabase: AppDatabase): CategoryDao {
+        return appDatabase.categoryDao()
+    }
+
+    // Provide CategoryDao instance
+    @Provides
+    fun provideDefaultCategoryNames(): List<String> = listOf(
+        "Grains",
+        "Vegetables",
+        "Fruits",
+        "Dairy",
+        "Protein",
+        "Snacks",
+        "Spices",
+        "Baking",
+        "Condiments",
+        "Beverages"
+    )
 }

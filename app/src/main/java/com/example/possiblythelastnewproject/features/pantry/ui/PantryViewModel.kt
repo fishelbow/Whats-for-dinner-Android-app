@@ -4,6 +4,7 @@ package com.example.possiblythelastnewproject.features.pantry.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.possiblythelastnewproject.features.pantry.data.Category
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
@@ -24,7 +25,20 @@ import javax.inject.Inject
 class PantryViewModel @Inject constructor(
     private val repository: PantryRepository,
     private val repo : RecipePantryItemRepository
+
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            repository.populateDefaultCategoriesIfEmpty()
+        }
+    }
+
+
+
+    val allCategories: StateFlow<List<Category>> = repository
+        .getAllCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // produce a live set of all pantryItemIds used in recipes
     val inUsePantryItemIds: StateFlow<Set<Long>> =
@@ -54,7 +68,21 @@ class PantryViewModel @Inject constructor(
         private val _uiState = MutableStateFlow(PantryUiState())
         val uiState: StateFlow<PantryUiState> = _uiState.asStateFlow()
 
+
+
+
         // — UI State modifiers
+
+
+    fun updateSelectedCategory(category: Category?) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
+
+    fun updateEditCategory(category: Category?) {
+        _uiState.update { it.copy(editCategory = category) }
+    }
+
+
         fun onSearchQueryChange(query: String) {
             _uiState.update { it.copy(searchQuery = query) }
         }
@@ -103,13 +131,18 @@ class PantryViewModel @Inject constructor(
                         ignoreCase = true
                     )
                 }) {
-                repository.insert(
+                state.selectedCategory?.name?.let {
                     PantryItem(
                         name = name,
                         quantity = 1,
-                        imageData = state.addImageBytes
+                        imageData = state.addImageBytes,
+                        category = it
                     )
-                )
+                }?.let {
+                    repository.insert(
+                        it
+                    )
+                }
                 _uiState.update {
                     it.copy(newIngredientName = "", addImageBytes = null, showAddDialog = false)
                 }
@@ -119,16 +152,15 @@ class PantryViewModel @Inject constructor(
     fun confirmEditItem() = viewModelScope.launch {
         val state = _uiState.value
         val original = state.editingItem ?: return@launch
-        val qty = state.editQuantityText.toIntOrNull() ?: 1
-        if (state.editName.isNotBlank()) {
-            repository.update(
-                original.copy(
-                    name = state.editName.trim(),
-                    quantity = qty,
-                    imageData = state.editImageBytes
-                )
-            )
-        }
+        val newQuantity = state.editQuantityText.toIntOrNull() ?: original.quantity
+
+        val updatedItem = original.copy(
+            name = state.editName.trim(),
+            quantity = newQuantity,
+            imageData = state.editImageBytes,
+            category = state.editCategory?.name ?: original.category
+        )
+        repository.update(updatedItem)
         _uiState.update { it.copy(editingItem = null) }
     }
 
@@ -180,4 +212,5 @@ class PantryViewModel @Inject constructor(
             }
         }
     }
+
 }

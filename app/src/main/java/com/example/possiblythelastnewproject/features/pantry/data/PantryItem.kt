@@ -10,8 +10,9 @@ data class PantryItem(
     val quantity: Int,
     val imageData: ByteArray? = null,
     val shouldTrack: Boolean = true,           // Controls whether this item is included in pantry tracking
-    val addToShoppingList: Boolean = false,    // Suggests automatic shopping list addition
-    val scanCode: String? = null               // Stores barcode, PLU, or any other scan code
+    val addToShoppingList: Boolean = true,    // Suggests automatic shopping list addition
+    val scanCode: String? = null,             // Stores barcode, PLU, or any other scan code
+    val category: String = ""
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -29,6 +30,7 @@ data class PantryItem(
             if (!imageData.contentEquals(other.imageData)) return false
         } else if (other.imageData != null) return false
         if (scanCode != other.scanCode) return false
+        if (category != other.category) return false
 
         return true
     }
@@ -41,6 +43,7 @@ data class PantryItem(
         result = 31 * result + name.hashCode()
         result = 31 * result + (imageData?.contentHashCode() ?: 0)
         result = 31 * result + (scanCode?.hashCode() ?: 0)
+        result = 31 * result + category.hashCode()
         return result
     }
 }

@@ -71,8 +71,10 @@ class ScanViewModel @Inject constructor(
                 scannedItem = null,
                 scanSuccess = false,
                 promptNewItemDialog = false,
+                promptLinkScanCodeDialog = false,
                 lastScanCode = null,
-                itemAdded = false
+                itemAdded = false,
+                scannerResetTrigger = System.currentTimeMillis()
             )
         }
     }
