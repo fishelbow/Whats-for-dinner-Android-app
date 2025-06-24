@@ -1,8 +1,14 @@
 package com.example.possiblythelastnewproject.features.scan.ui.componets
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -11,23 +17,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.core.utils.imagePicker
+import com.example.possiblythelastnewproject.features.pantry.data.Category
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateFromScanDialog(
     scanCode: String,
-    onConfirm: (String, Int, ByteArray?) -> Unit,
+    categories: List<Category>,
+    selectedCategory: Category?,
+    onCategoryChange: (Category) -> Unit,
+    onConfirm: (String, Int, ByteArray?, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Local state for name, quantity, and image bytes.
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var categoryDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Use your universal image picker. It returns a lambda;
-    // here we update imageBytes when the user picks an image.
-    val launchImagePicker = imagePicker { newBytes ->
-        imageBytes = newBytes
-    }
+    val launchImagePicker = imagePicker { newBytes -> imageBytes = newBytes }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -47,13 +54,48 @@ fun CreateFromScanDialog(
                     singleLine = true,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-                // Use the universal image picker:
                 TextButton(
                     onClick = { launchImagePicker() },
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text("Pick Image")
                 }
+
+                Spacer(Modifier.padding(top = 8.dp))
+
+                // Category dropdown
+                ExposedDropdownMenuBox(
+                    expanded = categoryDropdownExpanded,
+                    onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryDropdownExpanded,
+                        onDismissRequest = { categoryDropdownExpanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category.name) },
+                                onClick = {
+                                    onCategoryChange(category)
+                                    categoryDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 Text(
                     text = "Scan Code: $scanCode",
                     style = MaterialTheme.typography.bodySmall,
@@ -66,7 +108,7 @@ fun CreateFromScanDialog(
                 onClick = {
                     val qty = quantity.toIntOrNull() ?: 1
                     if (name.isNotBlank()) {
-                        onConfirm(name.trim(), qty, imageBytes)
+                        onConfirm(name.trim(), qty, imageBytes, selectedCategory?.name)
                     }
                 }
             ) {

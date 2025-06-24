@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.scan.ui
 
+import com.example.possiblythelastnewproject.features.pantry.data.Category
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
 
 data class ScanUiState(
@@ -9,6 +10,7 @@ data class ScanUiState(
     val itemAdded: Boolean = false,
     val promptNewItemDialog: Boolean = false,
     val lastScanCode: String? = null,
-    val promptLinkScanCodeDialog: Boolean = false, // <-- add this line
-    val scannerResetTrigger: Long = 0L
+    val promptLinkScanCodeDialog: Boolean = false,
+    val scannerResetTrigger: Long = 0L,
+    val selectedCategory: Category? = null
 )

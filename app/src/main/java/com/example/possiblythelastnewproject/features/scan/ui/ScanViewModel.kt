@@ -2,12 +2,15 @@ package com.example.possiblythelastnewproject.features.scan.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.possiblythelastnewproject.features.pantry.data.Category
 import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
 import com.example.possiblythelastnewproject.features.scan.data.ScanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +24,18 @@ class ScanViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<ScanUiState>(ScanUiState())
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
+
+    val allCategories: StateFlow<List<Category>> = repository
+        .getAllCategories()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun updateSelectedCategory(category: Category?) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
 
     fun scan(code: String) {
         viewModelScope.launch {
@@ -125,5 +140,11 @@ class ScanViewModel @Inject constructor(
             )
         }
         pendingItemExtras = null
+    }
+
+    fun addPantryItem(item: PantryItem) = viewModelScope.launch {
+        repository.insert(item)
+        _uiState.update { it.copy(itemAdded = true) }
+        clearScanResult()
     }
 }

@@ -25,6 +25,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryScreen
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
@@ -202,13 +203,22 @@ fun ScanningNavHost(navController: NavHostController) {
                 uiState.promptNewItemDialog -> {
                     CreateFromScanDialog(
                         scanCode = uiState.lastScanCode.orEmpty(),
-                        onConfirm = { name, qty, imageData ->
-                            viewModel.handleManualNameEntry(
-                                name = name,
-                                pendingScanCode = uiState.lastScanCode.orEmpty(),
-                                quantity = qty,
-                                imageData = imageData
+                        categories = viewModel.allCategories.collectAsState().value,
+                        selectedCategory = uiState.selectedCategory,
+                        onCategoryChange = { category ->
+                            viewModel.updateSelectedCategory(category)
+                        },
+                        onConfirm = { name, qty, imageData, categoryName ->
+                            viewModel.addPantryItem(
+                                PantryItem(
+                                    name = name,
+                                    quantity = qty,
+                                    imageData = imageData,
+                                    scanCode = uiState.lastScanCode.orEmpty(),
+                                    category = categoryName ?: ""
+                                )
                             )
+                            viewModel.clearScanResult()
                         },
                         onDismiss = {
                             viewModel.clearScanResult()
