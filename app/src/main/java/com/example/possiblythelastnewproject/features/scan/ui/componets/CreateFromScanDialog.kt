@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.features.scan.ui.componets
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -15,7 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.data.Category
 
@@ -59,6 +63,20 @@ fun CreateFromScanDialog(
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Text("Pick Image")
+                }
+
+                if (imageBytes != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageBytes)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth()
+                            .height(180.dp) // adjust as needed
+                    )
                 }
 
                 Spacer(Modifier.padding(top = 8.dp))
