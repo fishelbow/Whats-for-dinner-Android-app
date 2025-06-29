@@ -203,8 +203,17 @@ fun ScanningTab(
         }) {
             Text(if (isPaused) "Resume Scanning" else "Pause Scanning")
         }
+
+        if (isPaused) {
+            Spacer(Modifier.height(8.dp))
+           // Button(onClick = { showDebugDialog = true }) {
+                Text("⚙️ Debug Tools")
+            }
+        }
+
+
     }
-}
+
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable

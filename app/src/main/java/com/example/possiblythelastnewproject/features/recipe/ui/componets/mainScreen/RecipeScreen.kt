@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen
 
 import android.graphics.BitmapFactory
 import androidx.compose.animation.core.Animatable

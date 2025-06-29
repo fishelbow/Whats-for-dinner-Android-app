@@ -1,9 +1,9 @@
 package com.example.possiblythelastnewproject.features.scan.data
 
-import com.example.possiblythelastnewproject.features.pantry.data.Category
-import com.example.possiblythelastnewproject.features.pantry.data.CategoryDao
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItemDao
+import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.data.dao.CategoryDao
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
 import kotlinx.coroutines.flow.Flow
 
 import javax.inject.Inject

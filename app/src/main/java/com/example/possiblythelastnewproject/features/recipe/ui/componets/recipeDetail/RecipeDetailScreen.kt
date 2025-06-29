@@ -1,8 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
 
 import android.graphics.BitmapFactory
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -32,12 +30,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.possiblythelastnewproject.core.utils.compressImageFromUri
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.IngredientChipEditor
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
 
@@ -77,14 +74,21 @@ fun RecipeDetailScreen(
     var cookTime by remember { mutableStateOf(TextFieldValue(initialData.recipe.cookTime)) }
     var category by remember { mutableStateOf(TextFieldValue(initialData.recipe.category)) }
     var newIngredient by remember { mutableStateOf("") }
-    var ingredientList by remember {
-        mutableStateOf(
-            initialData.ingredients.map {
-                RecipeIngredientUI(name = it.name, pantryItemId = it.id, isShoppable = false, hasScanCode = false) }) }
+    var ingredientList by remember { mutableStateOf(emptyList<RecipeIngredientUI>()) }
     var instructions by remember { mutableStateOf(TextFieldValue(initialData.recipe.instructions)) }
     var cardColor by remember { mutableStateOf(Color(initialData.recipe.color)) }
     var imageData by remember { mutableStateOf(initialData.recipe.imageData) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val recipe = initialData.recipe
+    val ingredients by viewModel
+        .observeIngredientsForRecipe(recipeId = recipe.id, pantryItems = pantryItems)
+        .collectAsState(initial = emptyList())
+    LaunchedEffect(isEditing, ingredients) {
+        if (isEditing && ingredientList.isEmpty()) {
+            ingredientList = ingredients
+        }
+    }
+
 
     //
     // 3) Helper to re-seed all local state from DB (used on Cancel/Back in edit mode)
@@ -218,7 +222,7 @@ fun RecipeDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             val pantryItemsById = pantryItems.associateBy { it.id }
 
-                            ingredientList.forEach { item ->
+                            ingredients.forEach { item ->
                                 val pantryItem = pantryItemsById[item.pantryItemId]
                                 val isShoppable = pantryItem?.addToShoppingList == true
 
@@ -226,7 +230,7 @@ fun RecipeDetailScreen(
                                     onClick = {},
                                     label = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(item.name)
+                                            Text("${item.amountRequired} × ${item.name}")
                                             if (isShoppable)
                                                 Icon(
                                                     imageVector = Icons.Default.ShoppingCart,
@@ -267,6 +271,11 @@ fun RecipeDetailScreen(
                         // Ingredient chip editor (unchanged)…
                         val pantryViewModel: PantryViewModel = hiltViewModel()
                         val pantryItems by pantryViewModel.allItems.collectAsState()
+                        LaunchedEffect(ingredients) {
+                            if (isEditing && ingredientList.isEmpty()) {
+                                ingredientList = ingredients
+                            }
+                        }
                         IngredientChipEditor(
                             ingredients = ingredientList,
                             onIngredientsChange = { ingredientList = it },
@@ -275,6 +284,8 @@ fun RecipeDetailScreen(
                             onToggleShoppingStatus = { updatedItem ->
                                 pantryViewModel.update(updatedItem)
                             }
+
+
                         )
                         HorizontalDivider()
                         // Instructions editor (unchanged)…

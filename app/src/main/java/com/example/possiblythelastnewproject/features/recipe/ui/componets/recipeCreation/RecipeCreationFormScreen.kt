@@ -27,11 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.core.ui.theme.PossiblyTheLastNewProjectTheme
 import com.example.possiblythelastnewproject.core.utils.imagePicker
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.IngredientChipEditor
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable

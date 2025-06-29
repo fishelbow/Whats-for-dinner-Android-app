@@ -1,7 +1,7 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
-import com.example.possiblythelastnewproject.features.pantry.data.Category
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 
 data class PantryUiState(
     val searchQuery: String = "",

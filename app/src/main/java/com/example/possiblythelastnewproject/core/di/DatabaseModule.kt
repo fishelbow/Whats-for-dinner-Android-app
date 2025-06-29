@@ -1,13 +1,13 @@
 package com.example.possiblythelastnewproject.core.di
 
+import com.example.possiblythelastnewproject.core.data.AppDatabase
 import android.content.Context
 import androidx.room.Room
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
-import com.example.possiblythelastnewproject.core.data.AppDatabase
-import com.example.possiblythelastnewproject.features.pantry.data.CategoryDao
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItemDao
+import com.example.possiblythelastnewproject.features.pantry.data.dao.CategoryDao
+import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
-import com.example.possiblythelastnewproject.features.shoppingList.data.ShoppingListDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

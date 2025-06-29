@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

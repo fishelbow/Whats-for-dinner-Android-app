@@ -1,20 +1,49 @@
 package com.example.possiblythelastnewproject.features.shoppingList.data
 
+import androidx.room.Delete
+import androidx.room.Transaction
+import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
+import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ShoppingListRepository @Inject constructor(
-    private val shoppingListDao: ShoppingListDao
+    private val dao: ShoppingListDao,
+    private val recipeDao: RecipeDao
 ) {
-    fun getAllItems(): Flow<List<ShoppingListItem>> = shoppingListDao.getAllShoppingItems()
 
-    suspend fun insert(item: ShoppingListItem) = shoppingListDao.insertItem(item)
+    fun getAllShoppingItems(): Flow<List<ShoppingListItem>> = dao.getAllShoppingItems()
 
-    suspend fun update(item: ShoppingListItem) = shoppingListDao.updateItem(item)
+    fun getShoppingItemsForList(listId: Long): Flow<List<ShoppingListItem>> =
+        dao.getShoppingItemsForList(listId)
 
-    suspend fun delete(item: ShoppingListItem) = shoppingListDao.deleteItem(item)
+    suspend fun insertShoppingItem(item: ShoppingListItem) = dao.insertShoppingItem(item)
 
-    suspend fun clearChecked() = shoppingListDao.clearCheckedItems()
+    suspend fun insertShoppingItems(items: List<ShoppingListItem>) {
+        items.forEach { dao.insertShoppingItem(it) }
+    }
+
+    suspend fun updateShoppingItem(item: ShoppingListItem) = dao.updateShoppingItem(item)
+
+    suspend fun deleteShoppingItem(item: ShoppingListItem) = dao.deleteShoppingItem(item)
+
+    suspend fun clearCheckedItemsInList(listId: Long) = dao.clearCheckedItemsInList(listId)
+
+    suspend fun insertShoppingList(list: ShoppingList): Long = dao.insertShoppingList(list)
+
+    fun getAllShoppingLists(): Flow<List<ShoppingList>> = dao.getAllShoppingLists()
+
+    suspend fun deleteGeneratedItemsInList(listId: Long) = dao.deleteGeneratedItemsInList(listId)
+
+    suspend fun deleteShoppingList(list: ShoppingList) = dao.deleteShoppingList(list)
+
+    @Transaction
+    suspend fun deleteShoppingListWithItems(list: ShoppingList) {
+        dao.deleteAllItemsInList(list.id)
+        dao.deleteShoppingList(list)
+    }
 }

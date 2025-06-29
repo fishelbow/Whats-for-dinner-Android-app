@@ -1,0 +1,104 @@
+package com.example.possiblythelastnewproject.features.recipe.ui.components.ingredientChips
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddIngredientDialog(
+    allPantryItems: List<PantryItem>,
+    onAdd: (String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var nameQuery by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("1") }
+    var expanded by remember { mutableStateOf(false) }
+
+    val suggestions = remember(nameQuery, allPantryItems) {
+        if (nameQuery.isBlank()) emptyList()
+        else allPantryItems
+            .filter { it.name.contains(nameQuery.trim(), ignoreCase = true) }
+            .take(5)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Ingredient") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = nameQuery,
+                        onValueChange = {
+                            nameQuery = it
+                            expanded = it.isNotBlank() && suggestions.isNotEmpty()
+                        },
+                        label = { Text("Ingredient name") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        }
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        suggestions.forEach { item ->
+                            DropdownMenuItem(
+                                text = { Text(item.name) },
+                                onClick = {
+                                    nameQuery = item.name
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = {
+                        amount = it.filter { char -> char.isDigit() }
+                    },
+                    label = { Text("Amount required") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done,
+                        keyboardType = KeyboardType.Number
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onAdd(nameQuery.trim(), amount.trim())
+                    onDismiss()
+                },
+                enabled = nameQuery.isNotBlank() && amount.isNotBlank()
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}

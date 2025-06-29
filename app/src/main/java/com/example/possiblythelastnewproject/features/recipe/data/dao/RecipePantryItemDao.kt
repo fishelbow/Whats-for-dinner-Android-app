@@ -42,4 +42,13 @@ interface RecipePantryItemDao {
     /** Live stream of every cross-ref in the DB. */
     @Query("SELECT * FROM RecipePantryItemCrossRef")
     fun getAllCrossRefs(): Flow<List<RecipePantryItemCrossRef>>
+
+    @Query("SELECT * FROM RecipePantryItemCrossRef")
+    suspend fun getAllOnce(): List<RecipePantryItemCrossRef>
+
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<RecipePantryItemCrossRef>)
+
+
 }

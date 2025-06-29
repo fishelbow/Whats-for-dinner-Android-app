@@ -1,9 +1,13 @@
-package com.example.possiblythelastnewproject.features.pantry.data
+package com.example.possiblythelastnewproject.features.pantry.data.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
-@Entity
+@Entity(
+    indices = [Index(value = ["uuid"], unique = true)]
+)
 data class PantryItem(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val name: String,
@@ -12,8 +16,12 @@ data class PantryItem(
     val shouldTrack: Boolean = true,           // Controls whether this item is included in pantry tracking
     val addToShoppingList: Boolean = true,    // Suggests automatic shopping list addition
     val scanCode: String? = null,             // Stores barcode, PLU, or any other scan code
-    val category: String = ""
+    val category: String = "",
+    val uuid: String = UUID.randomUUID().toString()
 ) {
+    val hasScanCode: Boolean
+        get() = !scanCode.isNullOrBlank()
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

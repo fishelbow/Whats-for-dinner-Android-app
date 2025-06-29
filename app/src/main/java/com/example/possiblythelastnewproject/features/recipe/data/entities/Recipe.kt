@@ -3,9 +3,13 @@ package com.example.possiblythelastnewproject.features.recipe.data.entities
 import androidx.annotation.ColorInt
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
-@Entity
+@Entity(
+    indices = [Index(value = ["uuid"], unique = true)]
+)
 data class Recipe(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "recipe_name") val name: String,
@@ -15,7 +19,8 @@ data class Recipe(
     val category: String,
     val instructions: String,
     val imageData: ByteArray? = null,
-    @ColorInt val color: Int = 0
+    @ColorInt val color: Int = 0,
+    val uuid: String = UUID.randomUUID().toString()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

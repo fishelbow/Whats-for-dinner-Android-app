@@ -25,11 +25,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryScreen
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.RecipeScreenWithSearch
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
@@ -37,6 +37,9 @@ import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
 import com.example.possiblythelastnewproject.features.scan.ui.componets.CreateFromScanDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.LinkScanCodeDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.UpdateItemDialog
+import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
+import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingMainScreen
+import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingListScreen
 
 // ────────────────────────────────────────────────
 // 1) Tab model
@@ -57,7 +60,7 @@ fun MainScreen() {
     // List of tabs
     val tabs = listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning)
     // Use a mutable state to track the currently selected tab index
-    var currentPage by remember { mutableStateOf(0) }
+    var currentPage by remember { mutableIntStateOf(0) }
     // Associate a NavController to each tab
     val navMap = tabs.associateWith { rememberNavController() }
 
@@ -153,9 +156,51 @@ fun PantryNavHost(navController: NavHostController) {
 @Composable
 fun ShoppingNavHost(navController: NavHostController) {
     NavHost(navController, startDestination = "shopping_main") {
-        composable("shopping_main") { ScreenContent(title = "Shopping Main") }
+        composable("shopping_main") {
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+            val shoppingLists by viewModel.allShoppingLists.collectAsState()
+
+            ShoppingMainScreen(
+                shoppingLists = shoppingLists,
+                onListClick = { list ->
+                    viewModel.setActiveList(list.id)
+                    navController.navigate("shopping_list/${list.id}")
+                },
+                onCreateList = { name, selectedRecipeIds ->
+                    viewModel.createListWithRecipes(name, selectedRecipeIds) { newListId ->
+                        navController.navigate("shopping_list/$newListId")
+                    }
+                },
+                onDeleteList = { list ->
+                    viewModel.deleteListWithItems(list)
+                }
+            )
+        }
+
+        composable("shopping_list/{listId}") { backStackEntry ->
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+            val listId = backStackEntry.arguments?.getString("listId")?.toLongOrNull()
+                ?: return@composable
+
+            LaunchedEffect(listId) {
+                viewModel.setActiveList(listId)
+            }
+
+            val categorizedItems by viewModel.categorizedItems.collectAsState()
+            val allLists by viewModel.allShoppingLists.collectAsState()
+            val listName = allLists.firstOrNull { it.id == listId }?.name ?: "Shopping List"
+
+            ShoppingListScreen(
+                listName = listName,
+                categorizedItems = categorizedItems,
+                onCheckToggled = viewModel::toggleCheck
+            )
+        }
     }
 }
+
+
+
 
 @Composable
 fun ScanningNavHost(navController: NavHostController) {

@@ -2,16 +2,16 @@ package com.example.possiblythelastnewproject.features.recipe.data.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import java.util.UUID
 
 @Entity(
     tableName = "RecipePantryItemCrossRef",
     primaryKeys = ["recipeId", "pantryItemId"],
     indices = [
-        // index pantryItemId so lookups and deletes cascade efficiently
         Index(value = ["pantryItemId"]),
-        // (optional) if you ever look up by recipeId alone, you can index it too:
-        // Index(value = ["recipeId"])
+        Index(value = ["uuid"], unique = true)
+
     ],
     foreignKeys = [
         ForeignKey(
@@ -32,5 +32,6 @@ data class RecipePantryItemCrossRef(
     val recipeId: Long,
     val pantryItemId: Long,
     val required: Boolean = false,
-    val amountNeeded: String = ""
+    val amountNeeded: String = "",
+    val uuid: String = UUID.randomUUID().toString()
 )

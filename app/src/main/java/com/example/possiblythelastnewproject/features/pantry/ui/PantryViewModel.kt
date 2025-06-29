@@ -4,8 +4,8 @@ package com.example.possiblythelastnewproject.features.pantry.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.possiblythelastnewproject.features.pantry.data.Category
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

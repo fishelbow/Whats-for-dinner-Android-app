@@ -1,12 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.data.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Transaction
-import androidx.room.Update
+import androidx.room.*
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import kotlinx.coroutines.flow.Flow
@@ -37,5 +31,13 @@ interface RecipeDao {
     @Query("SELECT * FROM Recipe WHERE id = :id")
     suspend fun getRecipeWithIngredients(id: Long): RecipeWithIngredients?
 
+    @Query("DELETE FROM Recipe WHERE id = :id")
+    suspend fun deleteRecipeById(id: Long)
+
+    @Query("SELECT * FROM Recipe")
+    suspend fun getAllOnce(): List<Recipe>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Recipe>)
 
 }

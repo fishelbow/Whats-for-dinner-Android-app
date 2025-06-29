@@ -1,10 +1,11 @@
-package com.example.possiblythelastnewproject.features.pantry.data
+package com.example.possiblythelastnewproject.features.pantry.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,5 +25,13 @@ interface CategoryDao {
 
     @Query("SELECT * FROM Category")
     suspend fun getAllCategoriesOnce(): List<Category>
+
+    @Query("SELECT * FROM Category")
+    suspend fun getAllOnce(): List<Category>
+
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Category>)
+
 
 }

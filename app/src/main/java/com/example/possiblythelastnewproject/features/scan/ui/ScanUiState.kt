@@ -1,7 +1,7 @@
 package com.example.possiblythelastnewproject.features.scan.ui
 
-import com.example.possiblythelastnewproject.features.pantry.data.Category
-import com.example.possiblythelastnewproject.features.pantry.data.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 
 data class ScanUiState(
     val isLoading: Boolean = false,
