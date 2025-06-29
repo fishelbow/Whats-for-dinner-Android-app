@@ -65,15 +65,7 @@ object DatabaseModule {
     // Provide CategoryDao instance
     @Provides
     fun provideDefaultCategoryNames(): List<String> = listOf(
-        "Grains",
-        "Vegetables",
-        "Fruits",
-        "Dairy",
-        "Protein",
-        "Snacks",
-        "Spices",
-        "Baking",
-        "Condiments",
-        "Beverages"
+        "Produce", "Snacks", "Dairy", "Meat", "Grains", "Sauce",
+        "Frozen", "Drinks", "Paper goods", "Canned goods", "Spices", "Toiletries", "Other"
     )
 }

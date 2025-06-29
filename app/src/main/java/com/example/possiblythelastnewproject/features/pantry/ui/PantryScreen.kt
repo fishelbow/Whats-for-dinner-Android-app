@@ -137,22 +137,35 @@ fun PantryScreen(
                 }
             },
             confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = { showScanDialog = true }) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = { showScanDialog = true },
+                        modifier = Modifier.align(Alignment.Start)
+                    ) {
                         Text(
                             if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
                             else "Update PLU/Barcode"
                         )
                     }
-                    Row {
-                        TextButton(onClick = { selectedItem = null }) { Text("Close") }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { selectedItem = null }) {
+                            Text("Close", maxLines = 1, softWrap = false)
+                        }
+                        Spacer(Modifier.width(8.dp))
                         TextButton(onClick = {
                             viewModel.startEditing(item)
                             selectedItem = null
-                        }) { Text("Edit") }
+                        }) {
+                            Text("Edit", maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             }
@@ -243,15 +256,17 @@ fun PantryScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newIngredient.isNotBlank() && !nameExists && selectedCategory != null) {
+                    if (newIngredient.isNotBlank() && !nameExists) {
                         viewModel.addPantryItem(
                             PantryItem(
                                 name = newIngredient.trim(),
                                 quantity = 1,
                                 imageData = addImageBytes,
-                                category = selectedCategory.name
+                                category = selectedCategory?.name.orEmpty()
                             )
                         )
+
+
                         newIngredient = ""
                         addImageBytes = null
                         showAddDialog = false

@@ -52,6 +52,7 @@ fun RecipeScreenWithSearch(
 ) {
     val allRecipes by viewModel.recipes.collectAsState()
     var query by remember { mutableStateOf(TextFieldValue("")) }
+    val focusManager = LocalFocusManager.current
 
     val filtered = remember(query.text, allRecipes) {
         if (query.text.isBlank()) allRecipes
@@ -63,21 +64,21 @@ fun RecipeScreenWithSearch(
         }
     }
 
-    val focusManager = LocalFocusManager.current
-
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+    Scaffold(
+        topBar = {
             RecipeSearchBar(
                 query = query.text,
                 onQueryChange = { query = TextFieldValue(it) },
                 onAddNewRecipe = onAddClick,
                 focusManager = focusManager
             )
-
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             Spacer(modifier = Modifier.height(8.dp))
 
             RecipeStackScreen(

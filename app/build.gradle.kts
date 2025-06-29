@@ -46,6 +46,12 @@ android {
 
 dependencies {
 
+    //CSV reader and writer
+
+    implementation(libs.opencsv)
+
+
+
 
     implementation(libs.kotlin.reflect)
 
