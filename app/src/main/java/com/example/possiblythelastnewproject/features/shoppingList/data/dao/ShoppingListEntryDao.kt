@@ -20,8 +20,9 @@ interface ShoppingListEntryDao {
     @Query("SELECT * FROM ShoppingList WHERE id = :listId LIMIT 1")
     suspend fun getById(listId: Long): ShoppingList?
 
-    @Query("SELECT * FROM ShoppingList")
-    suspend fun getAllOnce(): List<ShoppingList>
+
+    @Query("SELECT * FROM ShoppingListItem")
+    suspend fun getAllOnce(): List<ShoppingListItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ShoppingListItem>)

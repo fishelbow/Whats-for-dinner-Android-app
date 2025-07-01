@@ -27,7 +27,7 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
-            "PossiblyTheLastNewProject_database"
+            "PossiblyTheLastNewProject"
         )
             .fallbackToDestructiveMigration(false) // Adjust migration as needed
             .build()
@@ -54,7 +54,7 @@ object DatabaseModule {
     // Provide RecipePantryItemDao instance
     @Provides
     fun provideRecipePantryItemDao(appDatabase: AppDatabase): RecipePantryItemDao {
-        return appDatabase.recipeIngredientDao()
+        return appDatabase.recipePantryItemDao()
     }
 
     @Provides

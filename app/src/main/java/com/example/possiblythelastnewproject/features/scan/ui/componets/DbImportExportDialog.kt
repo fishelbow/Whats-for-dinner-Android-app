@@ -27,15 +27,15 @@ fun DbImportExportDialog(
         title = { Text("Database Backup") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Export or import your entire Room database file.")
+                Text("Export or import your entire database as a JSON file.")
                 if (isLoading) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
                 Button(onClick = onImportClick, enabled = !isLoading) {
-                    Text("📥 Import .db File")
+                    Text("📥 Import JSON")
                 }
                 Button(onClick = onExportClick, enabled = !isLoading) {
-                    Text("📤 Export .db File")
+                    Text("📤 Export JSON")
                 }
             }
         },

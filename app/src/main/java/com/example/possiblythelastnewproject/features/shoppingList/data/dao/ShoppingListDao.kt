@@ -46,8 +46,9 @@ interface ShoppingListDao {
     @Query("DELETE FROM ShoppingListItem WHERE listId = :listId")
     suspend fun deleteAllItemsInList(listId: Long)
 
-    @Query("SELECT * FROM ShoppingListItem")
-    suspend fun getAllOnce(): List<ShoppingListItem>
+
+    @Query("SELECT * FROM ShoppingList")
+    suspend fun getAllOnce(): List<ShoppingList>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<ShoppingList>)

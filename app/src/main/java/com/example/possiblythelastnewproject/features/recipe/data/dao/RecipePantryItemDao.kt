@@ -51,4 +51,11 @@ interface RecipePantryItemDao {
     suspend fun insertAll(items: List<RecipePantryItemCrossRef>)
 
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllRefs(refs: List<RecipePantryItemCrossRef>)
+
+
+
+
+
 }

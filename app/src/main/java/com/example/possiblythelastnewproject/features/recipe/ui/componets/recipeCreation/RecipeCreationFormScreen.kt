@@ -20,11 +20,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.possiblythelastnewproject.core.ui.LocalEditingGuard
 import com.example.possiblythelastnewproject.core.ui.theme.PossiblyTheLastNewProjectTheme
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
@@ -47,12 +48,11 @@ fun RecipeCreationFormScreen(
     onRecipeCreated: (Recipe) -> Unit,
     onCancel: () -> Unit
 ) {
-    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val recipeViewModel: RecipesViewModel = hiltViewModel()
     val pantryViewModel: PantryViewModel = hiltViewModel()
-
     val pantryItems by pantryViewModel.allItems.collectAsState(emptyList())
+    val editingGuard = LocalEditingGuard.current
 
     var name by remember { mutableStateOf("") }
     var temp by remember { mutableStateOf("") }
@@ -64,11 +64,7 @@ fun RecipeCreationFormScreen(
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var ingredientList by remember { mutableStateOf(mutableListOf<RecipeIngredientUI>()) }
 
-    // Use the universal image picker from your utils package.
-    // When the image is picked, it updates the imageBytes state.
-    val launchImagePicker = imagePicker { newImageBytes ->
-        imageBytes = newImageBytes
-    }
+    val launchImagePicker = imagePicker { imageBytes = it }
 
     val colorOptions = listOf(
         0xFFF44336, 0xFFE91E63, 0xFF9C27B0, 0xFF673AB7,
@@ -76,6 +72,36 @@ fun RecipeCreationFormScreen(
         0xFF009688, 0xFF4CAF50, 0xFFFFC107, 0xFFFF5722
     ).map { Color(it or 0xFF000000) }
 
+    fun hasUnsavedChanges(): Boolean {
+        return name.isNotBlank() || temp.isNotBlank() || prepTime.isNotBlank() ||
+                cookTime.isNotBlank() || category.isNotBlank() || instructions.isNotBlank() ||
+                imageBytes?.isNotEmpty() == true || ingredientList.isNotEmpty()
+    }
+
+    // Sync editing state with EditingGuard
+    LaunchedEffect(
+        name, temp, prepTime, cookTime, category,
+        instructions, imageBytes, ingredientList
+    ) {
+        editingGuard.isEditing = hasUnsavedChanges()
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            editingGuard.isEditing = false
+        }
+    }
+    BackHandler(enabled = editingGuard.isEditing) {
+        if (hasUnsavedChanges()) {
+            editingGuard.requestExit {
+                editingGuard.isEditing = false
+                onCancel()
+            }
+        } else {
+            onCancel()
+        }
+
+
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,7 +109,14 @@ fun RecipeCreationFormScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         focusManager.clearFocus()
-                        onCancel()
+                        if (hasUnsavedChanges()) {
+                            editingGuard.requestExit {
+                                editingGuard.isEditing = false
+                                onCancel()
+                            }
+                        } else {
+                            onCancel()
+                        }
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
@@ -100,7 +133,6 @@ fun RecipeCreationFormScreen(
                 .animateContentSize(tween(300)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // When the image area is tapped, call launchImagePicker to open your image source dialog.
             RecipeImagePicker(imageBytes) { launchImagePicker() }
 
             RecipeFormCard(
@@ -123,42 +155,35 @@ fun RecipeCreationFormScreen(
                 onInstructionsChange = { instructions = it },
                 onSave = {
                     focusManager.clearFocus()
-                    recipeViewModel.saveRecipeWithIngredientsUi(
-                        Recipe(
-                            id = 0L,
-                            name = name.trim(),
-                            temp = temp.trim(),
-                            prepTime = prepTime.trim(),
-                            cookTime = cookTime.trim(),
-                            category = category.trim(),
-                            instructions = instructions.trim(),
-                            imageData = imageBytes ?: ByteArray(0),
-                            color = cardColor.toArgb()
-                        ),
-                        ingredientList
+                    val recipe = Recipe(
+                        id = 0L,
+                        name = name.trim(),
+                        temp = temp.trim(),
+                        prepTime = prepTime.trim(),
+                        cookTime = cookTime.trim(),
+                        category = category.trim(),
+                        instructions = instructions.trim(),
+                        imageData = imageBytes ?: ByteArray(0),
+                        color = cardColor.toArgb()
                     )
-                    onRecipeCreated(
-                        Recipe(
-                            name = name.trim(),
-                            temp = temp,
-                            prepTime = prepTime,
-                            cookTime = cookTime,
-                            category = category,
-                            instructions = instructions
-                        )
-                    )
+                    recipeViewModel.saveRecipeWithIngredientsUi(recipe, ingredientList)
+                    editingGuard.isEditing = false
+                    onRecipeCreated(recipe)
                 },
                 onCancel = {
                     focusManager.clearFocus()
-                    onCancel()
+                    if (hasUnsavedChanges()) {
+                        editingGuard.requestExit {
+                            editingGuard.isEditing = false
+                            onCancel()
+                        }
+                    } else {
+                        onCancel()
+                    }
                 },
                 pantryItems = pantryItems,
-                onRequestCreatePantryItem = { name ->
-                    pantryViewModel.insertAndReturn(name)
-                },
-                onToggleShoppingStatus = { updatedItem ->
-                    pantryViewModel.update(updatedItem)
-                }
+                onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
+                onToggleShoppingStatus = { pantryViewModel.update(it) }
             )
         }
     }

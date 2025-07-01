@@ -9,6 +9,7 @@ data class RecipeIngredientUI(
     val amountNeeded: String = "", // read from RecipePantryItemCrossRef
     val includeInShoppingList: Boolean = true,
     val includeInPantry: Boolean = true
+
 ) {
     val amountRequired: String
         get() = amountNeeded.ifBlank { "1" }

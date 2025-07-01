@@ -28,7 +28,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.possiblythelastnewproject.core.data.sandbox.DbBackupViewModel
-import com.example.possiblythelastnewproject.core.data.sandbox.rememberDbBackupLaunchers
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
@@ -46,14 +45,11 @@ fun ScanningTab(
             ?: error("ScanningTab must be hosted in a ComponentActivity")
     }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val viewModel: DbBackupViewModel = hiltViewModel()
-    val (launchImport, launchExport) = rememberDbBackupLaunchers(viewModel)
+
     var showDialog by remember { mutableStateOf(false) }
-
-
-    var cameraManager by remember { mutableStateOf<CustomCameraManager?>(null) }
     var isPaused by remember { mutableStateOf(false) }
     var showPulse by remember { mutableStateOf(false) }
+    var cameraManager by remember { mutableStateOf<CustomCameraManager?>(null) }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -62,37 +58,34 @@ fun ScanningTab(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+    val viewModel: DbBackupViewModel = hiltViewModel()
+    val isLoading = viewModel.isLoading
+    val result = viewModel.result
+
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri -> uri?.let { viewModel.importJson(it) } }
+    )
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+        onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
+    )
+
+    LaunchedEffect(result) {
+        result?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
+
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasPermission = granted }
 
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
-    }
-
-    if (!hasPermission) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Camera permission is required to scan.")
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                    Text("Grant Permission")
-                }
-            }
-        }
-        return
-    }
-
-    LaunchedEffect(viewModel.result) {
-        viewModel.result?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearResult()
-        }
     }
 
 
@@ -142,8 +135,7 @@ fun ScanningTab(
                 modifier = innerMod,
                 factory = { ctx ->
                     PreviewView(ctx).apply {
-                        addOnAttachStateChangeListener(object :
-                            View.OnAttachStateChangeListener {
+                        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                             override fun onViewAttachedToWindow(v: View) {
                                 cameraManager = CustomCameraManager(
                                     activity,
@@ -199,11 +191,23 @@ fun ScanningTab(
                 Text("⚙️ Debug Tools")
             }
         }
+        DbImportExportDialog(
+            showDialog = showDialog,
+            isLoading = isLoading,
+            onDismiss = {
+                showDialog = false
+                viewModel.clearResult()
+            },
+            onImportClick = {
+                importLauncher.launch(arrayOf("application/json"))
+            },
+            onExportClick = {
+                exportLauncher.launch("backup.json")
+            }
+        )
+
+
     }
-
-//spot for import/export dialog
-
-
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)

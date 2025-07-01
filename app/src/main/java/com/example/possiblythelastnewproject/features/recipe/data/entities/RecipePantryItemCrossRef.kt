@@ -3,8 +3,11 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
+
+@Serializable
 @Entity(
     tableName = "RecipePantryItemCrossRef",
     primaryKeys = ["recipeId", "pantryItemId"],

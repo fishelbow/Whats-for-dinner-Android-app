@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
-
+    alias(libs.plugins.kotlin.serialization)
     id("kotlin-kapt")
 
 
@@ -40,11 +40,14 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.0"
+        kotlinCompilerExtensionVersion = "1.6.10"
     }
 }
 
 dependencies {
+
+
+
 
     //CSV reader and writer
 
@@ -53,7 +56,21 @@ dependencies {
 
 
 
-    implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.serialization.json.v160)
+
+
+
+
+
+
+
+implementation(libs.kotlin.reflect)
+
+
+
+    implementation(platform("androidx.compose:compose-bom:2025.06.01"))
+    implementation("androidx.compose.animation:animation-core")
+
 
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -102,8 +119,6 @@ dependencies {
     implementation(libs.androidx.room.runtime.android)
     debugImplementation(libs.androidx.core)
 
-    //  Compose BOM keeps all Compose artifacts on the same version
-    implementation(platform(libs.androidx.compose.bom.v20240500))
 
     // Material 3 core widgets
     implementation(libs.androidx.compose.material3.material3)
@@ -114,15 +129,11 @@ dependencies {
     //
     implementation(libs.guava)
 
-    // Use the Compose BOM to ensure all Compose artifacts are using the same version.
     implementation(libs.listenablefuture)
 
     //
     implementation(libs.androidx.material3)
 
-    // Use the Compose BOM to ensure all Compose artifacts are using the same version.
-    implementation(platform(libs.androidx.compose.bom.v20230800))
-    implementation(libs.material3)
     // Core Compose dependencies.
     implementation(libs.ui) // includes pointer input (consume) and theming.
     implementation(libs.androidx.foundation) // includes layout modifiers such as offset.
@@ -143,6 +154,8 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.runtime.livedata)
 
+    //Leaky Canary for memory leaks
+    debugImplementation(libs.leakcanary.android)
 
     // Tooling for previews.
     debugImplementation(libs.ui.tooling)
