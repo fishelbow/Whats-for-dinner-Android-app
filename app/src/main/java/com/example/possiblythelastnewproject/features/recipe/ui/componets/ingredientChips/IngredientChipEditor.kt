@@ -1,8 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NewReleases
@@ -18,7 +16,7 @@ import com.example.possiblythelastnewproject.features.pantry.data.entities.Pantr
 import com.example.possiblythelastnewproject.features.recipe.ui.components.ingredientChips.AddIngredientDialog
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
-import com.google.accompanist.flowlayout.FlowRow
+import androidx.compose.foundation.layout.FlowRow
 
 @Composable
 fun IngredientChipEditor(
@@ -52,8 +50,8 @@ fun IngredientChipEditor(
 
 
         FlowRow(
-            mainAxisSpacing = 8.dp,
-            crossAxisSpacing = 8.dp,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             ingredients.forEach { ingredient ->
@@ -101,8 +99,6 @@ fun IngredientChipEditor(
                 )
             }
         }
-
-
         Button(onClick = { showAddDialog = true }) {
             Text("Add")
         }

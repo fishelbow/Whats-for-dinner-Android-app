@@ -78,9 +78,33 @@ fun RecipeDetailScreen(
     var pendingExitAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val recipe = initialData.recipe
-    val ingredients by viewModel.observeIngredientsForRecipe(recipeId = recipe.id, pantryItems = pantryItems)
-        .collectAsState(initial = emptyList())
 
+    val ingredients by viewModel.observeIngredientsForRecipe(
+        recipeId = recipe.id,
+        pantryItems = pantryItems
+    ).collectAsState(initial = emptyList())
+
+    val initialized = remember { mutableStateOf(false) }
+
+// Show loader until ingredients are available and initialized
+    if (ingredients.isEmpty() && !initialized.value) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+// Initialize ingredientList once when ingredients are ready
+    LaunchedEffect(ingredients) {
+        if (!initialized.value && ingredients.isNotEmpty()) {
+            ingredientList = ingredients
+            initialized.value = true
+        }
+    }
+
+    LaunchedEffect(recipeId) {
+        initialized.value = false
+    }
     fun hasUnsavedChanges(): Boolean {
         return editingGuard.isEditing && (
                 name.text != initialData.recipe.name ||

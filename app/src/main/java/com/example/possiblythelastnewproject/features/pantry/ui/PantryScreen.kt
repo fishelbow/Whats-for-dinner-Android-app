@@ -224,9 +224,7 @@ fun PantryScreen(
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                             },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth()
                         )
                         ExposedDropdownMenu(
                             expanded = categoryDropdownExpanded,

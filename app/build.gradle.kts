@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
     id("kotlin-kapt")
+//    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
+
 
 
 }
@@ -47,43 +49,24 @@ android {
 dependencies {
 
 
-
-
-    //CSV reader and writer
-
-    implementation(libs.opencsv)
-
-
-
-
     implementation(libs.kotlinx.serialization.json.v160)
 
+    implementation(libs.androidx.compose.foundation.foundation)
 
+    implementation(libs.kotlin.reflect)
 
+    implementation(libs.foundation)
 
-
-
-
-implementation(libs.kotlin.reflect)
-
-
-
-    implementation(platform("androidx.compose:compose-bom:2025.06.01"))
-    implementation("androidx.compose.animation:animation-core")
-
-
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.animation.core)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     implementation(libs.kotlin.metadata.jvm)
 
-
-    implementation(libs.androidx.room.runtime)
-    kapt("androidx.room:room-compiler:2.7.2") // ← this goes here
-
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-
+    implementation(libs.flow.layout)
 
     // Hilt Core
     implementation(libs.hilt.android)
@@ -92,7 +75,15 @@ implementation(libs.kotlin.reflect)
 
     // Hilt + Jetpack ViewModel
     implementation(libs.androidx.hilt.navigation.compose)
-    kapt(libs.androidx.hilt.compiler)
+   // kapt(libs.androidx.hilt.compiler)
+  //  ksp(libs.hilt.android.compiler)
+   // ksp(libs.androidx.hilt.compiler)
+
+    // Hilt + Lifecycle + ViewModel
+    implementation(libs.androidx.room.runtime)
+    kapt("androidx.room:room-compiler:2.7.2") // ← this goes here
+   // ksp("androidx.room:room-compiler:2.7.2")
+
 
     // CameraX dependencies
     implementation(libs.androidx.camera.core)
@@ -119,7 +110,6 @@ implementation(libs.kotlin.reflect)
     implementation(libs.androidx.room.runtime.android)
     debugImplementation(libs.androidx.core)
 
-
     // Material 3 core widgets
     implementation(libs.androidx.compose.material3.material3)
 
@@ -129,6 +119,7 @@ implementation(libs.kotlin.reflect)
     //
     implementation(libs.guava)
 
+    //
     implementation(libs.listenablefuture)
 
     //
