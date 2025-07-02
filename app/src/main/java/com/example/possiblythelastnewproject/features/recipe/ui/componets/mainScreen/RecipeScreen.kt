@@ -1,7 +1,8 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.components.mainScreen
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -10,11 +11,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.TextFieldValue
@@ -23,7 +24,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeSearchBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -90,12 +90,21 @@ fun RecipeGridScreen(
 
 @Composable
 fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
+    val cardColor = Color(recipe.color)
+    val textColor = if (cardColor.luminance() < 0.5f) Color.White else Color.Black
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .border(
+                width = 2.dp,
+                color = cardColor,
+                shape = RoundedCornerShape(12.dp)
+            ),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
@@ -123,13 +132,14 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
                 Text(
                     text = recipe.name,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2
+                    maxLines = 2,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = recipe.category,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = cardColor
                 )
             }
         }

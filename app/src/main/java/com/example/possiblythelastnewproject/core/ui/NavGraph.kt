@@ -24,7 +24,7 @@ import androidx.navigation.compose.*
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.*
 import com.example.possiblythelastnewproject.features.recipe.ui.*
-import com.example.possiblythelastnewproject.features.recipe.ui.components.mainScreen.RecipeScreenWithSearch
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
 import com.example.possiblythelastnewproject.features.scan.ui.*
