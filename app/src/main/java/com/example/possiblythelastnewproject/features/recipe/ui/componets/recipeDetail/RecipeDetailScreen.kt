@@ -86,20 +86,17 @@ fun RecipeDetailScreen(
 
     val initialized = remember { mutableStateOf(false) }
 
-// Show loader until ingredients are available and initialized
-    if (ingredients.isEmpty() && !initialized.value) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-// Initialize ingredientList once when ingredients are ready
-    LaunchedEffect(ingredients) {
-        if (!initialized.value && ingredients.isNotEmpty()) {
-            ingredientList = ingredients
-            initialized.value = true
-        }
+    LaunchedEffect(recipeId) {
+        val result = viewModel.getRecipeWithIngredients(recipeId)
+        ingredientList = result?.ingredients?.map {
+            RecipeIngredientUI(
+                name = it.name,
+                pantryItemId = it.id,
+                isShoppable = false,
+                hasScanCode = false
+            )
+        } ?: emptyList()
+        initialized.value = true
     }
 
     LaunchedEffect(recipeId) {
@@ -199,7 +196,10 @@ fun RecipeDetailScreen(
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
-                        TextButton(onClick = { editingGuard.isEditing = true }) {
+                        TextButton(
+                            onClick = { editingGuard.isEditing = true },
+                            enabled = initialized.value
+                        ) {
                             Text("Edit")
                         }
                     }
@@ -265,30 +265,47 @@ fun RecipeDetailScreen(
                         ReadOnlyField("Cook Time", cookTime.text)
                         ReadOnlyField("Category", category.text)
                         Text("Ingredients", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            val pantryItemsById = pantryItems.associateBy { it.id }
-                            ingredients.forEach { item ->
-                                val pantryItem = pantryItemsById[item.pantryItemId]
-                                val isShoppable = pantryItem?.addToShoppingList == true
-                                AssistChip(
-                                    onClick = {},
-                                    label = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("${item.amountRequired}×${item.name}")
-                                            if (isShoppable) {
-                                                Icon(
-                                                    imageVector = Icons.Default.ShoppingCart,
-                                                    contentDescription = "In Shopping List",
-                                                    modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                    }
+
+                        when {
+                            !initialized.value -> {
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            }
+                            ingredients.isEmpty() -> {
+                                Text(
+                                    text = "No ingredients yet.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                            else -> {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val pantryItemsById = pantryItems.associateBy { it.id }
+                                    ingredients.forEach { item ->
+                                        val pantryItem = pantryItemsById[item.pantryItemId]
+                                        val isShoppable = pantryItem?.addToShoppingList == true
+                                        AssistChip(
+                                            onClick = {},
+                                            label = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("${item.amountRequired}×${item.name}")
+                                                    if (isShoppable) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.ShoppingCart,
+                                                            contentDescription = "In Shopping List",
+                                                            modifier = Modifier.size(16.dp).padding(start = 4.dp),
+                                                            tint = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                         HorizontalDivider()

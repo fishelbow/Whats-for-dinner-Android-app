@@ -4,8 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
-    id("kotlin-kapt")
-//    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
+    alias(libs.plugins.ksp)
+
+
 
 
 
@@ -44,10 +45,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.6.10"
     }
+    ksp {
+        arg("room.schemaLocation", "$projectDir/src/main/schemas")
+    }
 }
 
 dependencies {
-
 
     implementation(libs.kotlinx.serialization.json.v160)
 
@@ -68,22 +71,18 @@ dependencies {
 
     implementation(libs.flow.layout)
 
-    // Hilt Core
+// Hilt Core
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.material3)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler) //  Replaces kapt
 
-    // Hilt + Jetpack ViewModel
+// Hilt + Jetpack ViewModel
     implementation(libs.androidx.hilt.navigation.compose)
-   // kapt(libs.androidx.hilt.compiler)
-  //  ksp(libs.hilt.android.compiler)
-   // ksp(libs.androidx.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler) //  Replaces kapt
 
-    // Hilt + Lifecycle + ViewModel
+// Hilt + Lifecycle + ViewModel (Room)
     implementation(libs.androidx.room.runtime)
-    kapt("androidx.room:room-compiler:2.7.2") // ← this goes here
-   // ksp("androidx.room:room-compiler:2.7.2")
-
+    ksp(libs.room.compiler) //  Replaces kapt
 
     // CameraX dependencies
     implementation(libs.androidx.camera.core)

@@ -1,5 +1,4 @@
 [versions]
-accompanistFlowlayout = "0.34.0"
 agp = "8.10.1"
 barcodeScanning = "17.3.0"
 cameraCamera2 = "1.4.2"
@@ -52,6 +51,10 @@ roomRuntimeAndroid = "2.7.2"
 kotlin = "2.1.0"
 
 [libraries]
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroidCompiler" } #  for KSP
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" } #  for KSP
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" } #  for KSP
 androidx-animation = { module = "androidx.compose.animation:animation" }
 androidx-animation-core = { module = "androidx.compose.animation:animation-core" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
@@ -61,7 +64,7 @@ androidx-compose-material3-material3 = { module = "androidx.compose.material3:ma
 androidx-core = { module = "androidx.test:core", version.ref = "core" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
-androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
+
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
@@ -75,7 +78,7 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose"
 flow-layout = { module = "com.nex3z:flow-layout", version.ref = "flowLayout" }
 foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
+
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -120,5 +123,6 @@ androidx-compose-material3 = { group = "androidx.wear.compose", name = "compose-
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-hilt-android = {id="dagger.hilt.android.plugin",version="2.50"}
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+hilt-android = { id = "dagger.hilt.android.plugin", version = "2.51.1" }
+ksp = { id = "com.google.devtools.ksp", version = "2.1.0-1.0.29" } #  NEW
