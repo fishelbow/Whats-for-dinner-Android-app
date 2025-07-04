@@ -31,7 +31,7 @@ fun CreateShoppingListDialog(
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
         title = { Text("Create Shopping List") },
         text = {
             Column(

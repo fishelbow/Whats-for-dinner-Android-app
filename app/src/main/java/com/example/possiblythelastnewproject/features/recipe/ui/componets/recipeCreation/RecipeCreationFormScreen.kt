@@ -23,25 +23,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.core.ui.LocalEditingGuard
-import com.example.possiblythelastnewproject.core.ui.theme.PossiblyTheLastNewProjectTheme
 import com.example.possiblythelastnewproject.core.utils.imagePicker
-import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 640)
-@Composable
-fun PreviewRecipeCreationFormScreen() {
-    PossiblyTheLastNewProjectTheme {
-        RecipeCreationFormScreen(onRecipeCreated = {}, onCancel = {})
-    }
-}
 
 @SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,8 +90,6 @@ fun RecipeCreationFormScreen(
         } else {
             onCancel()
         }
-
-
     }
     Scaffold(
         topBar = {
@@ -220,90 +207,3 @@ private fun RecipeImagePicker(imageBytes: ByteArray?, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun RecipeFormCard(
-    name: String,
-    onNameChange: (String) -> Unit,
-    temp: String,
-    onTempChange: (String) -> Unit,
-    prepTime: String,
-    onPrepTimeChange: (String) -> Unit,
-    cookTime: String,
-    onCookTimeChange: (String) -> Unit,
-    category: String,
-    onCategoryChange: (String) -> Unit,
-    cardColor: Color,
-    onCardColorChange: (Color) -> Unit,
-    colorOptions: List<Color>,
-    ingredients: List<RecipeIngredientUI>,
-    onIngredientsChange: (List<RecipeIngredientUI>) -> Unit,
-    instructions: String,
-    onInstructionsChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onCancel: () -> Unit,
-    pantryItems: List<PantryItem>,
-    onRequestCreatePantryItem: suspend (String) -> PantryItem,
-    onToggleShoppingStatus: (PantryItem) -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            FormField("Recipe Name", name, onNameChange)
-            FormField("Temperature", temp, onTempChange)
-            FormField("Prep Time", prepTime, onPrepTimeChange)
-            FormField("Cook Time", cookTime, onCookTimeChange)
-            FormField("Category", category, onCategoryChange)
-
-            Text("Card Color", style = MaterialTheme.typography.labelMedium)
-            ColorPicker(
-                selectedColor = cardColor,
-                colorOptions = colorOptions,
-                onColorSelected = onCardColorChange
-            )
-
-            Text("Ingredients", style = MaterialTheme.typography.labelMedium)
-            IngredientChipEditor(
-                ingredients = ingredients,
-                onIngredientsChange = onIngredientsChange,
-                allPantryItems = pantryItems,
-                onRequestCreatePantryItem = onRequestCreatePantryItem,
-                onToggleShoppingStatus = onToggleShoppingStatus
-            )
-
-            FormField(
-                label = "Instructions",
-                value = instructions,
-                onValueChange = onInstructionsChange,
-                singleLine = false,
-                heightDp = 140
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Save")
-                }
-
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancel")
-                }
-            }
-        }
-    }
-}

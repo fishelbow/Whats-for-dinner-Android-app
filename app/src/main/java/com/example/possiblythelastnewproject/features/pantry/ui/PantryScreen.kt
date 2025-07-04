@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.possiblythelastnewproject.core.utils.imagePicker
+import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcodeScanner
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
@@ -59,6 +60,7 @@ fun PantryScreen(
         uiState.searchQuery.isBlank() || it.name.contains(uiState.searchQuery, ignoreCase = true)
     }
 
+
     // Main screen scaffold
     Scaffold(
         topBar = {
@@ -83,11 +85,14 @@ fun PantryScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                    )
+                    {
                         items(filteredItems) { item ->
                             pantryItems.find { it.id == item.id }?.let { validItem ->
+                                val displayName = truncateWithEllipsis(validItem.name)
+
                                 IngredientCard(
-                                    ingredient = validItem.name,
+                                    ingredient = displayName,
                                     quantity = validItem.quantity,
                                     imageData = validItem.imageData,
                                     modifier = Modifier
@@ -105,7 +110,7 @@ fun PantryScreen(
 // --- View Dialog (non-destructive) ---
     selectedItem?.let { item ->
         AlertDialog(
-            onDismissRequest = { selectedItem = null },
+            onDismissRequest = {},
             title = { Text(item.name) },
             text = {
                 Column {
@@ -176,12 +181,7 @@ fun PantryScreen(
         }
 
         AlertDialog(
-            onDismissRequest = {
-                showAddDialog = false
-                newIngredient = ""
-                addImageBytes = null
-                viewModel.updateSelectedCategory(null)
-            },
+            onDismissRequest = { /* Do nothing to prevent accidental dismissal */ },
             title = { Text("Add New Ingredient") },
             text = {
                 Column {
@@ -302,7 +302,7 @@ fun PantryScreen(
         var categoryDropdownExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
-            onDismissRequest = { viewModel.startEditing(null) },
+            onDismissRequest = {},
             title = { Text("Edit Ingredient") },
             text = {
                 Column {

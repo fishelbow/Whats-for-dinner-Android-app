@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun RecipeSearchBar(
@@ -56,21 +55,5 @@ fun RecipeSearchBar(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.outline
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RecipeSearchBarPreview() {
-    // For preview purposes, we use the local focus manager.
-    androidx.compose.ui.platform.LocalFocusManager.current?.let { fm ->
-        MaterialTheme {
-            RecipeSearchBar(
-                query = "",
-                onQueryChange = {},
-                onAddNewRecipe = {},
-                focusManager = fm
-            )
-        }
     }
 }

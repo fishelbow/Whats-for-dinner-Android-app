@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui.componets
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,16 +21,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
 
 @Composable
 fun IngredientCard(
     ingredient: String,
     quantity: Int = 0,
     defaultImage: ImageVector = Icons.Default.Image,
-    modifier: Modifier = Modifier,
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     category: String? = null,
     imageData: ByteArray? = null // move this to the end and give it a default value
 ){
@@ -70,10 +73,15 @@ fun IngredientCard(
                     }
                 }
                 // Ingredient name.
+                val displayName = truncateWithEllipsis(ingredient)
                 Text(
-                    text = ingredient,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(8.dp)
+                    text = displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip, // ellipsis is now manual
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                        .fillMaxWidth()
                 )
             }
             // Quantity overlay in the bottom right corner.
@@ -97,7 +105,7 @@ fun IngredientCard(
 fun IngredientCardPreview() {
     MaterialTheme {
         IngredientCard(
-            ingredient = "Eggs",
+            ingredient = "Eggshfgkjhgfljhfgl;jhfkjghfghdgflhjlkgh;;;;;;;gjhl;kglgghllllllllllllllllllllllllllllllllllllllllll",
             quantity = 12,
             imageData = null
         )

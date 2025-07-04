@@ -74,7 +74,6 @@ fun RecipeDetailScreen(
     var imageData by remember { mutableStateOf(initialData.recipe.imageData) }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingExitAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val recipe = initialData.recipe
@@ -161,8 +160,9 @@ fun RecipeDetailScreen(
 
     BackHandler(enabled = editingGuard.isEditing) {
         if (hasUnsavedChanges()) {
-            pendingExitAction = { coroutineScope.launch { refreshUiFromDb() } }
-            showDiscardDialog = true
+            editingGuard.requestExit {
+                coroutineScope.launch { refreshUiFromDb() }
+            }
         } else {
             navController.navigateUp()
         }
@@ -177,8 +177,9 @@ fun RecipeDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         if (editingGuard.isEditing && hasUnsavedChanges()) {
-                            pendingExitAction = { coroutineScope.launch { refreshUiFromDb() } }
-                            showDiscardDialog = true
+                            editingGuard.requestExit {
+                                coroutineScope.launch { refreshUiFromDb() }
+                            }
                         } else if (editingGuard.isEditing) {
                             editingGuard.isEditing = false
                         } else {
@@ -272,6 +273,7 @@ fun RecipeDetailScreen(
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
+
                             ingredients.isEmpty() -> {
                                 Text(
                                     text = "No ingredients yet.",
@@ -279,6 +281,7 @@ fun RecipeDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
                             else -> {
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -297,7 +300,8 @@ fun RecipeDetailScreen(
                                                         Icon(
                                                             imageVector = Icons.Default.ShoppingCart,
                                                             contentDescription = "In Shopping List",
-                                                            modifier = Modifier.size(16.dp).padding(start = 4.dp),
+                                                            modifier = Modifier.size(16.dp)
+                                                                .padding(start = 4.dp),
                                                             tint = MaterialTheme.colorScheme.primary
                                                         )
                                                     }
@@ -330,12 +334,21 @@ fun RecipeDetailScreen(
                             onIngredientsChange = { ingredientList = it },
                             allPantryItems = pantryItems,
                             onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
-                            onToggleShoppingStatus = { updatedItem -> pantryViewModel.update(updatedItem) }
+                            onToggleShoppingStatus = { updatedItem ->
+                                pantryViewModel.update(
+                                    updatedItem
+                                )
+                            }
                         )
 
                         HorizontalDivider()
 
-                        EditableField("Instructions", instructions, singleLine = false, heightDp = 140) {
+                        EditableField(
+                            "Instructions",
+                            instructions,
+                            singleLine = false,
+                            heightDp = 140
+                        ) {
                             instructions = it
                         }
 
@@ -350,7 +363,10 @@ fun RecipeDetailScreen(
                         colorOptions.chunked(6).forEach { row ->
                             Row(
                                 Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    8.dp,
+                                    Alignment.CenterHorizontally
+                                )
                             ) {
                                 row.forEach { col ->
                                     Box(
@@ -368,7 +384,6 @@ fun RecipeDetailScreen(
                                 }
                             }
                         }
-
                         HorizontalDivider()
 
                         // Save / Cancel buttons
@@ -386,8 +401,11 @@ fun RecipeDetailScreen(
                                         color = cardColor.toArgb()
                                     )
                                     coroutineScope.launch {
-                                        viewModel.updateRecipeWithIngredientsUi(updated, ingredientList)
-                                        editingGuard.isEditing = false // ✅ exit edit mode
+                                        viewModel.updateRecipeWithIngredientsUi(
+                                            updated,
+                                            ingredientList
+                                        )
+                                        editingGuard.isEditing = false
                                     }
                                 },
                                 modifier = Modifier.weight(1f)
@@ -397,9 +415,14 @@ fun RecipeDetailScreen(
 
                             OutlinedButton(
                                 onClick = {
-                                    coroutineScope.launch {
-                                        refreshUiFromDb()
-                                        editingGuard.isEditing = false // ✅ exit edit mode
+                                    if (hasUnsavedChanges()) {
+                                        editingGuard.requestExit {
+                                            coroutineScope.launch {
+                                                refreshUiFromDb()
+                                            }
+                                        }
+                                    } else {
+                                        editingGuard.isEditing = false
                                     }
                                 },
                                 modifier = Modifier.weight(1f)
@@ -436,29 +459,4 @@ fun RecipeDetailScreen(
         )
     }
 
-    // Local discard dialog (for back/cancel)
-    if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Discard changes?") },
-            text = { Text("You have unsaved changes. Discard them and exit?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDiscardDialog = false
-                    pendingExitAction?.invoke()
-                    pendingExitAction = null
-                }) {
-                    Text("Discard")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showDiscardDialog = false
-                    pendingExitAction = null
-                }) {
-                    Text("Keep editing")
-                }
-            }
-        )
-    }
 }

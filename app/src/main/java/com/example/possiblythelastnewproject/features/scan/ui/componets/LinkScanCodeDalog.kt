@@ -19,7 +19,7 @@ fun LinkScanCodeDialog(
     onConfirmLink: (PantryItem1) -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
         title = { Text("Name Conflict") },
         text = {
             Column {

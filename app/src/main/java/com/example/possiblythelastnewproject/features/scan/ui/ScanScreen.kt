@@ -177,12 +177,26 @@ fun ScanningTab(
 
         Spacer(Modifier.height(16.dp))
 
+        val buttonLabel = when {
+            !hasPermission -> "Request Camera Permission"
+            isPaused -> "Resume Scanning"
+            else -> "Pause Scanning"
+        }
+
         Button(onClick = {
-            if (isPaused) cameraManager?.resumeScanning()
-            else cameraManager?.pauseScanning()
+            if (!hasPermission) {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+                return@Button
+            }
+
+            if (isPaused) {
+                cameraManager?.resumeScanning()
+            } else {
+                cameraManager?.pauseScanning()
+            }
             isPaused = !isPaused
         }) {
-            Text(if (isPaused) "Resume Scanning" else "Pause Scanning")
+            Text(buttonLabel)
         }
 
         if (isPaused) {

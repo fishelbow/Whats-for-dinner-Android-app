@@ -41,7 +41,7 @@ fun CreateFromScanDialog(
     val launchImagePicker = imagePicker { newBytes -> imageBytes = newBytes }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
         title = { Text("New Item from Scan") },
         text = {
             Column(modifier = Modifier.padding(16.dp)) {

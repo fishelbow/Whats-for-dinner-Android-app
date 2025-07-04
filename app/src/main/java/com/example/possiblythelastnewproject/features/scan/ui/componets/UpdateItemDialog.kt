@@ -19,7 +19,7 @@ fun UpdateItemDialog(
     onConfirmUpdate: (PantryItem) -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {},
         title = { Text("Item Already Exists") },
         text = {
             Column {
