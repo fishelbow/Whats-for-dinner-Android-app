@@ -137,35 +137,22 @@ fun PantryScreen(
                 }
             },
             confirmButton = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    TextButton(
-                        onClick = { showScanDialog = true },
-                        modifier = Modifier.align(Alignment.Start)
-                    ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = { showScanDialog = true }) {
                         Text(
                             if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
                             else "Update PLU/Barcode"
                         )
                     }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { selectedItem = null }) {
-                            Text("Close", maxLines = 1, softWrap = false)
-                        }
-                        Spacer(Modifier.width(8.dp))
+                    Row {
+                        TextButton(onClick = { selectedItem = null }) { Text("Close") }
                         TextButton(onClick = {
                             viewModel.startEditing(item)
                             selectedItem = null
-                        }) {
-                            Text("Edit", maxLines = 1, softWrap = false)
-                        }
+                        }) { Text("Edit") }
                     }
                 }
             }
@@ -178,6 +165,15 @@ fun PantryScreen(
         val categories by viewModel.allCategories.collectAsState()
         val selectedCategory = uiState.selectedCategory
         var categoryDropdownExpanded by remember { mutableStateOf(false) }
+        var hasSetDefaultCategory by remember(showAddDialog) { mutableStateOf(false) }
+
+        LaunchedEffect(categories, showAddDialog) {
+            if (showAddDialog && !hasSetDefaultCategory && selectedCategory == null && categories.isNotEmpty()) {
+                val defaultCategory = categories.firstOrNull { it.name.equals("Other", ignoreCase = true) }
+                viewModel.updateSelectedCategory(defaultCategory)
+                hasSetDefaultCategory = true
+            }
+        }
 
         AlertDialog(
             onDismissRequest = {
@@ -224,7 +220,9 @@ fun PantryScreen(
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
                         )
                         ExposedDropdownMenu(
                             expanded = categoryDropdownExpanded,
@@ -255,22 +253,26 @@ fun PantryScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (newIngredient.isNotBlank() && !nameExists) {
+                        val finalCategory = selectedCategory ?: categories.firstOrNull {
+                            it.name.equals("Other", ignoreCase = true)
+                        }
+
                         viewModel.addPantryItem(
                             PantryItem(
                                 name = newIngredient.trim(),
                                 quantity = 1,
                                 imageData = addImageBytes,
-                                category = selectedCategory?.name.orEmpty()
+                                category = finalCategory?.name ?: "Other"
                             )
                         )
-
-
                         newIngredient = ""
                         addImageBytes = null
                         showAddDialog = false
                         viewModel.updateSelectedCategory(null)
                     }
-                }) { Text("Add") }
+                }) {
+                    Text("Add")
+                }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -278,7 +280,9 @@ fun PantryScreen(
                     newIngredient = ""
                     addImageBytes = null
                     viewModel.updateSelectedCategory(null)
-                }) { Text("Cancel") }
+                }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -286,6 +290,15 @@ fun PantryScreen(
     // --- Edit Dialog ---
     uiState.editingItem?.let { item ->
         val categories by viewModel.allCategories.collectAsState()
+
+        LaunchedEffect(categories, uiState.editingItem) {
+            if (uiState.editingItem != null && uiState.editCategory == null && categories.isNotEmpty()) {
+                val matched = categories.firstOrNull { it.name == uiState.editingItem!!.category }
+                    ?: categories.firstOrNull { it.name.equals("Other", ignoreCase = true) }
+                viewModel.updateEditCategory(matched)
+            }
+        }
+
         var categoryDropdownExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -346,6 +359,7 @@ fun PantryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                                 },
                                 modifier = Modifier
+                                    .menuAnchor()
                                     .fillMaxWidth()
                             )
                             ExposedDropdownMenu(
@@ -466,3 +480,4 @@ fun PantryScreen(
         )
     }
 }
+

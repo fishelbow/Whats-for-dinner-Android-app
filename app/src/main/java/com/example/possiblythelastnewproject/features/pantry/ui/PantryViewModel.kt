@@ -106,8 +106,10 @@ class PantryViewModel @Inject constructor(
                         editingItem = item,
                         editName = item.name,
                         editQuantityText = item.quantity.toString(),
-                        editImageBytes = item.imageData
+                        editImageBytes = item.imageData,
+                        editCategory = allCategories.value.firstOrNull { cat -> cat.name == item.category }
                     )
+
                 }
             }
         }
