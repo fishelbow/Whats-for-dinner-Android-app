@@ -7,6 +7,7 @@ import com.example.possiblythelastnewproject.features.shoppingList.data.entity.*
 
 @Serializable
 data class FullDatabaseBackup(
+    val version: Int = 1, // default to version 1
     val pantryItems: List<PantryItem>,
     val recipes: List<Recipe>,
     val recipePantryRefs: List<RecipePantryItemCrossRef>,

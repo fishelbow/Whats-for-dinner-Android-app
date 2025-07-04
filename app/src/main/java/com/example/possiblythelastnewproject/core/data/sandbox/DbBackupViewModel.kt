@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -25,6 +26,8 @@ class DbBackupViewModel @Inject constructor(
     var result: String? by mutableStateOf(null)
         private set
 
+    private val backupVersion = 1
+
     fun clearResult() {
         result = null
     }
@@ -36,31 +39,40 @@ class DbBackupViewModel @Inject constructor(
             context.contentResolver.openOutputStream(destinationUri)?.use {
                 it.write(json.toByteArray())
             }
-            result = "✅ Exported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
+            result = " Exported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
         }
     }
 
     fun importJson(sourceUri: Uri) {
         launchWithLoading {
-            val json = context.contentResolver.openInputStream(sourceUri)?.bufferedReader()?.readText()
+            val json = context.contentResolver.openInputStream(sourceUri)
+                ?.bufferedReader()
+                ?.readText()
+
             if (json == null) {
-                result = "❌ Failed to read file"
+                result = " Failed to read file"
                 return@launchWithLoading
             }
 
             val backup = Json.decodeFromString<FullDatabaseBackup>(json)
+
+            if (backup.version > backupVersion) {
+                result = " Unsupported backup version: ${backup.version}"
+                return@launchWithLoading
+            }
+
             db.clearAllTables()
 
             with(db) {
+                categoryDao().insertAll(backup.categories)
                 pantryItemDao().insertAll(backup.pantryItems)
                 recipeDao().insertAll(backup.recipes)
                 recipePantryItemDao().insertAll(backup.recipePantryRefs)
                 shoppingListDao().insertAll(backup.shoppingLists)
                 shoppingListEntryDao().insertAll(backup.shoppingListItems)
-                categoryDao().insertAll(backup.categories)
             }
 
-            result = "✅ Imported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
+            result = " Imported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
         }
     }
 
@@ -72,8 +84,7 @@ class DbBackupViewModel @Inject constructor(
         val shoppingListItems = db.shoppingListEntryDao().getAllOnce()
         val categories = db.categoryDao().getAllOnce()
 
-        // 🔍 Debug logs
-        println("🔍 Exporting backup:")
+        println(" Exporting backup:")
         println("• Pantry items: ${pantryItems.size}")
         println("• Recipes: ${recipes.size}")
         println("• Recipe refs: ${recipePantryRefs.size}")
@@ -82,6 +93,7 @@ class DbBackupViewModel @Inject constructor(
         println("• Categories: ${categories.size}")
 
         return FullDatabaseBackup(
+            version = backupVersion,
             pantryItems = pantryItems,
             recipes = recipes,
             recipePantryRefs = recipePantryRefs,
@@ -97,7 +109,7 @@ class DbBackupViewModel @Inject constructor(
             try {
                 block()
             } catch (e: Exception) {
-                result = "❌ Error: ${e.localizedMessage}"
+                result = " Error: ${e.localizedMessage}"
             } finally {
                 isLoading = false
             }
