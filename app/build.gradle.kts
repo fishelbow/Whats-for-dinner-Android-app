@@ -145,7 +145,7 @@ dependencies {
     implementation(libs.androidx.runtime.livedata)
 
     //Leaky Canary for memory leaks
-    debugImplementation(libs.leakcanary.android)
+  //  debugImplementation(libs.leakcanary.android)
 
     // Tooling for previews.
     debugImplementation(libs.ui.tooling)
