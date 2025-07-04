@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation
 
+import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -42,6 +43,7 @@ fun PreviewRecipeCreationFormScreen() {
     }
 }
 
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeCreationFormScreen(
