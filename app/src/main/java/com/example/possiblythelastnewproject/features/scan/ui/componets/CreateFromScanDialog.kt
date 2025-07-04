@@ -18,10 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +35,11 @@ fun CreateFromScanDialog(
     onConfirm: (String, Int, ByteArray?, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val pantryViewModel: PantryViewModel = hiltViewModel()
+    val pantryItems by pantryViewModel.pantryItems.collectAsState()
+
+    var showDuplicateDialog by remember { mutableStateOf(false) }
+
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
@@ -124,14 +131,23 @@ fun CreateFromScanDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    val trimmedName = name.trim()
                     val qty = quantity.toIntOrNull() ?: 1
-                    if (name.isNotBlank()) {
-                        onConfirm(name.trim(), qty, imageBytes, selectedCategory?.name)
+
+                    val nameExists = pantryItems.any { it.name.equals(trimmedName, ignoreCase = true) }
+
+                    if (trimmedName.isBlank()) return@TextButton
+
+                    if (nameExists) {
+                        showDuplicateDialog = true
+                    } else {
+                        onConfirm(trimmedName, qty, imageBytes, selectedCategory?.name)
                     }
                 }
             ) {
                 Text("Add to Pantry")
             }
+
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
@@ -139,5 +155,16 @@ fun CreateFromScanDialog(
             }
         }
     )
-
+    if (showDuplicateDialog) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateDialog = false },
+            title = { Text("Name already exits in Pantry") },
+            text = { Text("An item with this name already exists in your pantry.") },
+            confirmButton = {
+                TextButton(onClick = { showDuplicateDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
