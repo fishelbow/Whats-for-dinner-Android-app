@@ -11,9 +11,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RecipePantryItemDao {
 
-    /** Insert or replace a recipe⇄pantry cross-ref. */
+    /** Insert or replace a single recipe⇄pantry cross-ref. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCrossRef(crossRef: RecipePantryItemCrossRef)
+
+    /** Insert or replace multiple cross-refs. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(refs: List<RecipePantryItemCrossRef>)
 
     /** Delete a specific cross-ref by entity. */
     @Delete
@@ -21,9 +25,8 @@ interface RecipePantryItemDao {
 
     /** Delete a specific cross-ref by pantryItemId + recipeId. */
     @Query("""
-      DELETE FROM RecipePantryItemCrossRef
-      WHERE recipeId = :recipeId
-        AND pantryItemId = :pantryItemId
+        DELETE FROM RecipePantryItemCrossRef
+        WHERE recipeId = :recipeId AND pantryItemId = :pantryItemId
     """)
     suspend fun deleteCrossRef(pantryItemId: Long, recipeId: Long)
 
@@ -31,7 +34,7 @@ interface RecipePantryItemDao {
     @Query("DELETE FROM RecipePantryItemCrossRef WHERE recipeId = :recipeId")
     suspend fun deleteCrossRefsForRecipe(recipeId: Long)
 
-    /** One-off (suspend) fetch of all cross-refs for a recipe. */
+    /** One-off fetch of all cross-refs for a recipe. */
     @Query("SELECT * FROM RecipePantryItemCrossRef WHERE recipeId = :recipeId")
     suspend fun getCrossRefsForRecipeOnce(recipeId: Long): List<RecipePantryItemCrossRef>
 
@@ -43,19 +46,7 @@ interface RecipePantryItemDao {
     @Query("SELECT * FROM RecipePantryItemCrossRef")
     fun getAllCrossRefs(): Flow<List<RecipePantryItemCrossRef>>
 
+    /** One-off fetch of all cross-refs. */
     @Query("SELECT * FROM RecipePantryItemCrossRef")
     suspend fun getAllOnce(): List<RecipePantryItemCrossRef>
-
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(items: List<RecipePantryItemCrossRef>)
-
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAllRefs(refs: List<RecipePantryItemCrossRef>)
-
-
-
-
-
 }

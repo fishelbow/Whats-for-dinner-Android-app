@@ -38,7 +38,7 @@ fun RecipeFormCard(
     onIngredientsChange: (List<RecipeIngredientUI>) -> Unit,
     instructions: String,
     onInstructionsChange: (String) -> Unit,
-    onSave: () -> Unit,
+    onSave: () -> Unit, // ✅ fixed here
     onCancel: () -> Unit,
     pantryItems: List<PantryItem>,
     onRequestCreatePantryItem: suspend (String) -> PantryItem,

@@ -30,9 +30,10 @@ import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
+import kotlinx.coroutines.launch
 
 
-@SuppressLint("MutableCollectionMutableState")
+@SuppressLint("MutableCollectionMutableState", "CoroutineCreationDuringComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeCreationFormScreen(
@@ -56,6 +57,8 @@ fun RecipeCreationFormScreen(
     var ingredientList by remember { mutableStateOf(mutableListOf<RecipeIngredientUI>()) }
 
     val launchImagePicker = imagePicker { imageBytes = it }
+
+    var showDuplicateDialog by remember { mutableStateOf(false) }
 
     val colorOptions = listOf(
         0xFFF44336, 0xFFE91E63, 0xFF9C27B0, 0xFF673AB7,
@@ -123,7 +126,7 @@ fun RecipeCreationFormScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             RecipeImagePicker(imageBytes) { launchImagePicker() }
-
+            val scope = rememberCoroutineScope()
             RecipeFormCard(
                 name = name,
                 onNameChange = { name = it },
@@ -144,20 +147,31 @@ fun RecipeCreationFormScreen(
                 onInstructionsChange = { instructions = it },
                 onSave = {
                     focusManager.clearFocus()
-                    val recipe = Recipe(
-                        id = 0L,
-                        name = name.trim(),
-                        temp = temp.trim(),
-                        prepTime = prepTime.trim(),
-                        cookTime = cookTime.trim(),
-                        category = category.trim(),
-                        instructions = instructions.trim(),
-                        imageData = imageBytes ?: ByteArray(0),
-                        color = cardColor.toArgb()
-                    )
-                    recipeViewModel.saveRecipeWithIngredientsUi(recipe, ingredientList)
-                    editingGuard.isEditing = false
-                    onRecipeCreated(recipe)
+                    val trimmedName = name.trim()
+
+
+                    scope.launch {
+                        if (recipeViewModel.recipeNameExists(trimmedName)) {
+                            showDuplicateDialog = true
+                            return@launch
+                        }
+
+                        val recipe = Recipe(
+                            id = 0L,
+                            name = trimmedName,
+                            temp = temp.trim(),
+                            prepTime = prepTime.trim(),
+                            cookTime = cookTime.trim(),
+                            category = category.trim(),
+                            instructions = instructions.trim(),
+                            imageData = imageBytes ?: ByteArray(0),
+                            color = cardColor.toArgb()
+                        )
+
+                        recipeViewModel.saveRecipeWithIngredientsUi(recipe, ingredientList)
+                        editingGuard.isEditing = false
+                        onRecipeCreated(recipe)
+                    }
                 },
                 onCancel = {
                     focusManager.clearFocus()
@@ -176,6 +190,19 @@ fun RecipeCreationFormScreen(
             )
         }
     }
+    if (showDuplicateDialog) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateDialog = false },
+            title = { Text("Duplicate Recipe Name") },
+            text = { Text("A recipe with this name already exists. Please choose a different name.") },
+            confirmButton = {
+                TextButton(onClick = { showDuplicateDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
 }
 
 @Composable
@@ -205,5 +232,7 @@ private fun RecipeImagePicker(imageBytes: ByteArray?, onClick: () -> Unit) {
             Text("Tap to select image", color = Color.DarkGray)
         }
     }
+
+
 }
 

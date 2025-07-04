@@ -20,6 +20,7 @@ interface PantryItemDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPantryItem(item: PantryItem): Long
+
     @Update
     suspend fun updatePantryItem(item: PantryItem)
 

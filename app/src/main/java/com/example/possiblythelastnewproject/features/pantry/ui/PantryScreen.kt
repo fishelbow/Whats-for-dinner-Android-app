@@ -43,6 +43,7 @@ fun PantryScreen(
     var newIngredient by remember { mutableStateOf("") }
     var addImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var showScanDialog by remember { mutableStateOf(false) }
+    var showDuplicateNameDialog by remember { mutableStateOf(false) }
 
     // Create two distinct image pickers by calling your universal function.
     // One is for adding a new ingredient and updates addImageBytes.
@@ -382,9 +383,20 @@ fun PantryScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.confirmEditItem()
-                    viewModel.startEditing(null)
-                }) { Text("Save Changes") }
+                    val trimmedName = uiState.editName.trim()
+                    val isDuplicate = pantryItems.any {
+                        it.name.equals(trimmedName, ignoreCase = true) && it.id != item.id
+                    }
+
+                    if (isDuplicate) {
+                        showDuplicateNameDialog = true
+                    } else {
+                        viewModel.confirmEditItem()
+                        viewModel.startEditing(null)
+                    }
+                }) {
+                    Text("Save Changes")
+                }
             },
             dismissButton = {
                 val canDelete = item.id !in inUseIds
@@ -479,5 +491,18 @@ fun PantryScreen(
             text = { Text("That scan code is already linked to another item.") }
         )
     }
+    if (showDuplicateNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateNameDialog = false },
+            title = { Text("Duplicate Name") },
+            text = { Text("An ingredient with this name already exists. Please choose a different name.") },
+            confirmButton = {
+                TextButton(onClick = { showDuplicateNameDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
 }
 

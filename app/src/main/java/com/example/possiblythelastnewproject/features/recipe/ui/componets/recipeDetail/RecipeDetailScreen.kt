@@ -51,7 +51,7 @@ fun RecipeDetailScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val editingGuard = LocalEditingGuard.current
-
+    var showDuplicateNameDialog by remember { mutableStateOf(false) }
     val initialData = produceState<RecipeWithIngredients?>(null, recipeId) {
         value = viewModel.getRecipeWithIngredients(recipeId)
     }.value ?: run {
@@ -400,11 +400,19 @@ fun RecipeDetailScreen(
                                         instructions = instructions.text.trim(),
                                         color = cardColor.toArgb()
                                     )
+
                                     coroutineScope.launch {
-                                        viewModel.updateRecipeWithIngredientsUi(
-                                            updated,
-                                            ingredientList
+                                        val isDuplicate = viewModel.recipeNameExists(
+                                            name = updated.name,
+                                            excludeUuid = updated.uuid
                                         )
+
+                                        if (isDuplicate) {
+                                            showDuplicateNameDialog = true
+                                            return@launch
+                                        }
+
+                                        viewModel.updateRecipeWithIngredientsUi(updated, ingredientList)
                                         editingGuard.isEditing = false
                                     }
                                 },
@@ -454,6 +462,19 @@ fun RecipeDetailScreen(
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDuplicateNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateNameDialog = false },
+            title = { Text("Duplicate Recipe Name") },
+            text = { Text("Another recipe already uses this name. Please choose a different one.") },
+            confirmButton = {
+                TextButton(onClick = { showDuplicateNameDialog = false }) {
+                    Text("OK")
                 }
             }
         )

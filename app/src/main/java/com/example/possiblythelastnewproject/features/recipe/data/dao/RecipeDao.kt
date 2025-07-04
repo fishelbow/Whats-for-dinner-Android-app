@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecipeDao {
+    @Query("SELECT EXISTS(SELECT 1 FROM Recipe WHERE LOWER(recipe_name) = LOWER(:name))")
+    suspend fun existsByName(name: String): Boolean
 
     @Query("SELECT * FROM Recipe ORDER BY recipe_name")
     fun getAllRecipes(): Flow<List<Recipe>>
@@ -39,5 +41,7 @@ interface RecipeDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<Recipe>)
+
+
 
 }

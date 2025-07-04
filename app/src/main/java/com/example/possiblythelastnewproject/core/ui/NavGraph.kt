@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,16 +51,10 @@ sealed class TabItem(val title: String, val icon: ImageVector) {
 @Composable
 fun MainScreen() {
     val editingGuard = remember { EditingGuard() }
-    val tabs =
-        remember { listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning) }
+    val tabs = remember { listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning) }
     val navMap = tabs.associateWith { rememberNavController() }
     var currentPage by remember { mutableIntStateOf(0) }
     val isEditing = editingGuard.isEditing
-
-    val visitedTabs = remember { mutableStateSetOf<TabItem>() }
-    LaunchedEffect(currentPage) {
-        visitedTabs.add(tabs[currentPage])
-    }
 
     CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
         Scaffold { padding ->
@@ -85,22 +78,20 @@ fun MainScreen() {
                 }
 
                 Box(Modifier.fillMaxSize()) {
-                    tabs.forEach { tab ->
-                        if (tab in visitedTabs) {
-                            val isVisible = tab == tabs[currentPage]
-                            key(tab) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .zIndex(if (isVisible) 1f else 0f)
-                                        .alpha(if (isVisible) 1f else 0f)
-                                ) {
-                                    when (tab) {
-                                        TabItem.Recipes -> RecipesNavHost(navMap[TabItem.Recipes]!!)
-                                        TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
-                                        TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
-                                        TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
-                                    }
+                    tabs.forEachIndexed { index, tab ->
+                        val isVisible = currentPage == index
+                        key(tab) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .zIndex(if (isVisible) 1f else 0f)
+                                    .alpha(if (isVisible) 1f else 0f)
+                            ) {
+                                when (tab) {
+                                    TabItem.Recipes -> RecipesNavHost(navMap[TabItem.Recipes]!!)
+                                    TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
+                                    TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
+                                    TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
                                 }
                             }
                         }
@@ -109,56 +100,36 @@ fun MainScreen() {
             }
         }
     }
+
     if (editingGuard.showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { editingGuard.cancelExit() },
             title = {
-                Text(
-                    text = "Discard changes?",
-                    style = MaterialTheme.typography.headlineSmall
-                )
+                Text("Discard changes?", style = MaterialTheme.typography.headlineSmall)
             },
             text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "You have unsaved changes. What would you like to do?",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("You have unsaved changes. What would you like to do?")
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                        Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Text(
-                            text = "Changes will be lost if you discard.",
-                            style = MaterialTheme.typography.bodyMedium,
+                            "Changes will be lost if you discard.",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { editingGuard.confirmExit() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Button(onClick = { editingGuard.confirmExit() }, modifier = Modifier.fillMaxWidth()) {
                     Text("Discard Changes")
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = { editingGuard.cancelExit() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                OutlinedButton(onClick = { editingGuard.cancelExit() }, modifier = Modifier.fillMaxWidth()) {
                     Text("Keep Editing")
                 }
             },

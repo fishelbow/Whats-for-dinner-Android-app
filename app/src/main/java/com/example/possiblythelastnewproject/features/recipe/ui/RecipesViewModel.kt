@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
+import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
@@ -21,7 +22,9 @@ import javax.inject.Inject
 @HiltViewModel
 class RecipesViewModel @Inject constructor(
     private val recipeRepository: RecipeRepository,
-    private val ingredientRepository: RecipePantryItemRepository
+    private val ingredientRepository: RecipePantryItemRepository,
+    private val recipeDao: RecipeDao
+
 ) : ViewModel() {
 
 
@@ -34,7 +37,15 @@ val recipes: StateFlow<List<RecipeWithIngredients>> =
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
 
-fun saveRecipeWithIngredientsUi(
+    suspend fun recipeNameExists(name: String, excludeUuid: String? = null): Boolean {
+        return if (excludeUuid != null) {
+            recipeDao.existsByName(name.trim())
+        } else {
+            recipeDao.existsByName(name.trim())
+        }
+    }
+
+        fun saveRecipeWithIngredientsUi(
     recipe: Recipe,
     ingredients: List<RecipeIngredientUI>
 ) = viewModelScope.launch {
@@ -100,5 +111,7 @@ fun observeIngredientsForRecipe(
             )
         }
     }
+
+
 }
 
