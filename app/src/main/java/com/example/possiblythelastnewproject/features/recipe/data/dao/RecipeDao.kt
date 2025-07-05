@@ -10,6 +10,9 @@ interface RecipeDao {
     @Query("SELECT EXISTS(SELECT 1 FROM Recipe WHERE LOWER(recipe_name) = LOWER(:name))")
     suspend fun existsByName(name: String): Boolean
 
+    @Query("SELECT EXISTS(SELECT 1 FROM Recipe WHERE LOWER(recipe_name) = LOWER(:name) AND uuid != :excludeUuid)")
+    suspend fun existsByNameExcludingUuid(name: String, excludeUuid: String): Boolean
+
     @Query("SELECT * FROM Recipe ORDER BY recipe_name")
     fun getAllRecipes(): Flow<List<Recipe>>
 

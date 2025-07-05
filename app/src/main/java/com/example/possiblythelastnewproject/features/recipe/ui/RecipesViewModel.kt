@@ -100,6 +100,8 @@ class RecipesViewModel @Inject constructor(
         editUiState = editUiState.copy(newIngredient = value)
     }
 
+
+
     // Optional: helper to reset state
     fun clearUiState() {
         editUiState = RecipeEditUiState()
@@ -132,7 +134,7 @@ val recipes: StateFlow<List<RecipeWithIngredients>> =
 
     suspend fun recipeNameExists(name: String, excludeUuid: String? = null): Boolean {
         return if (excludeUuid != null) {
-            recipeDao.existsByName(name.trim())
+            recipeDao.existsByNameExcludingUuid(name.trim(), excludeUuid)
         } else {
             recipeDao.existsByName(name.trim())
         }

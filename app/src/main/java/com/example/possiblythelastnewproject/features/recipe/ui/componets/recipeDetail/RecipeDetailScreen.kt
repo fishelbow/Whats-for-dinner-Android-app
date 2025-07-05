@@ -65,11 +65,10 @@ fun RecipeDetailScreen(
     }
 
     val uiState = viewModel.editUiState
-    val ingredients by viewModel.observeIngredientsForRecipe(
+    val observedIngredients by viewModel.observeIngredientsForRecipe(
         recipeId = initialData.recipe.id,
         pantryItems = pantryItems
     ).collectAsState(initial = emptyList())
-
 
     val hasChanges = remember(uiState) {
         derivedStateOf { viewModel.hasUnsavedChanges(initialData) }
@@ -208,15 +207,12 @@ fun RecipeDetailScreen(
                         Text("Ingredients", style = MaterialTheme.typography.labelMedium)
                         when {
                             !initialized.value -> {
-                                Box(
-                                    Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
 
-                            ingredients.isEmpty() -> {
+                            observedIngredients.isEmpty() -> {
                                 Text(
                                     text = "No ingredients yet.",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -230,7 +226,7 @@ fun RecipeDetailScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     val pantryItemsById = pantryItems.associateBy { it.id }
-                                    ingredients.forEach { item ->
+                                    observedIngredients.forEach { item ->
                                         val pantryItem = pantryItemsById[item.pantryItemId]
                                         val isShoppable = pantryItem?.addToShoppingList == true
                                         AssistChip(
