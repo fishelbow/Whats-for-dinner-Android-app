@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,7 +33,9 @@ import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChip
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.LazyFlowRow
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,15 +73,22 @@ fun RecipeDetailScreen(
 
 
     val isNameBlank = uiState.name.text.isBlank()
-    val hasChanges = remember(uiState) {
-        derivedStateOf { viewModel.hasUnsavedChanges(initialData) }
+    val hasChanges = remember(uiState, pantryItems) {
+        derivedStateOf {
+            viewModel.hasUnsavedChanges(
+                original = initialData
+            )
+        }
     }
 
     val initialized = remember { mutableStateOf(false) }
 
     LaunchedEffect(recipeId) {
         viewModel.getRecipeWithIngredients(recipeId)?.let {
-            viewModel.loadRecipeIntoUiState(it)
+            viewModel.loadRecipeIntoUiState(
+                it,
+                pantryItems = pantryItems
+            )
             initialized.value = true
         }
     }
@@ -91,14 +99,17 @@ fun RecipeDetailScreen(
     }
 
     suspend fun refreshUiFromDb() {
+        val latestPantryItems = pantryViewModel.allItems.value
         viewModel.getRecipeWithIngredients(recipeId)?.let {
-            viewModel.loadRecipeIntoUiState(it)
+            viewModel.loadRecipeIntoUiState(it, pantryItems = latestPantryItems)
             editingGuard.isEditing = false
         }
     }
 
     BackHandler(enabled = editingGuard.isEditing) {
-        if (viewModel.hasUnsavedChanges(initialData)) {
+        if (viewModel.hasUnsavedChanges(
+                initialData
+            )) {
             editingGuard.requestExit {
                 coroutineScope.launch { refreshUiFromDb() }
             }
@@ -139,7 +150,12 @@ fun RecipeDetailScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                         TextButton(
-                            onClick = { editingGuard.isEditing = true },
+                            onClick = {
+                                coroutineScope.launch {
+                                    refreshUiFromDb() // ✅ reload fresh data before editing
+                                    editingGuard.isEditing = true
+                                }
+                            },
                             enabled = initialized.value
                         ) {
                             Text("Edit")
@@ -159,12 +175,12 @@ fun RecipeDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Image Picker
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                tonalElevation = 4.dp,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
                     .clickable(enabled = editingGuard.isEditing) { pickImage() }
             ) {
                 uiState.imageData?.takeIf { it.isNotEmpty() }?.let { data ->
@@ -176,9 +192,25 @@ fun RecipeDetailScreen(
                         contentScale = ContentScale.Crop
                     )
                 } ?: Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.LightGray),
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (editingGuard.isEditing) "Tap to select image" else "No image",
+                        color = Color.DarkGray
+                    )
+                }
+
+                uiState.imageData?.takeIf { it.isNotEmpty() }?.let { data ->
+                    val bmp = BitmapFactory.decodeByteArray(data, 0, data.size)
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "Recipe photo",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } ?: Box(
+                    modifier = Modifier.fillMaxSize().background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -208,9 +240,13 @@ fun RecipeDetailScreen(
                         ReadOnlyField("Category", uiState.category.text)
 
                         Text("Ingredients", style = MaterialTheme.typography.labelMedium)
+
                         when {
                             !initialized.value -> {
-                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Box(
+                                    Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
@@ -224,48 +260,38 @@ fun RecipeDetailScreen(
                             }
 
                             else -> {
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val pantryItemsById = pantryItems.associateBy { it.id }
-                                    observedIngredients.forEach { item ->
-                                        val pantryItem = pantryItemsById[item.pantryItemId]
-                                        val isShoppable = pantryItem?.addToShoppingList == true
-                                        AssistChip(
-                                            onClick = {},
-                                            label = {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("${item.amountRequired}×${item.name}")
-                                                    if (isShoppable) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.ShoppingCart,
-                                                            contentDescription = "In Shopping List",
-                                                            modifier = Modifier
-                                                                .size(16.dp)
-                                                                .padding(start = 4.dp),
-                                                            tint = MaterialTheme.colorScheme.primary
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    }
+                                val pantryItemsById = pantryItems.associateBy { it.id }
+
+                                LazyFlowRow(
+                                    items = observedIngredients,
+                                    horizontalSpacing = 8.dp,
+                                    verticalSpacing = 8.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
+                                        .padding(top = 4.dp)
+                                ) { item ->
+                                    val pantryItem = pantryItemsById[item.pantryItemId]
+                                    IngredientChip(
+                                        ingredient = item,
+                                        pantryItem = pantryItem,
+                                        isEditable = false
+                                    )
                                 }
+
+                                HorizontalDivider()
+                                ReadOnlyField("Instructions", uiState.instructions.text)
+
+                                Text("Card Color", style = MaterialTheme.typography.labelMedium)
+                                Box(
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(uiState.cardColor)
+                                        .border(1.dp, Color.Black, CircleShape)
+                                )
                             }
                         }
-
-                        HorizontalDivider()
-                        ReadOnlyField("Instructions", uiState.instructions.text)
-
-                        Text("Card Color", style = MaterialTheme.typography.labelMedium)
-                        Box(
-                            Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(uiState.cardColor)
-                                .border(1.dp, Color.Black, CircleShape)
-                        )
                     } else {
                         EditableField("Name", uiState.name) { viewModel.updateName(it) }
                         EditableField("Temperature", uiState.temp) { viewModel.updateTemp(it) }
@@ -314,13 +340,10 @@ fun RecipeDetailScreen(
                                                 width = if (col == uiState.cardColor) 3.dp else 1.dp,
                                                 color = if (col == uiState.cardColor)
                                                     MaterialTheme.colorScheme.primary
-                                                else
-                                                    Color.Gray,
+                                                else Color.Gray,
                                                 shape = CircleShape
                                             )
-                                            .clickable {
-                                                viewModel.updateCardColor(col)
-                                            }
+                                            .clickable { viewModel.updateCardColor(col) }
                                     )
                                 }
                             }
@@ -362,10 +385,11 @@ fun RecipeDetailScreen(
                                         }
 
                                         viewModel.updateRecipeWithIngredientsUi(updated, uiState.ingredients)
+                                        refreshUiFromDb()
                                         editingGuard.isEditing = false
                                     }
                                 },
-                                enabled = hasChanges.value, // optional: disable if no changes
+                                enabled = hasChanges.value,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Save")
@@ -391,7 +415,6 @@ fun RecipeDetailScreen(
             }
         }
     }
-
     // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(

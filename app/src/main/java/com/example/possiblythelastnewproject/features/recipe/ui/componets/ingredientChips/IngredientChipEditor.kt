@@ -1,6 +1,8 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NewReleases
@@ -9,8 +11,11 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
 
@@ -30,60 +35,45 @@ fun IngredientChipEditor(
         allPantryItems.associateBy { it.id }
     }
 
+    val viewModel: RecipesViewModel = hiltViewModel()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Ingredients",
             style = MaterialTheme.typography.titleMedium
         )
 
-        LazyFlowRow(
-            items = ingredients,
-            horizontalSpacing = 8.dp,
-            verticalSpacing = 8.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) { ingredient ->
-            val pantryItem = pantryItemMap[ingredient.pantryItemId]
-            val inCart = pantryItem?.addToShoppingList == true
-
-            InputChip(
-                selected = inCart,
-                onClick = {
-                    pantryItem?.let {
-                        onToggleShoppingStatus(it.copy(addToShoppingList = !it.addToShoppingList))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 200.dp) // Optional: constrain height
+                .verticalScroll(rememberScrollState()) // Optional: allow scrolling
+        ) {
+            LazyFlowRow(
+                items = ingredients,
+                horizontalSpacing = 8.dp,
+                verticalSpacing = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) { ingredient ->
+                val pantryItem = pantryItemMap[ingredient.pantryItemId]
+                IngredientChip(
+                    ingredient = ingredient,
+                    pantryItem = pantryItem,
+                    isEditable = true,
+                    onToggleShoppingStatus = { updated ->
+                        onIngredientsChange(
+                            ingredients.map {
+                                if (it.pantryItemId == updated.id) {
+                                    it.copy(includeInShoppingList = !it.includeInShoppingList)
+                                } else it
+                            }
+                        )
+                        onToggleShoppingStatus(updated)
+                    },
+                    onRemove = {
+                        onIngredientsChange(ingredients - ingredient)
                     }
-                },
-                label = {
-                    Row {
-                        Text("${ingredient.amountRequired} × ${pantryItem?.name ?: ingredient.name}")
-                        if (inCart) {
-                            Icon(
-                                Icons.Default.ShoppingCart,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp).padding(start = 4.dp)
-                            )
-                        }
-                        if (ingredient.hasScanCode) {
-                            Icon(
-                                Icons.Default.QrCode2,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp).padding(start = 4.dp)
-                            )
-                        }
-                        if (ingredient.pantryItemId == null) {
-                            Icon(
-                                Icons.Default.NewReleases,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp).padding(start = 4.dp)
-                            )
-                        }
-                    }
-                },
-                trailingIcon = {
-                    IconButton(onClick = { onIngredientsChange(ingredients - ingredient) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove")
-                    }
-                }
-            )
+                )
+            }
         }
 
         Button(onClick = { showAddDialog = true }) {
@@ -107,22 +97,40 @@ fun IngredientChipEditor(
     if (showAddDialog) {
         AddIngredientDialog(
             allPantryItems = allPantryItems,
+            existingIngredientNames = ingredients.map { it.name },
             onAdd = { name, amount ->
                 scope.launch {
                     val match = allPantryItems.firstOrNull {
                         it.name.equals(name, ignoreCase = true)
                     }
                     val pantryItem = match ?: onRequestCreatePantryItem(name)
-                    onIngredientsChange(
-                        ingredients + RecipeIngredientUI(
-                            name = pantryItem.name,
-                            pantryItemId = pantryItem.id,
-                            amountNeeded = amount
+
+                    val alreadyExists = ingredients.any {
+                        it.name.equals(pantryItem.name, ignoreCase = true)
+                    }
+
+                    if (alreadyExists) {
+                        showDuplicateDialog = true
+                    } else {
+                        onIngredientsChange(
+                            ingredients + RecipeIngredientUI(
+                                name = pantryItem.name,
+                                pantryItemId = pantryItem.id,
+                                amountNeeded = amount,
+                                includeInShoppingList = true,
+                                includeInPantry = true,
+                                hasScanCode = pantryItem.scanCode?.isNotBlank() == true
+                            )
                         )
-                    )
+                        viewModel.updateNewIngredient("") // ✅ Clear after add
+                    }
                 }
             },
-            onDismiss = { showAddDialog = false }
+            onDismiss = {
+                showAddDialog = false
+                viewModel.updateNewIngredient("") // ✅ Clear on dismiss
+            },
+            viewModel = viewModel // ✅ Pass it in
         )
     }
 }

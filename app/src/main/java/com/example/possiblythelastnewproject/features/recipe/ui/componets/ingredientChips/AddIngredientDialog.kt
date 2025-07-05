@@ -9,17 +9,22 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddIngredientDialog(
     allPantryItems: List<PantryItem>,
+    existingIngredientNames: List<String>,
     onAdd: (String, String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    viewModel: RecipesViewModel // 👈 add this
 ) {
-    var nameQuery by remember { mutableStateOf("") }
+    var nameQuery by remember { mutableStateOf(viewModel.editUiState.newIngredient) }
     var amount by remember { mutableStateOf("1") }
     var expanded by remember { mutableStateOf(false) }
+
+    var showDuplicateDialog by remember { mutableStateOf(false) }
 
     val suggestions = remember(nameQuery, allPantryItems) {
         if (nameQuery.isBlank()) emptyList()
@@ -41,6 +46,7 @@ fun AddIngredientDialog(
                         value = nameQuery,
                         onValueChange = {
                             nameQuery = it
+                            viewModel.updateNewIngredient(it) // 👈 sync with ViewModel
                             expanded = it.isNotBlank() && suggestions.isNotEmpty()
                         },
                         label = { Text("Ingredient name") },
@@ -87,8 +93,16 @@ fun AddIngredientDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onAdd(nameQuery.trim(), amount.trim())
-                    onDismiss()
+                    val trimmedName = nameQuery.trim()
+                    val isDuplicate = existingIngredientNames.any { it.equals(trimmedName, ignoreCase = true) }
+
+                    if (isDuplicate) {
+                        showDuplicateDialog = true
+                    } else {
+                        onAdd(trimmedName, amount.trim())
+                        viewModel.updateNewIngredient("") // ✅ Clear after add
+                        onDismiss()
+                    }
                 },
                 enabled = nameQuery.isNotBlank() && amount.isNotBlank()
             ) {
@@ -96,9 +110,26 @@ fun AddIngredientDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                viewModel.updateNewIngredient("") // ✅ Clear on cancel
+                onDismiss()
+            }) {
                 Text("Cancel")
             }
         }
     )
+
+    if (showDuplicateDialog) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateDialog = false },
+
+            title = { Text("Duplicate Ingredient") },
+            text = { Text("This ingredient has already been added.") },
+            confirmButton = {
+                TextButton(onClick = { showDuplicateDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
