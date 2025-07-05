@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.View
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,7 +13,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -25,13 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.possiblythelastnewproject.core.data.sandbox.DbBackupViewModel
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
-import com.example.possiblythelastnewproject.features.scan.ui.componets.DbImportExportDialog
 import kotlinx.coroutines.delay
 
 @Composable
@@ -39,18 +36,14 @@ fun ScanningTab(
     shouldScan: Boolean,
     onScanResult: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val activity = remember(context) {
-        (context as? ComponentActivity)
+    val ctx = LocalContext.current
+    val activity = remember(ctx) {
+        (ctx as? ComponentActivity)
             ?: error("ScanningTab must be hosted in a ComponentActivity")
     }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var showDialog by remember { mutableStateOf(false) }
-    var isPaused by remember { mutableStateOf(false) }
-    var showPulse by remember { mutableStateOf(false) }
-    var cameraManager by remember { mutableStateOf<CustomCameraManager?>(null) }
-
+    // --- PERMISSION LOGIC ---
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -58,37 +51,33 @@ fun ScanningTab(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
-    val viewModel: DbBackupViewModel = hiltViewModel()
-    val isLoading = viewModel.isLoading
-    val result = viewModel.result
-
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri -> uri?.let { viewModel.importJson(it) } }
-    )
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
-        onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
-    )
-
-    LaunchedEffect(result) {
-        result?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-        }
-    }
-
-
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasPermission = granted }
-
     LaunchedEffect(Unit) {
-        if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
+        if (!hasPermission) launcher.launch(Manifest.permission.CAMERA)
+    }
+    if (!hasPermission) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Camera permission is required to scan.")
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
+                    Text("Grant Permission")
+                }
+            }
+        }
+        return
     }
 
-
+    // --- SHARED STATE ---
+    var cameraManager by remember { mutableStateOf<CustomCameraManager?>(null) }
+    var isPaused by remember { mutableStateOf(false) }
     DisposableEffect(Unit) {
         onDispose {
             cameraManager?.stopCamera()
@@ -96,6 +85,7 @@ fun ScanningTab(
         }
     }
 
+    // Automatically pause/resume scanning from shouldScan
     LaunchedEffect(shouldScan) {
         cameraManager?.let {
             if (shouldScan) it.resumeScanning()
@@ -103,6 +93,8 @@ fun ScanningTab(
         }
     }
 
+    // Pulse effect when scan resumes
+    var showPulse by remember { mutableStateOf(false) }
     LaunchedEffect(shouldScan) {
         if (shouldScan) {
             showPulse = true
@@ -113,6 +105,32 @@ fun ScanningTab(
 
     val stroke = 2.dp
 
+    // --- PREVIEW MODE ONLY ---
+    if (LocalInspectionMode.current) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+                    .border(stroke, Color.White, RoundedCornerShape(8.dp))
+                    .background(Color.Black)
+            )
+            Spacer(Modifier.height(16.dp))
+            var previewPaused by remember { mutableStateOf(false) }
+            Button(onClick = { previewPaused = !previewPaused }) {
+                Text(if (previewPaused) "Resume Scanning" else "Pause Scanning")
+            }
+        }
+        return
+    }
+
+    // --- RUNTIME LAYOUT ---
     Column(
         Modifier
             .fillMaxSize()
@@ -135,7 +153,8 @@ fun ScanningTab(
                 modifier = innerMod,
                 factory = { ctx ->
                     PreviewView(ctx).apply {
-                        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                        addOnAttachStateChangeListener(object :
+                            View.OnAttachStateChangeListener {
                             override fun onViewAttachedToWindow(v: View) {
                                 cameraManager = CustomCameraManager(
                                     activity,
@@ -177,52 +196,24 @@ fun ScanningTab(
 
         Spacer(Modifier.height(16.dp))
 
-        val buttonLabel = when {
-            !hasPermission -> "Request Camera Permission"
-            isPaused -> "Resume Scanning"
-            else -> "Pause Scanning"
-        }
-
         Button(onClick = {
-            if (!hasPermission) {
-                permissionLauncher.launch(Manifest.permission.CAMERA)
-                return@Button
-            }
-
-            if (isPaused) {
-                cameraManager?.resumeScanning()
-            } else {
-                cameraManager?.pauseScanning()
-            }
+            if (isPaused) cameraManager?.resumeScanning()
+            else cameraManager?.pauseScanning()
             isPaused = !isPaused
         }) {
-            Text(buttonLabel)
+            Text(if (isPaused) "Resume Scanning" else "Pause Scanning")
         }
 
         if (isPaused) {
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { showDialog = true }) {
-                Text("⚙️ Debug Tools")
-            }
+            // Button(onClick = { showDebugDialog = true }) {
+            Text("⚙️ Debug Tools")
         }
-        DbImportExportDialog(
-            showDialog = showDialog,
-            isLoading = isLoading,
-            onDismiss = {
-                showDialog = false
-                viewModel.clearResult()
-            },
-            onImportClick = {
-                importLauncher.launch(arrayOf("application/json"))
-            },
-            onExportClick = {
-                exportLauncher.launch("backup.json")
-            }
-        )
-
-
     }
+
+
 }
+
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
