@@ -105,7 +105,7 @@ fun IngredientCard(
 fun IngredientCardPreview() {
     MaterialTheme {
         IngredientCard(
-            ingredient = "Eggshfgkjhgfljhfgl;jhfkjghfghdgflhjlkgh;;;;;;;gjhl;kglgghllllllllllllllllllllllllllllllllllllllllll",
+            ingredient = "lllllllllllllllllllllllllllllllllllll",
             quantity = 12,
             imageData = null
         )
