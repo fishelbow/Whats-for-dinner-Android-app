@@ -28,7 +28,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.possiblythelastnewproject.core.data.sandbox.DbBackupViewModel
+import com.example.possiblythelastnewproject.core.data.backup.DbBackupViewModel
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
@@ -53,8 +53,6 @@ fun ScanningTab(
     }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-
-
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri -> uri?.let { viewModel.importJson(it) } }
@@ -64,10 +62,6 @@ fun ScanningTab(
         contract = ActivityResultContracts.CreateDocument("application/json"),
         onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
     )
-
-
-
-
 
 
     // --- PERMISSION LOGIC ---
@@ -251,6 +245,13 @@ fun ScanningTab(
                 exportLauncher.launch("backup.json")
             }
         )
+    }
+
+    LaunchedEffect(result) {
+        result?.let {
+            Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
+            viewModel.clearResult()
+        }
     }
 }
 

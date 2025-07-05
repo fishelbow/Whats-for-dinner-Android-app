@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.core.data.sandbox
+package com.example.possiblythelastnewproject.core.data.backup
 
 import kotlinx.serialization.Serializable
 import com.example.possiblythelastnewproject.features.pantry.data.entities.*
