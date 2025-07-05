@@ -1,16 +1,22 @@
 package com.example.possiblythelastnewproject.core.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -19,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -80,27 +87,45 @@ fun MainScreen() {
                     TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
                 }
             }
+        }
+    }
 
             if (editingGuard.showDiscardDialog) {
                 AlertDialog(
                     onDismissRequest = { editingGuard.cancelExit() },
-                    title = { Text("Discard changes?") },
-                    text = { Text("You have unsaved changes. What would you like to do?") },
+                    title = {
+                        Text("Discard changes?", style = MaterialTheme.typography.headlineSmall)
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("You have unsaved changes. What would you like to do?")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                Text(
+                                    "Changes will be lost if you discard.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
                     confirmButton = {
-                        Button(onClick = { editingGuard.confirmExit() }) {
+                        Button(onClick = { editingGuard.confirmExit() }, modifier = Modifier.fillMaxWidth()) {
                             Text("Discard Changes")
                         }
                     },
                     dismissButton = {
-                        OutlinedButton(onClick = { editingGuard.cancelExit() }) {
+                        OutlinedButton(onClick = { editingGuard.cancelExit() }, modifier = Modifier.fillMaxWidth()) {
                             Text("Keep Editing")
                         }
-                    }
+                    },
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }
-    }
-}
 
 // ────────────────────────────────────────────────
 // 3) NavHost definitions for your individual tabs.
