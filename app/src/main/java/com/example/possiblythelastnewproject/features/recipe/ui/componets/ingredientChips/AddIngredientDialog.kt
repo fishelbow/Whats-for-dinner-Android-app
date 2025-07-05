@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.components.ingredientChips
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,7 +46,7 @@ fun AddIngredientDialog(
                         label = { Text("Ingredient name") },
                         singleLine = true,
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth(),
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)

@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.features.recipe.ui.componets.recip
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -17,7 +18,7 @@ import androidx.compose.ui.unit.dp
 fun ReadOnlyField(label: String, value: String) {
     Text(label, style = MaterialTheme.typography.labelMedium)
     Text(value, style = MaterialTheme.typography.bodyLarge)
-    Divider()
+    HorizontalDivider()
 }
 
 
@@ -39,5 +40,5 @@ fun EditableField(
             .fillMaxWidth()
             .then(if (heightDp != null) Modifier.height(heightDp.dp) else Modifier)
     )
-    Divider()
+    HorizontalDivider()
 }

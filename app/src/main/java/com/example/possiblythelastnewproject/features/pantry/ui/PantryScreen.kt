@@ -229,7 +229,7 @@ fun PantryScreen(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                             },
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
                         ExposedDropdownMenu(
@@ -367,7 +367,7 @@ fun PantryScreen(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                                 },
                                 modifier = Modifier
-                                    .menuAnchor()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                     .fillMaxWidth()
                             )
                             ExposedDropdownMenu(
