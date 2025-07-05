@@ -25,10 +25,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.possiblythelastnewproject.core.data.sandbox.DbBackupViewModel
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
+import com.example.possiblythelastnewproject.features.scan.ui.componets.DbImportExportDialog
 import kotlinx.coroutines.delay
 
 @Composable
@@ -36,6 +39,12 @@ fun ScanningTab(
     shouldScan: Boolean,
     onScanResult: (String) -> Unit
 ) {
+
+    val viewModel: DbBackupViewModel = hiltViewModel()
+    val isLoading = viewModel.isLoading
+    val result = viewModel.result
+    var showDialog by remember { mutableStateOf(false) }
+
     val ctx = LocalContext.current
     val activity = remember(ctx) {
         (ctx as? ComponentActivity)
@@ -206,12 +215,25 @@ fun ScanningTab(
 
         if (isPaused) {
             Spacer(Modifier.height(8.dp))
-            // Button(onClick = { showDebugDialog = true }) {
-            Text("⚙️ Debug Tools")
+            Button(onClick = { showDialog = true }) {
+                Text("⚙️ Debug Tools")
+            }
         }
+        DbImportExportDialog(
+            showDialog = showDialog,
+            isLoading = isLoading,
+            onDismiss = {
+                showDialog = false
+                viewModel.clearResult()
+            },
+            onImportClick = {
+                importLauncher.launch(arrayOf("application/json"))
+            },
+            onExportClick = {
+                exportLauncher.launch("backup.json")
+            }
+        )
     }
-
-
 }
 
 
