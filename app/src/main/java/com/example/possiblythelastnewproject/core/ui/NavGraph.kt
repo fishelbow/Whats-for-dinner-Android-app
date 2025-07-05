@@ -8,7 +8,10 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -51,37 +54,49 @@ sealed class TabItem(val title: String, val icon: ImageVector) {
 // Replace with a valid API version if necessary
 @Composable
 fun MainScreen() {
-    // List of tabs
+    val editingGuard = remember { EditingGuard() }
     val tabs = listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning)
-    // Use a mutable state to track the currently selected tab index
     var currentPage by remember { mutableIntStateOf(0) }
-    // Associate a NavController to each tab
     val navMap = tabs.associateWith { rememberNavController() }
 
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // TabRow displays the list of tabs.
-            TabRow(selectedTabIndex = currentPage) {
-                tabs.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = currentPage == index,
-                        onClick = { currentPage = index },
-                        icon = { Icon(tab.icon, contentDescription = tab.title) },
-                        text = { Text(tab.title) }
-                    )
+    CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
+        Scaffold { padding ->
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                TabRow(selectedTabIndex = currentPage) {
+                    tabs.forEachIndexed { index, tab ->
+                        Tab(
+                            selected = currentPage == index,
+                            onClick = { currentPage = index },
+                            icon = { Icon(tab.icon, contentDescription = tab.title) },
+                            text = { Text(tab.title) }
+                        )
+                    }
+                }
+
+                when (tabs[currentPage]) {
+                    TabItem.Recipes -> RecipesNavHost(navMap[TabItem.Recipes]!!)
+                    TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
+                    TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
+                    TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
                 }
             }
 
-            // Display the NavHost corresponding to the selected tab
-            when (tabs[currentPage]) {
-                TabItem.Recipes -> RecipesNavHost(navMap[TabItem.Recipes]!!)
-                TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
-                TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
-                TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
+            if (editingGuard.showDiscardDialog) {
+                AlertDialog(
+                    onDismissRequest = { editingGuard.cancelExit() },
+                    title = { Text("Discard changes?") },
+                    text = { Text("You have unsaved changes. What would you like to do?") },
+                    confirmButton = {
+                        Button(onClick = { editingGuard.confirmExit() }) {
+                            Text("Discard Changes")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = { editingGuard.cancelExit() }) {
+                            Text("Keep Editing")
+                        }
+                    }
+                )
             }
         }
     }
