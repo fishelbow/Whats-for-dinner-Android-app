@@ -44,7 +44,7 @@ fun PantryScreen(
     var addImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var showScanDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
-
+    var showBlankNameDialog by remember { mutableStateOf(false) }
     // Create two distinct image pickers by calling your universal function.
     // One is for adding a new ingredient and updates addImageBytes.
     val launchImagePickerForAdd = imagePicker { imageBytes ->
@@ -395,11 +395,19 @@ fun PantryScreen(
                         it.name.equals(trimmedName, ignoreCase = true) && it.id != item.id
                     }
 
-                    if (isDuplicate) {
-                        showDuplicateNameDialog = true
-                    } else {
-                        viewModel.confirmEditItem()
-                        viewModel.startEditing(null)
+                    when {
+                        trimmedName.isBlank() -> {
+                            showBlankNameDialog = true
+                        }
+
+                        isDuplicate -> {
+                            showDuplicateNameDialog = true
+                        }
+
+                        else -> {
+                            viewModel.confirmEditItem()
+                            viewModel.startEditing(null)
+                        }
                     }
                 }) {
                     Text("Save Changes")
@@ -505,6 +513,19 @@ fun PantryScreen(
             text = { Text("An ingredient with this name already exists. Please choose a different name.") },
             confirmButton = {
                 TextButton(onClick = { showDuplicateNameDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+    // dialog for blank name when trying to save
+    if (showBlankNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showBlankNameDialog = false },
+            title = { Text("Missing Ingredient Name") },
+            text = { Text("Please enter a name for the ingredient before saving.") },
+            confirmButton = {
+                TextButton(onClick = { showBlankNameDialog = false }) {
                     Text("OK")
                 }
             }

@@ -52,7 +52,7 @@ fun RecipeDetailScreen(
 
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-
+    var showNameRequiredDialog by remember { mutableStateOf(false) }
 
 
     val initialData = produceState<RecipeWithIngredients?>(null, recipeId) {
@@ -70,9 +70,12 @@ fun RecipeDetailScreen(
         pantryItems = pantryItems
     ).collectAsState(initial = emptyList())
 
+
+    val isNameBlank = uiState.name.text.isBlank()
     val hasChanges = remember(uiState) {
         derivedStateOf { viewModel.hasUnsavedChanges(initialData) }
     }
+
     val initialized = remember { mutableStateOf(false) }
 
     LaunchedEffect(recipeId) {
@@ -332,6 +335,11 @@ fun RecipeDetailScreen(
                         ) {
                             Button(
                                 onClick = {
+                                    if (uiState.name.text.isBlank()) {
+                                        showNameRequiredDialog = true
+                                        return@Button
+                                    }
+
                                     val updated = initialData.recipe.copy(
                                         name = uiState.name.text.trim(),
                                         temp = uiState.temp.text.trim(),
@@ -353,13 +361,11 @@ fun RecipeDetailScreen(
                                             return@launch
                                         }
 
-                                        viewModel.updateRecipeWithIngredientsUi(
-                                            updated,
-                                            uiState.ingredients
-                                        )
+                                        viewModel.updateRecipeWithIngredientsUi(updated, uiState.ingredients)
                                         editingGuard.isEditing = false
                                     }
                                 },
+                                enabled = hasChanges.value, // optional: disable if no changes
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Save")
@@ -422,4 +428,21 @@ fun RecipeDetailScreen(
             }
         )
     }
+
+
+    if (showNameRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { showNameRequiredDialog = false },
+            title = { Text("Missing Name") },
+            text = { Text("Please enter a name for the recipe.") },
+            confirmButton = {
+                TextButton(onClick = { showNameRequiredDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
 }
+
+

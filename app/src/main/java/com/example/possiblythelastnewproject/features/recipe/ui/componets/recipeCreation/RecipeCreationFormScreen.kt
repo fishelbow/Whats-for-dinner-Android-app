@@ -30,6 +30,7 @@ import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeImagePicker
 import kotlinx.coroutines.launch
 
 
@@ -58,6 +59,8 @@ fun RecipeCreationFormScreen(
 
     val launchImagePicker = imagePicker { imageBytes = it }
 
+
+    var showNameRequiredDialog by remember { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
 
     val colorOptions = listOf(
@@ -149,6 +152,10 @@ fun RecipeCreationFormScreen(
                     focusManager.clearFocus()
                     val trimmedName = name.trim()
 
+                    if (trimmedName.isBlank()) {
+                        showNameRequiredDialog = true
+                        return@RecipeFormCard
+                    }
 
                     scope.launch {
                         if (recipeViewModel.recipeNameExists(trimmedName)) {
@@ -202,37 +209,17 @@ fun RecipeCreationFormScreen(
             }
         )
     }
-
-}
-
-@Composable
-private fun RecipeImagePicker(imageBytes: ByteArray?, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        tonalElevation = 4.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .clickable(onClick = onClick)
-    ) {
-        imageBytes?.takeIf { it.isNotEmpty() }?.let { bytes ->
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Recipe image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } ?: Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Tap to select image", color = Color.DarkGray)
-        }
+    if (showNameRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = { showNameRequiredDialog = false },
+            title = { Text("Missing Name") },
+            text = { Text("Please enter a name for the recipe before saving.") },
+            confirmButton = {
+                TextButton(onClick = { showNameRequiredDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
-
-
 }
 
