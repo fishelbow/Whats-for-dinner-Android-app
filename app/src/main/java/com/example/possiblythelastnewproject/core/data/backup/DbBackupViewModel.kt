@@ -33,24 +33,11 @@ class DbBackupViewModel @Inject constructor(
 
     fun exportJson(destinationUri: Uri) {
         launchWithLoading {
-            val backup = FullDatabaseBackup(
-                version = backupVersion,
-                pantryItems = db.pantryItemDao().getAllOnce(),
-                recipes = db.recipeDao().getAllOnce(),
-                recipePantryRefs = db.recipePantryItemDao().getAllOnce(),
-                shoppingLists = db.shoppingListDao().getAllOnce(),
-                shoppingListItems = db.shoppingListEntryDao().getAllOnce(),
-                categories = db.categoryDao().getAllOnce()
-            )
-
+            val backup = buildBackup()
             val json = Json.encodeToString(backup)
             context.contentResolver.openOutputStream(destinationUri)?.use {
                 it.write(json.toByteArray())
-            } ?: run {
-                result = "❌ Failed to open output stream"
-                return@launchWithLoading
             }
-
             result = "✅ Exported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
         }
     }
@@ -78,41 +65,55 @@ class DbBackupViewModel @Inject constructor(
                 return@launchWithLoading
             }
 
-            mergeBackupIntoDatabase(backup)
-        }
-    }
+            with(db) {
+                val existingPantryUuids = pantryItemDao().getAllOnce().map { it.uuid }.toSet()
+                val newPantryItems = backup.pantryItems.filterNot { it.uuid in existingPantryUuids }
 
-    private suspend fun mergeBackupIntoDatabase(backup: FullDatabaseBackup) {
-        with(db) {
-            val newCategories = filterNew(backup.categories, categoryDao().getAllOnce()) { it.uuid }
-            val newPantryItems = filterNew(backup.pantryItems, pantryItemDao().getAllOnce()) { it.uuid }
-            val newRecipes = filterNew(backup.recipes, recipeDao().getAllOnce()) { it.uuid }
-            val newRefs = filterNew(backup.recipePantryRefs, recipePantryItemDao().getAllOnce()) { it.uuid }
-            val newLists = filterNew(backup.shoppingLists, shoppingListDao().getAllOnce()) { it.uuid }
-            val newEntries = filterNew(backup.shoppingListItems, shoppingListEntryDao().getAllOnce()) { it.uuid }
+                val existingRecipeUuids = recipeDao().getAllOnce().map { it.uuid }.toSet()
+                val newRecipes = backup.recipes.filterNot { it.uuid in existingRecipeUuids }
 
-            categoryDao().insertAll(newCategories)
-            pantryItemDao().insertAll(newPantryItems)
-            recipeDao().insertAll(newRecipes)
-            recipePantryItemDao().insertAll(newRefs)
-            shoppingListDao().insertAll(newLists)
-            shoppingListEntryDao().insertAll(newEntries)
+                val existingCategoryUuids = categoryDao().getAllOnce().map { it.uuid }.toSet()
+                val newCategories = backup.categories.filterNot { it.uuid in existingCategoryUuids }
 
-            result = buildString {
-                appendLine("✅ Import complete:")
-                appendLine("• Pantry items added: ${newPantryItems.size}")
-                appendLine("• Recipes added: ${newRecipes.size}")
-                appendLine("• Categories added: ${newCategories.size}")
-                appendLine("• Recipe refs added: ${newRefs.size}")
-                appendLine("• Shopping lists added: ${newLists.size}")
-                appendLine("• Shopping entries added: ${newEntries.size}")
+                val existingRefUuids = recipePantryItemDao().getAllOnce().map { it.uuid }.toSet()
+                val newRefs = backup.recipePantryRefs.filterNot { it.uuid in existingRefUuids }
+
+                val existingListUuids = shoppingListDao().getAllOnce().map { it.uuid }.toSet()
+                val newLists = backup.shoppingLists.filterNot { it.uuid in existingListUuids }
+
+                val existingEntryUuids = shoppingListEntryDao().getAllOnce().map { it.uuid }.toSet()
+                val newEntries = backup.shoppingListItems.filterNot { it.uuid in existingEntryUuids }
+
+                // Insert only new items
+                if (newCategories.isNotEmpty()) categoryDao().insertAll(newCategories)
+                if (newPantryItems.isNotEmpty()) pantryItemDao().insertAll(newPantryItems)
+                if (newRecipes.isNotEmpty()) recipeDao().insertAll(newRecipes)
+                if (newRefs.isNotEmpty()) recipePantryItemDao().insertAll(newRefs)
+                if (newLists.isNotEmpty()) shoppingListDao().insertAll(newLists)
+                if (newEntries.isNotEmpty()) shoppingListEntryDao().insertAll(newEntries)
+
+                result = buildString {
+                    appendLine("✅ Import complete:")
+                    appendLine("• Pantry items added: ${newPantryItems.size}")
+                    appendLine("• Recipes added: ${newRecipes.size}")
+                    appendLine("• Categories added: ${newCategories.size}")
+                    appendLine("• Recipe refs added: ${newRefs.size}")
+                    appendLine("• Shopping lists added: ${newLists.size}")
+                    appendLine("• Shopping entries added: ${newEntries.size}")
+                }
             }
         }
     }
-
-    private fun <T> filterNew(newItems: List<T>, existingItems: List<T>, keySelector: (T) -> String): List<T> {
-        val existingKeys = existingItems.map(keySelector).toSet()
-        return newItems.filterNot { keySelector(it) in existingKeys }
+    private suspend fun buildBackup(): FullDatabaseBackup {
+        return FullDatabaseBackup(
+            version = backupVersion,
+            pantryItems = db.pantryItemDao().getAllOnce(),
+            recipes = db.recipeDao().getAllOnce(),
+            recipePantryRefs = db.recipePantryItemDao().getAllOnce(),
+            shoppingLists = db.shoppingListDao().getAllOnce(),
+            shoppingListItems = db.shoppingListEntryDao().getAllOnce(),
+            categories = db.categoryDao().getAllOnce()
+        )
     }
 
     private fun launchWithLoading(block: suspend () -> Unit) {
