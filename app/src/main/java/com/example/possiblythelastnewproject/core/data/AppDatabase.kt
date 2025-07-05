@@ -14,8 +14,8 @@ import com.example.possiblythelastnewproject.features.recipe.data.entities.Recip
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
 import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListEntryDao
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 
 @Database(
     entities = [

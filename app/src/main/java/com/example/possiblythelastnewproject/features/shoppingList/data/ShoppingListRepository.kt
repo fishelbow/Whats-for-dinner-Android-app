@@ -1,11 +1,10 @@
 package com.example.possiblythelastnewproject.features.shoppingList.data
 
-import androidx.room.Delete
 import androidx.room.Transaction
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
 import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton

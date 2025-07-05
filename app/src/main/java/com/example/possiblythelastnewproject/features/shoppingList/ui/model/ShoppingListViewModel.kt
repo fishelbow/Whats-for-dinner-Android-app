@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import com.example.possiblythelastnewproject.features.shoppingList.data.ShoppingListRepository
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*

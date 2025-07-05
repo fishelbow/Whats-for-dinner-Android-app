@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.shoppingList.data.entity
+package com.example.possiblythelastnewproject.features.shoppingList.data.entities
 
 import androidx.room.Entity
 import androidx.room.Index

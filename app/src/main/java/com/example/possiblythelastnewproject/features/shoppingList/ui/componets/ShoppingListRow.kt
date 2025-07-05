@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 
 @Composable
 fun ShoppingListRow(

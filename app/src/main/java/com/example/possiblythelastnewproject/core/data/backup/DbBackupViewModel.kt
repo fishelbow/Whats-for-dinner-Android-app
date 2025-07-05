@@ -9,9 +9,18 @@ import com.example.possiblythelastnewproject.core.data.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+
+@Serializable
+data class BackupWrapper(
+    val type: String = "my_app_backup",
+    val version: Int = 1,
+    val payload: FullDatabaseBackup
+)
 
 @HiltViewModel
 class DbBackupViewModel @Inject constructor(
@@ -25,7 +34,7 @@ class DbBackupViewModel @Inject constructor(
     var result: String? by mutableStateOf(null)
         private set
 
-    private val backupVersion = 1
+    private val currentVersion = 1
 
     fun clearResult() {
         result = null
@@ -33,87 +42,77 @@ class DbBackupViewModel @Inject constructor(
 
     fun exportJson(destinationUri: Uri) {
         launchWithLoading {
-            val backup = buildBackup()
-            val json = Json.encodeToString(backup)
+            val backup = FullDatabaseBackup(
+                version = currentVersion,
+                pantryItems = db.pantryItemDao().getAllOnce(),
+                recipes = db.recipeDao().getAllOnce(),
+                recipePantryRefs = db.recipePantryItemDao().getAllOnce(),
+                shoppingLists = db.shoppingListDao().getAllOnce(),
+                shoppingListItems = db.shoppingListEntryDao().getAllOnce(),
+                categories = db.categoryDao().getAllOnce()
+            )
+
+            val wrapper = BackupWrapper(
+                version = currentVersion,
+                payload = backup
+            )
+
+            val json = Json.encodeToString(wrapper)
             context.contentResolver.openOutputStream(destinationUri)?.use {
                 it.write(json.toByteArray())
             }
-            result = "✅ Exported ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
+
+            result = "✅ Exported backup with ${backup.pantryItems.size} pantry items, ${backup.recipes.size} recipes"
         }
     }
 
     fun importJson(sourceUri: Uri) {
         launchWithLoading {
-            val json = context.contentResolver.openInputStream(sourceUri)
+            val jsonText = context.contentResolver.openInputStream(sourceUri)
                 ?.bufferedReader()
                 ?.readText()
 
-            if (json == null) {
-                result = "❌ Failed to read file"
+            if (jsonText.isNullOrBlank()) {
+                result = "❌ File is empty or unreadable"
                 return@launchWithLoading
             }
 
-            val backup = try {
-                Json.decodeFromString<FullDatabaseBackup>(json)
+            val wrapper = try {
+                Json.decodeFromString<BackupWrapper>(jsonText)
             } catch (e: Exception) {
                 result = "❌ Failed to parse backup: ${e.localizedMessage}"
                 return@launchWithLoading
             }
 
-            if (backup.version > backupVersion) {
-                result = "❌ Unsupported backup version: ${backup.version}"
+            if (wrapper.type != "my_app_backup") {
+                result = "❌ Invalid backup file type"
                 return@launchWithLoading
             }
 
-            with(db) {
-                val existingPantryUuids = pantryItemDao().getAllOnce().map { it.uuid }.toSet()
-                val newPantryItems = backup.pantryItems.filterNot { it.uuid in existingPantryUuids }
+            if (wrapper.version > currentVersion) {
+                result = "❌ Unsupported backup version: ${wrapper.version}"
+                return@launchWithLoading
+            }
 
-                val existingRecipeUuids = recipeDao().getAllOnce().map { it.uuid }.toSet()
-                val newRecipes = backup.recipes.filterNot { it.uuid in existingRecipeUuids }
+            val backup = wrapper.payload
 
-                val existingCategoryUuids = categoryDao().getAllOnce().map { it.uuid }.toSet()
-                val newCategories = backup.categories.filterNot { it.uuid in existingCategoryUuids }
+            db.categoryDao().insertAll(backup.categories)
+            db.pantryItemDao().insertAll(backup.pantryItems)
+            db.recipeDao().insertAll(backup.recipes)
+            db.recipePantryItemDao().insertAll(backup.recipePantryRefs)
+            db.shoppingListDao().insertAll(backup.shoppingLists)
+            db.shoppingListEntryDao().insertAll(backup.shoppingListItems)
 
-                val existingRefUuids = recipePantryItemDao().getAllOnce().map { it.uuid }.toSet()
-                val newRefs = backup.recipePantryRefs.filterNot { it.uuid in existingRefUuids }
-
-                val existingListUuids = shoppingListDao().getAllOnce().map { it.uuid }.toSet()
-                val newLists = backup.shoppingLists.filterNot { it.uuid in existingListUuids }
-
-                val existingEntryUuids = shoppingListEntryDao().getAllOnce().map { it.uuid }.toSet()
-                val newEntries = backup.shoppingListItems.filterNot { it.uuid in existingEntryUuids }
-
-                // Insert only new items
-                if (newCategories.isNotEmpty()) categoryDao().insertAll(newCategories)
-                if (newPantryItems.isNotEmpty()) pantryItemDao().insertAll(newPantryItems)
-                if (newRecipes.isNotEmpty()) recipeDao().insertAll(newRecipes)
-                if (newRefs.isNotEmpty()) recipePantryItemDao().insertAll(newRefs)
-                if (newLists.isNotEmpty()) shoppingListDao().insertAll(newLists)
-                if (newEntries.isNotEmpty()) shoppingListEntryDao().insertAll(newEntries)
-
-                result = buildString {
-                    appendLine("✅ Import complete:")
-                    appendLine("• Pantry items added: ${newPantryItems.size}")
-                    appendLine("• Recipes added: ${newRecipes.size}")
-                    appendLine("• Categories added: ${newCategories.size}")
-                    appendLine("• Recipe refs added: ${newRefs.size}")
-                    appendLine("• Shopping lists added: ${newLists.size}")
-                    appendLine("• Shopping entries added: ${newEntries.size}")
-                }
+            result = buildString {
+                appendLine("✅ Import complete:")
+                appendLine("• Pantry items: ${backup.pantryItems.size}")
+                appendLine("• Recipes: ${backup.recipes.size}")
+                appendLine("• Categories: ${backup.categories.size}")
+                appendLine("• Recipe refs: ${backup.recipePantryRefs.size}")
+                appendLine("• Shopping lists: ${backup.shoppingLists.size}")
+                appendLine("• Shopping entries: ${backup.shoppingListItems.size}")
             }
         }
-    }
-    private suspend fun buildBackup(): FullDatabaseBackup {
-        return FullDatabaseBackup(
-            version = backupVersion,
-            pantryItems = db.pantryItemDao().getAllOnce(),
-            recipes = db.recipeDao().getAllOnce(),
-            recipePantryRefs = db.recipePantryItemDao().getAllOnce(),
-            shoppingLists = db.shoppingListDao().getAllOnce(),
-            shoppingListItems = db.shoppingListEntryDao().getAllOnce(),
-            categories = db.categoryDao().getAllOnce()
-        )
     }
 
     private fun launchWithLoading(block: suspend () -> Unit) {

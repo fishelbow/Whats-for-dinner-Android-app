@@ -6,8 +6,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -3,7 +3,7 @@ package com.example.possiblythelastnewproject.core.data.backup
 import kotlinx.serialization.Serializable
 import com.example.possiblythelastnewproject.features.pantry.data.entities.*
 import com.example.possiblythelastnewproject.features.recipe.data.entities.*
-import com.example.possiblythelastnewproject.features.shoppingList.data.entity.*
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.*
 
 @Serializable
 data class FullDatabaseBackup(
