@@ -114,7 +114,8 @@ fun PantryScreen(
             onDismissRequest = {},
             title = { Text(item.name) },
             text = {
-                Column {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Image and name card
                     IngredientCard(
                         ingredient = item.name,
                         quantity = item.quantity,
@@ -122,6 +123,21 @@ fun PantryScreen(
                         category = item.category,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // PLU Button below image, right-aligned
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showScanDialog = true }) {
+                            Text(
+                                if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
+                                else "Update PLU/Barcode"
+                            )
+                        }
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
@@ -145,26 +161,17 @@ fun PantryScreen(
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = { showScanDialog = true }) {
-                        Text(
-                            if (item.scanCode.isNullOrBlank()) "Link PLU or Barcode"
-                            else "Update PLU/Barcode"
-                        )
-                    }
-                    Row {
-                        TextButton(onClick = { selectedItem = null }) { Text("Close") }
-                        TextButton(onClick = {
-                            viewModel.startEditing(item)
-                            selectedItem = null
-                        }) { Text("Edit") }
-                    }
+                    TextButton(onClick = { selectedItem = null }) { Text("Close") }
+                    TextButton(onClick = {
+                        viewModel.startEditing(item)
+                        selectedItem = null
+                    }) { Text("Edit") }
                 }
             }
         )
     }
-
     // --- Add Dialog ---
     if (showAddDialog) {
         val nameExists = pantryItems.any { it.name.equals(newIngredient.trim(), ignoreCase = true) }
