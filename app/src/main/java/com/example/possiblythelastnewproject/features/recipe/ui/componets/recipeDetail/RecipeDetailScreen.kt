@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -36,7 +35,6 @@ import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,115 +49,54 @@ fun RecipeDetailScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     val editingGuard = LocalEditingGuard.current
+
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+
+
     val initialData = produceState<RecipeWithIngredients?>(null, recipeId) {
         value = viewModel.getRecipeWithIngredients(recipeId)
     }.value ?: run {
-        Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
 
-    // Local UI state
-    var name by remember { mutableStateOf(TextFieldValue(initialData.recipe.name)) }
-    var temp by remember { mutableStateOf(TextFieldValue(initialData.recipe.temp)) }
-    var prepTime by remember { mutableStateOf(TextFieldValue(initialData.recipe.prepTime)) }
-    var cookTime by remember { mutableStateOf(TextFieldValue(initialData.recipe.cookTime)) }
-    var category by remember { mutableStateOf(TextFieldValue(initialData.recipe.category)) }
-    var newIngredient by remember { mutableStateOf("") }
-    var ingredientList by remember { mutableStateOf(emptyList<RecipeIngredientUI>()) }
-    var instructions by remember { mutableStateOf(TextFieldValue(initialData.recipe.instructions)) }
-    var cardColor by remember { mutableStateOf(Color(initialData.recipe.color)) }
-    var imageData by remember { mutableStateOf(initialData.recipe.imageData) }
-
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var pendingExitAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-
-    val recipe = initialData.recipe
-
+    val uiState = viewModel.editUiState
     val ingredients by viewModel.observeIngredientsForRecipe(
-        recipeId = recipe.id,
+        recipeId = initialData.recipe.id,
         pantryItems = pantryItems
     ).collectAsState(initial = emptyList())
 
+
+    val hasChanges = remember(uiState) {
+        derivedStateOf { viewModel.hasUnsavedChanges(initialData) }
+    }
     val initialized = remember { mutableStateOf(false) }
 
     LaunchedEffect(recipeId) {
-        val result = viewModel.getRecipeWithIngredients(recipeId)
-        ingredientList = result?.ingredients?.map {
-            RecipeIngredientUI(
-                name = it.name,
-                pantryItemId = it.id,
-                isShoppable = false,
-                hasScanCode = false
-            )
-        } ?: emptyList()
-        initialized.value = true
+        viewModel.getRecipeWithIngredients(recipeId)?.let {
+            viewModel.loadRecipeIntoUiState(it)
+            initialized.value = true
+        }
     }
 
-    LaunchedEffect(recipeId) {
-        initialized.value = false
-    }
-    fun hasUnsavedChanges(): Boolean {
-        return editingGuard.isEditing && (
-                name.text != initialData.recipe.name ||
-                        temp.text != initialData.recipe.temp ||
-                        prepTime.text != initialData.recipe.prepTime ||
-                        cookTime.text != initialData.recipe.cookTime ||
-                        category.text != initialData.recipe.category ||
-                        instructions.text != initialData.recipe.instructions ||
-                        cardColor.toArgb() != initialData.recipe.color ||
-                        imageData?.contentEquals(initialData.recipe.imageData) == false ||
-                        ingredientList.map { it.name } != ingredients.map { it.name }
-                )
-    }
-
-    LaunchedEffect(
-        name.text, temp.text, prepTime.text, cookTime.text,
-        category.text, instructions.text, cardColor, imageData, ingredientList
-    ) {
-        editingGuard.isEditing = hasUnsavedChanges()
-    }
 
     DisposableEffect(Unit) {
-        onDispose {
-            editingGuard.isEditing = false
-        }
-    }
-
-    LaunchedEffect(ingredients) {
-        if (editingGuard.isEditing && ingredientList.isEmpty()) {
-            ingredientList = ingredients
-        }
+        onDispose { editingGuard.isEditing = false }
     }
 
     suspend fun refreshUiFromDb() {
-        viewModel.getRecipeWithIngredients(recipeId)?.let { refreshed ->
-            val r = refreshed.recipe
-            name = TextFieldValue(r.name)
-            temp = TextFieldValue(r.temp)
-            prepTime = TextFieldValue(r.prepTime)
-            cookTime = TextFieldValue(r.cookTime)
-            category = TextFieldValue(r.category)
-            instructions = TextFieldValue(r.instructions)
-            cardColor = Color(r.color)
-            imageData = r.imageData
-            newIngredient = ""
-            ingredientList = refreshed.ingredients.map {
-                RecipeIngredientUI(
-                    name = it.name,
-                    pantryItemId = it.id,
-                    isShoppable = false,
-                    hasScanCode = false
-                )
-            }
+        viewModel.getRecipeWithIngredients(recipeId)?.let {
+            viewModel.loadRecipeIntoUiState(it)
             editingGuard.isEditing = false
         }
     }
 
     BackHandler(enabled = editingGuard.isEditing) {
-        if (hasUnsavedChanges()) {
+        if (viewModel.hasUnsavedChanges(initialData)) {
             editingGuard.requestExit {
                 coroutineScope.launch { refreshUiFromDb() }
             }
@@ -168,7 +105,9 @@ fun RecipeDetailScreen(
         }
     }
 
-    val pickImage = imagePicker { byteArray -> imageData = byteArray }
+    val pickImage = imagePicker { byteArray ->
+        viewModel.updateImageData(byteArray)
+    }
 
     Scaffold(
         topBar = {
@@ -176,7 +115,7 @@ fun RecipeDetailScreen(
                 title = { Text("Recipe Details") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (editingGuard.isEditing && hasUnsavedChanges()) {
+                        if (editingGuard.isEditing && viewModel.hasUnsavedChanges(initialData)) {
                             editingGuard.requestExit {
                                 coroutineScope.launch { refreshUiFromDb() }
                             }
@@ -209,7 +148,7 @@ fun RecipeDetailScreen(
         }
     ) { innerPadding ->
         Column(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(innerPadding)
@@ -217,7 +156,7 @@ fun RecipeDetailScreen(
                 .animateContentSize(tween(300)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Image picker
+            // Image Picker
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 tonalElevation = 4.dp,
@@ -226,28 +165,28 @@ fun RecipeDetailScreen(
                     .height(200.dp)
                     .clickable(enabled = editingGuard.isEditing) { pickImage() }
             ) {
-                if (imageData?.isNotEmpty() == true) {
-                    val bmp = BitmapFactory.decodeByteArray(imageData, 0, imageData!!.size)
+                uiState.imageData?.takeIf { it.isNotEmpty() }?.let { data ->
+                    val bmp = BitmapFactory.decodeByteArray(data, 0, data.size)
                     Image(
-                        bmp.asImageBitmap(),
+                        bitmap = bmp.asImageBitmap(),
                         contentDescription = "Recipe photo",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-                } else {
-                    Box(
-                        Modifier.fillMaxSize().background(Color.LightGray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (editingGuard.isEditing) "Tap to select image" else "No image",
-                            color = Color.DarkGray
-                        )
-                    }
+                } ?: Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (editingGuard.isEditing) "Tap to select image" else "No image",
+                        color = Color.DarkGray
+                    )
                 }
             }
 
-            // Details card
+            // Details Card
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -260,16 +199,19 @@ fun RecipeDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (!editingGuard.isEditing) {
-                        ReadOnlyField("Name", name.text)
-                        ReadOnlyField("Temperature", temp.text)
-                        ReadOnlyField("Prep Time", prepTime.text)
-                        ReadOnlyField("Cook Time", cookTime.text)
-                        ReadOnlyField("Category", category.text)
-                        Text("Ingredients", style = MaterialTheme.typography.labelMedium)
+                        ReadOnlyField("Name", uiState.name.text)
+                        ReadOnlyField("Temperature", uiState.temp.text)
+                        ReadOnlyField("Prep Time", uiState.prepTime.text)
+                        ReadOnlyField("Cook Time", uiState.cookTime.text)
+                        ReadOnlyField("Category", uiState.category.text)
 
+                        Text("Ingredients", style = MaterialTheme.typography.labelMedium)
                         when {
                             !initialized.value -> {
-                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Box(
+                                    Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
@@ -300,7 +242,8 @@ fun RecipeDetailScreen(
                                                         Icon(
                                                             imageVector = Icons.Default.ShoppingCart,
                                                             contentDescription = "In Shopping List",
-                                                            modifier = Modifier.size(16.dp)
+                                                            modifier = Modifier
+                                                                .size(16.dp)
                                                                 .padding(start = 4.dp),
                                                             tint = MaterialTheme.colorScheme.primary
                                                         )
@@ -312,47 +255,44 @@ fun RecipeDetailScreen(
                                 }
                             }
                         }
+
                         HorizontalDivider()
-                        ReadOnlyField("Instructions", instructions.text)
+                        ReadOnlyField("Instructions", uiState.instructions.text)
+
                         Text("Card Color", style = MaterialTheme.typography.labelMedium)
                         Box(
                             Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(cardColor)
+                                .background(uiState.cardColor)
                                 .border(1.dp, Color.Black, CircleShape)
                         )
                     } else {
-                        EditableField("Name", name) { name = it }
-                        EditableField("Temperature", temp) { temp = it }
-                        EditableField("Prep Time", prepTime) { prepTime = it }
-                        EditableField("Cook Time", cookTime) { cookTime = it }
-                        EditableField("Category", category) { category = it }
+                        EditableField("Name", uiState.name) { viewModel.updateName(it) }
+                        EditableField("Temperature", uiState.temp) { viewModel.updateTemp(it) }
+                        EditableField("Prep Time", uiState.prepTime) { viewModel.updatePrepTime(it) }
+                        EditableField("Cook Time", uiState.cookTime) { viewModel.updateCookTime(it) }
+                        EditableField("Category", uiState.category) { viewModel.updateCategory(it) }
 
                         IngredientChipEditor(
-                            ingredients = ingredientList,
-                            onIngredientsChange = { ingredientList = it },
+                            ingredients = uiState.ingredients,
+                            onIngredientsChange = { viewModel.updateIngredients(it) },
                             allPantryItems = pantryItems,
                             onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
-                            onToggleShoppingStatus = { updatedItem ->
-                                pantryViewModel.update(
-                                    updatedItem
-                                )
-                            }
+                            onToggleShoppingStatus = { updatedItem -> pantryViewModel.update(updatedItem) }
                         )
 
                         HorizontalDivider()
 
                         EditableField(
-                            "Instructions",
-                            instructions,
+                            label = "Instructions",
+                            state = uiState.instructions,
                             singleLine = false,
-                            heightDp = 140
-                        ) {
-                            instructions = it
-                        }
+                            heightDp = 140,
+                            onValueChange = { viewModel.updateInstructions(it) }
+                        )
 
-                        // Color picker
+                        // Color Picker
                         val colorOptions = listOf(
                             0xFFF44336, 0xFFE91E63, 0xFF9C27B0, 0xFF673AB7,
                             0xFF3F51B5, 0xFF2196F3, 0xFF03A9F4, 0xFF00BCD4,
@@ -363,10 +303,7 @@ fun RecipeDetailScreen(
                         colorOptions.chunked(6).forEach { row ->
                             Row(
                                 Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    8.dp,
-                                    Alignment.CenterHorizontally
-                                )
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                             ) {
                                 row.forEach { col ->
                                     Box(
@@ -375,30 +312,39 @@ fun RecipeDetailScreen(
                                             .clip(CircleShape)
                                             .background(col)
                                             .border(
-                                                width = if (col == cardColor) 3.dp else 1.dp,
-                                                color = if (col == cardColor) MaterialTheme.colorScheme.primary else Color.Gray,
+                                                width = if (col == uiState.cardColor) 3.dp else 1.dp,
+                                                color = if (col == uiState.cardColor)
+                                                    MaterialTheme.colorScheme.primary
+                                                else
+                                                    Color.Gray,
                                                 shape = CircleShape
                                             )
-                                            .clickable { cardColor = col }
+                                            .clickable {
+                                                viewModel.updateCardColor(col)
+                                            }
                                     )
                                 }
                             }
                         }
+
                         HorizontalDivider()
 
-                        // Save / Cancel buttons
-                        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                        // Save / Cancel Buttons
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Button(
                                 onClick = {
                                     val updated = initialData.recipe.copy(
-                                        name = name.text.trim(),
-                                        temp = temp.text.trim(),
-                                        prepTime = prepTime.text.trim(),
-                                        cookTime = cookTime.text.trim(),
-                                        category = category.text.trim(),
-                                        imageData = imageData,
-                                        instructions = instructions.text.trim(),
-                                        color = cardColor.toArgb()
+                                        name = uiState.name.text.trim(),
+                                        temp = uiState.temp.text.trim(),
+                                        prepTime = uiState.prepTime.text.trim(),
+                                        cookTime = uiState.cookTime.text.trim(),
+                                        category = uiState.category.text.trim(),
+                                        imageData = uiState.imageData,
+                                        instructions = uiState.instructions.text.trim(),
+                                        color = uiState.cardColor.toArgb()
                                     )
 
                                     coroutineScope.launch {
@@ -406,13 +352,15 @@ fun RecipeDetailScreen(
                                             name = updated.name,
                                             excludeUuid = updated.uuid
                                         )
-
                                         if (isDuplicate) {
                                             showDuplicateNameDialog = true
                                             return@launch
                                         }
 
-                                        viewModel.updateRecipeWithIngredientsUi(updated, ingredientList)
+                                        viewModel.updateRecipeWithIngredientsUi(
+                                            updated,
+                                            uiState.ingredients
+                                        )
                                         editingGuard.isEditing = false
                                     }
                                 },
@@ -423,11 +371,9 @@ fun RecipeDetailScreen(
 
                             OutlinedButton(
                                 onClick = {
-                                    if (hasUnsavedChanges()) {
+                                    if (viewModel.hasUnsavedChanges(initialData)) {
                                         editingGuard.requestExit {
-                                            coroutineScope.launch {
-                                                refreshUiFromDb()
-                                            }
+                                            coroutineScope.launch { refreshUiFromDb() }
                                         }
                                     } else {
                                         editingGuard.isEditing = false
@@ -467,6 +413,7 @@ fun RecipeDetailScreen(
         )
     }
 
+    // Duplicate name warning dialog
     if (showDuplicateNameDialog) {
         AlertDialog(
             onDismissRequest = { showDuplicateNameDialog = false },
@@ -479,5 +426,4 @@ fun RecipeDetailScreen(
             }
         )
     }
-
 }
