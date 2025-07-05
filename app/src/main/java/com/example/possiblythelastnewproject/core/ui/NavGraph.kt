@@ -73,9 +73,18 @@ fun MainScreen() {
                     tabs.forEachIndexed { index, tab ->
                         Tab(
                             selected = currentPage == index,
-                            onClick = { currentPage = index },
+                            onClick = {
+                                if (!editingGuard.isEditing) {
+                                    currentPage = index
+                                } else {
+                                    editingGuard.requestExit {
+                                        currentPage = index
+                                    }
+                                }
+                            },
                             icon = { Icon(tab.icon, contentDescription = tab.title) },
-                            text = { Text(tab.title) }
+                            text = { Text(tab.title) },
+                            enabled = true // Keep enabled so it looks clickable, but logic is guarded
                         )
                     }
                 }

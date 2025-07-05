@@ -8,6 +8,7 @@ import com.example.possiblythelastnewproject.features.shoppingList.data.Shopping
 import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingList
 import com.example.possiblythelastnewproject.features.shoppingList.data.entity.ShoppingListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class ShoppingListViewModel @Inject constructor(
     private val _currentListId = MutableStateFlow<Long?>(null)
     val currentListId: StateFlow<Long?> = _currentListId.asStateFlow()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val shoppingItems: StateFlow<List<ShoppingListItem>> = currentListId
         .filterNotNull()
         .flatMapLatest { repository.getShoppingItemsForList(it) }
