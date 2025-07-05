@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,6 +52,23 @@ fun ScanningTab(
             ?: error("ScanningTab must be hosted in a ComponentActivity")
     }
     val lifecycleOwner = LocalLifecycleOwner.current
+
+
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri -> uri?.let { viewModel.importJson(it) } }
+    )
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+        onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
+    )
+
+
+
+
+
 
     // --- PERMISSION LOGIC ---
     var hasPermission by remember {
