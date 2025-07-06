@@ -25,7 +25,7 @@ class ShoppingListViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _currentListId = MutableStateFlow<Long?>(null)
-    val currentListId: StateFlow<Long?> = _currentListId.asStateFlow()
+    private val currentListId: StateFlow<Long?> = _currentListId.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val shoppingItems: StateFlow<List<ShoppingListItem>> = currentListId

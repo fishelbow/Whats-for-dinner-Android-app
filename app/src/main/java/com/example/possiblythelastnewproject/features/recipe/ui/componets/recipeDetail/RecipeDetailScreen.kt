@@ -243,10 +243,7 @@ fun RecipeDetailScreen(
 
                         when {
                             !initialized.value -> {
-                                Box(
-                                    Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
@@ -261,7 +258,6 @@ fun RecipeDetailScreen(
 
                             else -> {
                                 val pantryItemsById = pantryItems.associateBy { it.id }
-
                                 LazyFlowRow(
                                     items = observedIngredients,
                                     horizontalSpacing = 8.dp,
@@ -278,21 +274,24 @@ fun RecipeDetailScreen(
                                         isEditable = false
                                     )
                                 }
-
-                                HorizontalDivider()
-                                ReadOnlyField("Instructions", uiState.instructions.text)
-
-                                Text("Card Color", style = MaterialTheme.typography.labelMedium)
-                                Box(
-                                    Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(uiState.cardColor)
-                                        .border(1.dp, Color.Black, CircleShape)
-                                )
                             }
                         }
-                    } else {
+
+// ✅ Always show these, regardless of ingredients
+                        HorizontalDivider()
+                        ReadOnlyField("Instructions", uiState.instructions.text)
+
+                        Text("Card Color", style = MaterialTheme.typography.labelMedium)
+                        Box(
+                            Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(uiState.cardColor)
+                                .border(1.dp, Color.Black, CircleShape)
+                        )
+
+
+                } else {
                         EditableField("Name", uiState.name) { viewModel.updateName(it) }
                         EditableField("Temperature", uiState.temp) { viewModel.updateTemp(it) }
                         EditableField("Prep Time", uiState.prepTime) { viewModel.updatePrepTime(it) }
