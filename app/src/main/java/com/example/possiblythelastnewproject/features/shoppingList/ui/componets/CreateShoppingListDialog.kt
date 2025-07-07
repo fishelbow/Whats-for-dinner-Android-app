@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
@@ -103,13 +102,3 @@ fun CreateShoppingListDialog(
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewCreateShoppingListDialog() {
-    MaterialTheme {
-        CreateShoppingListDialog(
-            onDismiss = {},
-            onConfirm = { _, _ -> }
-        )
-    }
-}
