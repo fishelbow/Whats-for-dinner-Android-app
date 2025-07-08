@@ -116,6 +116,52 @@ class ShoppingListViewModel @Inject constructor(
             .toDoubleOrNull() ?: 0.0
     }
 
+    fun createListWithRecipesAndIngredients(
+        name: String,
+        recipeIds: List<Long>,
+        ingredientQuantities: Map<Long, String>,
+        onComplete: (Long) -> Unit
+    ) = viewModelScope.launch {
+        // 1. Create the new shopping list
+        val newList = ShoppingList(name = name)
+        val newListId = repository.insertShoppingList(newList)
+
+        // 2. Set it as active
+        setActiveList(newListId)
+
+        // 3. Generate items from selected recipes
+        if (recipeIds.isNotEmpty()) {
+            generateFromSelectedRecipes(recipeIds)
+        }
+
+        // 4. Add manually selected ingredients with specified quantities
+        if (ingredientQuantities.isNotEmpty()) {
+            val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
+            val pantryMap = pantryItems.associateBy { it.id }
+
+            val manualItems = ingredientQuantities.mapNotNull { (id, qtyStr) ->
+                val qty = qtyStr.trim().toDoubleOrNull()
+                if (qty != null && qty > 0) {
+                    pantryMap[id]?.let { item ->
+                        ShoppingListItem(
+                            listId = newListId,
+                            pantryItemId = item.id,
+                            name = item.name,
+                            quantity = "%.2f".format(qty),
+                            isChecked = false,
+                            isGenerated = false
+                        )
+                    }
+                } else null
+            }
+
+            repository.insertShoppingItems(manualItems)
+        }
+
+        // 5. Notify caller
+        onComplete(newListId)
+    }
+
     val categorizedItems: StateFlow<List<CategorizedShoppingItem>> =
         combine(
             shoppingItems,

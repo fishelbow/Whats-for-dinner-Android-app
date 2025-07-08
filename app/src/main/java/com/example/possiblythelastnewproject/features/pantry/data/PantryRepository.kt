@@ -31,20 +31,10 @@ class PantryRepository @Inject constructor(
             }
         }
     }
-    suspend fun getCategoryByName(name: String): Category? {
-        return categoryDao.getByName(name.trim())
-    }
-
-    suspend fun insertCategory(name: String): Long {
-        val trimmed = name.trim()
-        val existing = categoryDao.getByName(trimmed)
-        return existing?.id ?: categoryDao.insertCategory(Category(name = trimmed))
-    }
 
     fun getAllCategories(): Flow<List<Category>> {
         return categoryDao.getAllCategories()
     }
-
 
     fun getAllPantryItems(): Flow<List<PantryItem>> =
         pantryItemDao.getAllPantryItems()

@@ -12,9 +12,6 @@ class RecipeRepository @Inject constructor(
     private val recipeDao: RecipeDao
 ) {
 
-    suspend fun getRecipeById(id: Long): Recipe? =
-        recipeDao.getRecipeById(id)
-
     suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? =
         recipeDao.getRecipeWithIngredients(recipeId)
 
@@ -26,10 +23,6 @@ class RecipeRepository @Inject constructor(
 
     suspend fun delete(recipe: Recipe) =
         recipeDao.deleteRecipe(recipe)
-
-    suspend fun deleteRecipeById(id: Long) {
-        recipeDao.deleteRecipeById(id)
-    }
 
     fun getRecipesWithIngredients(): Flow<List<RecipeWithIngredients>> =
         recipeDao.getAllRecipesWithIngredients()

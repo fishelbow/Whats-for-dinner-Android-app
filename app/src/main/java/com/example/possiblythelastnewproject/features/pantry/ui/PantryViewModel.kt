@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
+import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
+import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +24,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PantryViewModel @Inject constructor(
-    private val repository: PantryRepository
+    private val repository: PantryRepository,
+    private val pantryItemDao: PantryItemDao
+
 
 ) : ViewModel() {
 
@@ -67,34 +72,34 @@ class PantryViewModel @Inject constructor(
     }
 
 
-        fun onSearchQueryChange(query: String) {
-            _uiState.update { it.copy(searchQuery = query) }
-        }
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
 
-        fun startEditing(item: PantryItem?) {
-            item?.let {
-                _uiState.update {
-                    it.copy(
-                        editingItem = item,
-                        editName = item.name,
-                        editQuantityText = item.quantity.toString(),
-                        editImageBytes = item.imageData,
-                        editCategory = allCategories.value.firstOrNull { cat -> cat.name == item.category }
-                    )
-
-                }
-            }
-        }
-
-        fun updateEditFields(name: String, quantity: String) {
+    fun startEditing(item: PantryItem?) {
+        item?.let {
             _uiState.update {
-                it.copy(editName = name, editQuantityText = quantity)
+                it.copy(
+                    editingItem = item,
+                    editName = item.name,
+                    editQuantityText = item.quantity.toString(),
+                    editImageBytes = item.imageData,
+                    editCategory = allCategories.value.firstOrNull { cat -> cat.name == item.category }
+                )
+
             }
         }
+    }
 
-        fun updateEditImage(bytes: ByteArray?) {
-            _uiState.update { it.copy(editImageBytes = bytes) }
+    fun updateEditFields(name: String, quantity: String) {
+        _uiState.update {
+            it.copy(editName = name, editQuantityText = quantity)
         }
+    }
+
+    fun updateEditImage(bytes: ByteArray?) {
+        _uiState.update { it.copy(editImageBytes = bytes) }
+    }
 
     fun confirmEditItem() = viewModelScope.launch {
         val state = _uiState.value
@@ -111,20 +116,20 @@ class PantryViewModel @Inject constructor(
         _uiState.update { it.copy(editingItem = null) }
     }
 
-        fun promptDelete(item: PantryItem) {
+    fun promptDelete(item: PantryItem) {
             _uiState.update { it.copy(itemToDelete = item) }
         }
 
-        fun cancelDelete() {
+    fun cancelDelete() {
             _uiState.update { it.copy(itemToDelete = null) }
         }
 
-        fun confirmDelete() = viewModelScope.launch {
+    fun confirmDelete() = viewModelScope.launch {
             uiState.value.itemToDelete?.let { repository.delete(it) }
             _uiState.update { it.copy(itemToDelete = null, editingItem = null) }
         }
 
-        fun insertAndReturn(name: String): PantryItem = runBlocking {
+    fun insertAndReturn(name: String): PantryItem = runBlocking {
             val trimmed = name.trim()
             pantryItems.value.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
                 ?: run {
@@ -160,5 +165,7 @@ class PantryViewModel @Inject constructor(
         }
     }
 
-
+        fun getAllPantryItems(): Flow<List<PantryItem>> {
+            return pantryItemDao.getAllPantryItems()
+        }
 }

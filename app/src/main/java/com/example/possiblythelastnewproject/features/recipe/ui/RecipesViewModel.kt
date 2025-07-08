@@ -38,11 +38,6 @@ class RecipesViewModel @Inject constructor(
 
     private var originalIngredients: List<RecipeIngredientUI> = emptyList()
 
-
-    fun setOriginalIngredients(current: List<RecipeIngredientUI>) {
-        originalIngredients = current.map { it.copy() } // Defensive copy
-    }
-
     // Load full recipe into UI state
     fun loadRecipeIntoUiState(recipe: RecipeWithIngredients, pantryItems: List<PantryItem>) {
         val pantryMap = pantryItems.associateBy { it.id }
@@ -90,11 +85,6 @@ class RecipesViewModel @Inject constructor(
         editUiState = editUiState.update()
     }
 
-    fun clearUiState() {
-        editUiState = RecipeEditUiState()
-        originalIngredients = emptyList()
-    }
-
     fun hasUnsavedChanges(original: RecipeWithIngredients): Boolean {
         val current = editUiState
         return hasRecipeFieldChanges(current, original.recipe) ||
@@ -128,11 +118,12 @@ class RecipesViewModel @Inject constructor(
                     curr.required != orig.required
         }
 
-        // ✅ Check for removed ingredients
+        //  Check for removed ingredients
         val removed = originalMap.keys.any { it !in currentMap }
 
         return addedOrChanged || removed
     }
+
 
     val allRecipes: StateFlow<List<Recipe>> =
         recipeRepository.getAllRecipes()

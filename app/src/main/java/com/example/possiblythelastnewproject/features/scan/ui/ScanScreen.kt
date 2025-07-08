@@ -22,17 +22,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.*
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.possiblythelastnewproject.core.data.backup.DbBackupViewModel
+import com.example.possiblythelastnewproject.debug.DebugToolsScreen
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
 import com.example.possiblythelastnewproject.features.scan.ui.componets.DbImportExportDialog
+import com.google.android.datatransport.BuildConfig
 import kotlinx.coroutines.delay
 
 @Composable
@@ -62,6 +63,7 @@ fun ScanningTab(
         contract = ActivityResultContracts.CreateDocument("application/json"),
         onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
     )
+
 
 
     // --- PERMISSION LOGIC ---
@@ -228,9 +230,13 @@ fun ScanningTab(
         if (isPaused) {
             Spacer(Modifier.height(8.dp))
             Button(onClick = { showDialog = true }) {
-                Text("⚙️ Debug Tools")
+                Text("⚙️ Import/Export")
             }
         }
+
+        Text("BuildConfig.DEBUG = ${BuildConfig.DEBUG}")
+
+
         DbImportExportDialog(
             showDialog = showDialog,
             isLoading = isLoading,
@@ -253,11 +259,10 @@ fun ScanningTab(
             viewModel.clearResult()
         }
     }
-}
+           // works just need to check something  DebugToolsScreen()
+    if (BuildConfig.DEBUG) {
+        DebugToolsScreen()
+    }
 
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 640)
-@Composable
-private fun ScanningTabPreview() {
-    ScanningTab(shouldScan = true, onScanResult = {})
 }

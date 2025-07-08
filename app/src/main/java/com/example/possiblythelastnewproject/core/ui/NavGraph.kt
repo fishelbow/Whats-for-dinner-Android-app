@@ -209,8 +209,12 @@ fun ShoppingNavHost(navController: NavHostController) {
                     viewModel.setActiveList(list.id)
                     navController.navigate("shopping_list/${list.id}")
                 },
-                onCreateList = { name, selectedRecipeIds ->
-                    viewModel.createListWithRecipes(name, selectedRecipeIds) { newListId ->
+                onCreateList = { name, recipeIds, ingredientQuantities ->
+                    viewModel.createListWithRecipesAndIngredients(
+                        name = name,
+                        recipeIds = recipeIds,
+                        ingredientQuantities = ingredientQuantities
+                    ) { newListId ->
                         navController.navigate("shopping_list/$newListId")
                     }
                 },

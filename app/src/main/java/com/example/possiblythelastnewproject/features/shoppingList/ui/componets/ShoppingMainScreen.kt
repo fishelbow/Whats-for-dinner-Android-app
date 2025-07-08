@@ -16,18 +16,19 @@ import com.example.possiblythelastnewproject.features.shoppingList.data.entities
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.material3.ListItem
-import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun ShoppingMainScreen(
     shoppingLists: List<ShoppingList>,
     onListClick: (ShoppingList) -> Unit,
-    onCreateList: (String, List<Long>) -> Unit,
+    onCreateList: (String, List<Long>, Map<Long, String>) -> Unit,
     onDeleteList: (ShoppingList) -> Unit // NEW: delete callback
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var listToDelete by remember { mutableStateOf<ShoppingList?>(null) }
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+
+
 
     Scaffold(
         floatingActionButton = {
@@ -35,7 +36,10 @@ fun ShoppingMainScreen(
                 Icon(Icons.Default.Add, contentDescription = "Create New List")
             }
         }
-    ) { innerPadding ->
+    )
+
+
+    { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -75,8 +79,8 @@ fun ShoppingMainScreen(
             if (showCreateDialog) {
                 CreateShoppingListDialog(
                     onDismiss = { showCreateDialog = false },
-                    onConfirm = { name, selectedRecipeIds ->
-                        onCreateList(name, selectedRecipeIds)
+                    onConfirm = { name, selectedRecipeIds, selectedIngredients ->
+                        onCreateList(name, selectedRecipeIds, selectedIngredients)
                         showCreateDialog = false
                     }
                 )
@@ -103,25 +107,5 @@ fun ShoppingMainScreen(
                 )
             }
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun ShoppingMainScreenPreview() {
-    val mockLists = listOf(
-        ShoppingList(id = 1L, name = "Weekend Groceries", createdAt = System.currentTimeMillis()),
-        ShoppingList(id = 2L, name = "Camping Trip", createdAt = System.currentTimeMillis() - 86400000L),
-        ShoppingList(id = 3L, name = "Dinner Party", createdAt = System.currentTimeMillis() - 172800000L)
-    )
-
-    MaterialTheme {
-        ShoppingMainScreen(
-            shoppingLists = mockLists,
-            onListClick = {},
-            onCreateList = { _, _ -> },
-            onDeleteList = {} // Added dummy handler for preview
-        )
     }
 }

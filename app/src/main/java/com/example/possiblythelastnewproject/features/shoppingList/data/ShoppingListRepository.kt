@@ -15,8 +15,6 @@ class ShoppingListRepository @Inject constructor(
     private val recipeDao: RecipeDao
 ) {
 
-    fun getAllShoppingItems(): Flow<List<ShoppingListItem>> = dao.getAllShoppingItems()
-
     fun getShoppingItemsForList(listId: Long): Flow<List<ShoppingListItem>> =
         dao.getShoppingItemsForList(listId)
 
@@ -37,8 +35,6 @@ class ShoppingListRepository @Inject constructor(
     fun getAllShoppingLists(): Flow<List<ShoppingList>> = dao.getAllShoppingLists()
 
     suspend fun deleteGeneratedItemsInList(listId: Long) = dao.deleteGeneratedItemsInList(listId)
-
-    suspend fun deleteShoppingList(list: ShoppingList) = dao.deleteShoppingList(list)
 
     @Transaction
     suspend fun deleteShoppingListWithItems(list: ShoppingList) {
