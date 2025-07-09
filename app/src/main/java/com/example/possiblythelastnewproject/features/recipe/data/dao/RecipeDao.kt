@@ -46,5 +46,7 @@ interface RecipeDao {
     suspend fun insertAll(items: List<Recipe>)
 
 
+    @Query("DELETE FROM recipe")
+    suspend fun clearAll()
 
 }

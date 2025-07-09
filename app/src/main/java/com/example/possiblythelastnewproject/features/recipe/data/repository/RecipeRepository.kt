@@ -29,4 +29,8 @@ class RecipeRepository @Inject constructor(
 
     fun getAllRecipes(): Flow<List<Recipe>> =
         recipeDao.getAllRecipes()
+
+    suspend fun clearAll() {
+        recipeDao.clearAll()
+    }
 }

@@ -47,7 +47,9 @@ class RecipePantryItemRepository @Inject constructor(
         }
     }
 
-    fun getAllPantryItems(): Flow<List<PantryItem>> =
-        pantryItemDao.getAllPantryItems()
+
+    suspend fun clearAll() {
+        dao.clearAll()
+    }
 
 }

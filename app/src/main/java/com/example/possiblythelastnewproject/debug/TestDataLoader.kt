@@ -9,40 +9,52 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.first
 
-
-// TODO wire this in for a button, time to look up debug only buttons
-suspend fun populateTestData(
+suspend fun populateTestDataWithImage(
+    imageBytes: ByteArray,
     pantryRepo: PantryRepository,
     recipeRepo: RecipeRepository,
-    crossRefRepo: RecipePantryItemRepository
+    crossRefRepo: RecipePantryItemRepository,
+    pantryCount: Int,
+    recipeCount: Int,
+    onProgress: (Float) -> Unit = {}
 ) {
     val categories = listOf("Grains", "Vegetables", "Fruits", "Dairy", "Proteins", "Snacks", "Spices")
 
-    // 1. Insert 5,000 PantryItems
-    val pantryItems = (1..5000).map { i ->
+    val totalSteps = pantryCount + recipeCount + recipeCount // pantry + recipes + cross-refs
+    var completedSteps = 0
+    fun reportProgress() = onProgress(completedSteps.toFloat() / totalSteps)
+
+    // 1. Insert Pantry Items
+    val pantryItems = (1..pantryCount).map { i ->
         PantryItem(
             name = "Item $i",
             quantity = (0..10).random(),
-            category = categories.random()
+            category = categories.random(),
+            imageData = imageBytes
         )
     }
 
     pantryItems.chunked(500).forEach { chunk ->
-        chunk.forEach { pantryRepo.insert(it) }
+        chunk.forEach {
+            pantryRepo.insert(it)
+            completedSteps++
+            reportProgress()
+        }
     }
 
     val allPantry = pantryRepo.getAllPantryItems().first()
     val pantryIdPool = allPantry.map { it.id }
 
-    // 2. Insert 1,000 Recipes
-    val recipes = (1..1000).map { i ->
+    // 2. Insert Recipes
+    val recipes = (1..recipeCount).map { i ->
         Recipe(
             name = "Recipe $i",
             temp = "350°F",
             prepTime = "15 min",
             cookTime = "30 min",
             category = categories.random(),
-            instructions = "Step 1: Do something. Step 2: Eat."
+            instructions = "Step 1: Do something. Step 2: Eat.",
+            imageData = imageBytes
         )
     }
 
@@ -51,12 +63,14 @@ suspend fun populateTestData(
         chunk.forEach { recipe ->
             val id = recipeRepo.insert(recipe)
             recipeIds.add(id)
+            completedSteps++
+            reportProgress()
         }
     }
 
-    // 3. Insert 50 cross-refs per recipe
+    // 3. Insert Cross-References
     recipeIds.forEach { recipeId ->
-        val refs = pantryIdPool.shuffled().take(50).map { pantryId ->
+        val refs = pantryIdPool.shuffled().take(minOf(50, pantryIdPool.size)).map { pantryId ->
             RecipePantryItemCrossRef(
                 recipeId = recipeId,
                 pantryItemId = pantryId,
@@ -65,7 +79,9 @@ suspend fun populateTestData(
             )
         }
         crossRefRepo.replaceIngredientsForRecipe(recipeId, refs)
+        completedSteps++
+        reportProgress()
     }
 
-    Log.d("TestData", "Inserted 5k pantry items, 1k recipes, and 50k cross-refs.")
+    Log.d("TestData", "Inserted $pantryCount pantry items, $recipeCount recipes, and ${recipeCount * 50} cross-refs with image.")
 }

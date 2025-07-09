@@ -43,5 +43,10 @@ interface PantryItemDao {
     suspend fun insertAll(items: List<PantryItem>)
 
 
+    @Query("DELETE FROM pantryitem")
+    suspend fun clearAll()
+
+
+
 
 }

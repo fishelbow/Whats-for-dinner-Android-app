@@ -49,4 +49,8 @@ interface RecipePantryItemDao {
     /** One-off fetch of all cross-refs. */
     @Query("SELECT * FROM RecipePantryItemCrossRef")
     suspend fun getAllOnce(): List<RecipePantryItemCrossRef>
-}
+
+    @Query("DELETE FROM RecipePantryItemCrossRef")
+    suspend fun clearAll()
+
+    }

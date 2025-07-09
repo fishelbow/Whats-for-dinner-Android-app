@@ -80,4 +80,8 @@ class PantryRepository @Inject constructor(
         observeAllCrossRefs().map { list ->
             list.map { it.pantryItemId }.toSet()
         }
+
+    suspend fun clearAll() {
+        pantryItemDao.clearAll()
+    }
 }

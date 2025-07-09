@@ -36,7 +36,6 @@ import com.example.possiblythelastnewproject.features.pantry.ui.PantryScreen
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
-import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
 import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
@@ -155,9 +154,6 @@ fun RecipesNavHost(navController: NavHostController) {
         }
 
         composable("add_recipe") {
-            // grab the same VM you use elsewhere
-            val viewModel: RecipesViewModel = hiltViewModel()
-
             RecipeCreationFormScreen(
                 onRecipeCreated = {
                     navController.navigateUp()

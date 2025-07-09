@@ -1,6 +1,6 @@
 package com.example.possiblythelastnewproject.debug
 
-import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
@@ -17,11 +17,41 @@ class DebugViewModel @Inject constructor(
     private val crossRefRepo: RecipePantryItemRepository
 ) : ViewModel() {
 
-    fun loadTestData() = viewModelScope.launch {
-        try {
-            populateTestData(pantryRepo, recipeRepo, crossRefRepo)
-        } catch (e: Exception) {
-            Log.e("DebugViewModel", "Failed to load test data", e)
+    val isLoading = mutableStateOf(false)
+    val progress = mutableStateOf(0f)
+
+    fun loadTestData(imageBytes: ByteArray, pantryCount: Int, recipeCount: Int) {
+        viewModelScope.launch {
+            isLoading.value = true
+            progress.value = 0f
+
+            populateTestDataWithImage(
+                imageBytes = imageBytes,
+                pantryRepo = pantryRepo,
+                recipeRepo = recipeRepo,
+                crossRefRepo = crossRefRepo,
+                pantryCount = pantryCount,
+                recipeCount = recipeCount,
+                onProgress = { progress.value = it }
+            )
+
+            isLoading.value = false
+            progress.value = 1f
+        }
+    }
+
+    fun clearAllData() {
+        viewModelScope.launch {
+            isLoading.value = true
+            progress.value = 0f
+
+            // Clear all data from the repositories
+            pantryRepo.clearAll()
+            recipeRepo.clearAll()
+            crossRefRepo.clearAll()
+
+            progress.value = 1f
+            isLoading.value = false
         }
     }
 }
