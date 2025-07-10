@@ -122,13 +122,12 @@ fun ShoppingListScreen(
                             // Keep only digits
                             val digitsOnly = input.filter { it.isDigit() }
 
-                            // Remove leading zeros unless the input is just "0"
-                            newItemQuantity = when {
-                                digitsOnly.isEmpty() -> ""
-                                else -> digitsOnly.trimStart('0').ifEmpty { "0" }
-                            }
+                            val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
+                            val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
+
+                            newItemQuantity = clamped
                         },
-                        label = { Text("Quantity (optional)") },
+                        label = { Text("Quantity (min 1)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
@@ -144,9 +143,11 @@ fun ShoppingListScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    val finalQuantity = newItemQuantity.trim().ifBlank { "1" }
+
                     viewModel.addItemByName(
                         name = newItemName.trim(),
-                        quantity = newItemQuantity.trim()
+                        quantity = finalQuantity
                     )
                     newItemName = ""
                     newItemQuantity = ""

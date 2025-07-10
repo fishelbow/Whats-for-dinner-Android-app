@@ -44,3 +44,8 @@ I dont want to switch to coil yet as id rather streamline things before switchin
  this will all work at the 5k and 1k with 50 ingredients mark, if I optimize recipes, if that works I feel
   I will have a fundamentally robust program, then will switch over to paging and coil using file paths
 
+did work on creating new ingredients from recipe screen and adding to shopping list, this creates a dialog to infrom that a pantry item was created and that the quantity in this manner is 0.
+
+also updated add item in shopping list to always default to 1
+
+currently working on various UI elements, I will get to the blob removal later down the road after a bit more UI polish

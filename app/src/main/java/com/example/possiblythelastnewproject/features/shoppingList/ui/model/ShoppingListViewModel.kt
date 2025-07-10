@@ -197,7 +197,7 @@ class ShoppingListViewModel @Inject constructor(
         val pantryItem = existingPantryItem ?: run {
             val newItem = com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem(
                 name = name.trim(),
-                quantity = 1
+                quantity = 0
             )
             val newId = pantryRepository.insert(newItem)
             _showPantryCreatedDialog.value = true
