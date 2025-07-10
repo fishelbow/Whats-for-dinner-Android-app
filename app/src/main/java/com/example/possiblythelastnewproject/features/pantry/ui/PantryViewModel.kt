@@ -133,7 +133,7 @@ class PantryViewModel @Inject constructor(
             val trimmed = name.trim()
             pantryItems.value.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
                 ?: run {
-                    val newItem = PantryItem(name = trimmed, quantity = 1)
+                    val newItem = PantryItem(name = trimmed, quantity = 0)
                     val id = repository.insert(newItem)
                     newItem.copy(id = id)
                 }

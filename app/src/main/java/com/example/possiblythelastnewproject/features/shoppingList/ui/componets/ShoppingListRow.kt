@@ -21,7 +21,8 @@ import com.example.possiblythelastnewproject.features.shoppingList.data.entities
 @Composable
 fun ShoppingListRow(
     item: ShoppingListItem,
-    onCheckToggled: (ShoppingListItem) -> Unit
+    onCheckToggled: (ShoppingListItem) -> Unit,
+    modifier: Modifier
 ) {
     Row(
         modifier = Modifier
@@ -45,11 +46,14 @@ fun ShoppingListRow(
                 }
             )
             if (item.quantity.isNotBlank()) {
+                val quantityDisplay = item.quantity.toDoubleOrNull()?.toInt()?.toString() ?: item.quantity
                 Text(
-                    text = "Qty: ${item.quantity}",
+                    text = "need: $quantityDisplay",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+
+
         }
     }
 }
@@ -68,7 +72,8 @@ fun PreviewShoppingListRow() {
                 isChecked = false,
                 isGenerated = false
             ),
-            onCheckToggled = {}
+            onCheckToggled = {},
+            modifier = Modifier.padding(12.dp)
         )
     }
 }

@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.features.shoppingList.ui.model
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
+import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import com.example.possiblythelastnewproject.features.shoppingList.data.ShoppingListRepository
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
@@ -11,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,12 +22,24 @@ class ShoppingListViewModel @Inject constructor(
     private val pantryRepository: PantryRepository
 ) : ViewModel() {
 
+
+
+    val allPantryItems: StateFlow<List<PantryItem>> = pantryRepository
+        .getAllPantryItems()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
+    private val _showPantryCreatedDialog = MutableStateFlow(false)
+    val showPantryCreatedDialog: StateFlow<Boolean> = _showPantryCreatedDialog.asStateFlow()
+
     val allShoppingLists: StateFlow<List<ShoppingList>> = repository
         .getAllShoppingLists()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _currentListId = MutableStateFlow<Long?>(null)
     private val currentListId: StateFlow<Long?> = _currentListId.asStateFlow()
+
+
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val shoppingItems: StateFlow<List<ShoppingListItem>> = currentListId
@@ -39,18 +53,6 @@ class ShoppingListViewModel @Inject constructor(
 
     fun toggleCheck(item: ShoppingListItem) = viewModelScope.launch {
         repository.updateShoppingItem(item.copy(isChecked = !item.isChecked))
-    }
-
-    fun addItem(item: ShoppingListItem) = viewModelScope.launch {
-        repository.insertShoppingItem(item)
-    }
-
-    fun removeItem(item: ShoppingListItem) = viewModelScope.launch {
-        repository.deleteShoppingItem(item)
-    }
-
-    fun clearCheckedItems() = viewModelScope.launch {
-        currentListId.value?.let { repository.clearCheckedItemsInList(it) }
     }
 
     private fun generateFromSelectedRecipes(selectedRecipeIds: List<Long>) = viewModelScope.launch {
@@ -177,4 +179,57 @@ class ShoppingListViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    fun dismissPantryCreatedDialog() {
+        _showPantryCreatedDialog.value = false
+    }
+
+    fun addItemByName(name: String, quantity: String) = viewModelScope.launch {
+
+        val cleanedQuantity = quantity.toIntOrNull()?.toString() ?: quantity
+        val listId = currentListId.value ?: return@launch
+        if (name.isBlank()) return@launch
+
+        val existingPantryItem = pantryRepository.getAllPantryItems()
+            .firstOrNull()
+            ?.firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+        val pantryItem = existingPantryItem ?: run {
+            val newItem = com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem(
+                name = name.trim(),
+                quantity = 1
+            )
+            val newId = pantryRepository.insert(newItem)
+            _showPantryCreatedDialog.value = true
+            newItem.copy(id = newId)
+        }
+
+        val existingItem = shoppingItems.value.firstOrNull {
+            it.name.equals(name, ignoreCase = true)
+        }
+
+        if (existingItem != null) {
+            val existingQty = existingItem.quantity.toDoubleOrNull() ?: 0.0
+            val addedQty = quantity.toDoubleOrNull() ?: 0.0
+            val newQty = existingQty + addedQty
+
+            val updatedItem = existingItem.copy(
+                quantity = if (newQty > 0.0) "%.2f".format(newQty) else existingItem.quantity
+            )
+            repository.updateShoppingItem(updatedItem)
+        } else {
+            val shoppingItem = ShoppingListItem(
+                id = 0L,
+                listId = listId,
+                pantryItemId = pantryItem.id,
+                recipeId = null,
+                name = pantryItem.name,
+                quantity = cleanedQuantity,
+                isChecked = false,
+                isGenerated = false,
+                uuid = UUID.randomUUID().toString()
+            )
+            repository.insertShoppingItem(shoppingItem)
+        }
+    }
 }

@@ -26,7 +26,7 @@ import java.util.UUID
 data class ShoppingListItem(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val listId: Long,
-    val pantryItemId: Long,
+    val pantryItemId: Long?,
     val name: String,
     val quantity: String,
     val isChecked: Boolean = false,

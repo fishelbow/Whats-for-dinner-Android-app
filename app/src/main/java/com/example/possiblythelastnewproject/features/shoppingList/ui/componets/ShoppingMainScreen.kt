@@ -28,8 +28,6 @@ fun ShoppingMainScreen(
     var listToDelete by remember { mutableStateOf<ShoppingList?>(null) }
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
 
-
-
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreateDialog = true }) {

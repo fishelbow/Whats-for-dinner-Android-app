@@ -28,13 +28,26 @@ fun IngredientChipEditor(
     onToggleShoppingStatus: (PantryItem) -> Unit
 ) {
     var showDuplicateDialog by remember { mutableStateOf(false) }
-    var showAddDialog by remember { mutableStateOf(false) }
 
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showNewPantryItemDialog by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val pantryItemMap = remember(allPantryItems) {
         allPantryItems.associateBy { it.id }
     }
-
+    if (showNewPantryItemDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showNewPantryItemDialog = null },
+            title = { Text("Pantry Item Created") },
+            text = { Text("“${showNewPantryItemDialog}” was added to your pantry with quantity 0.") },
+            confirmButton = {
+                TextButton(onClick = { showNewPantryItemDialog = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     val viewModel: RecipesViewModel = hiltViewModel()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -100,11 +113,19 @@ fun IngredientChipEditor(
             existingIngredientNames = ingredients.map { it.name },
             onAdd = { name, amount ->
                 scope.launch {
-                    val match = allPantryItems.firstOrNull {
-                        it.name.equals(name, ignoreCase = true)
-                    }
-                    val pantryItem = match ?: onRequestCreatePantryItem(name)
+                    val trimmedName = name.trim()
 
+                    // Check if the pantry item already exists
+                    val match = allPantryItems.firstOrNull {
+                        it.name.equals(trimmedName, ignoreCase = true)
+                    }
+
+                    // Create new pantry item if needed and show dialog
+                    val pantryItem = match ?: onRequestCreatePantryItem(trimmedName).also {
+                        showNewPantryItemDialog = it.name
+                    }
+
+                    // Check if the ingredient is already in the recipe
                     val alreadyExists = ingredients.any {
                         it.name.equals(pantryItem.name, ignoreCase = true)
                     }
@@ -133,4 +154,6 @@ fun IngredientChipEditor(
             viewModel = viewModel // ✅ Pass it in
         )
     }
+
+
 }

@@ -6,7 +6,7 @@ Changed overall architecture for feature base MVVM feature based
 I began using Hilt with Kapt, which translated Kotlin code into java for creating Dependency Injection,
 later found out about KSP which apparently works directly with Kotlin boast 2x build speeds, so I switched to this
 
-Implemented a NavGraph using navController and navHost to navigation for the app, added tab layout,
+Implemented a NavGraph using navHostControllerto navigation the app, added tab layout,
 also created a EditGuard to prevent losing changes this interacts with navigation.
 
 App is almost finished still need to do more work on the shopping list -> will be creating the current version

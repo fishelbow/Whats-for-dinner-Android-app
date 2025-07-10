@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "0099deb0c3bab50711d2df6587d10924",
+    "identityHash": "be8882ab831f14477c362038abf91bd3",
     "entities": [
       {
         "tableName": "Recipe",
@@ -210,7 +210,7 @@
       },
       {
         "tableName": "ShoppingListItem",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `pantryItemId` INTEGER NOT NULL, `name` TEXT NOT NULL, `quantity` TEXT NOT NULL, `isChecked` INTEGER NOT NULL, `isGenerated` INTEGER NOT NULL, `recipeId` INTEGER, `uuid` TEXT NOT NULL, FOREIGN KEY(`listId`) REFERENCES `ShoppingList`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `pantryItemId` INTEGER, `name` TEXT NOT NULL, `quantity` TEXT NOT NULL, `isChecked` INTEGER NOT NULL, `isGenerated` INTEGER NOT NULL, `recipeId` INTEGER, `uuid` TEXT NOT NULL, FOREIGN KEY(`listId`) REFERENCES `ShoppingList`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -227,8 +227,7 @@
           {
             "fieldPath": "pantryItemId",
             "columnName": "pantryItemId",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "name",
@@ -437,7 +436,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0099deb0c3bab50711d2df6587d10924')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'be8882ab831f14477c362038abf91bd3')"
     ]
   }
 }

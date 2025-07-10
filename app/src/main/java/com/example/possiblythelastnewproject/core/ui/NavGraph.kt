@@ -234,6 +234,7 @@ fun ShoppingNavHost(navController: NavHostController) {
             val listName = allLists.firstOrNull { it.id == listId }?.name ?: "Shopping List"
 
             ShoppingListScreen(
+                navController = navController,
                 listName = listName,
                 categorizedItems = categorizedItems,
                 onCheckToggled = viewModel::toggleCheck
