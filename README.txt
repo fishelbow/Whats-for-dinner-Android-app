@@ -49,3 +49,11 @@ did work on creating new ingredients from recipe screen and adding to shopping l
 also updated add item in shopping list to always default to 1
 
 currently working on various UI elements, I will get to the blob removal later down the road after a bit more UI polish
+
+ui polish is almost satisfied, need to do some more testing of the app, I found a logic error the other day
+that was not properly thought out. when adding a new ingredient to a recipe it was creating a pantry item
+with  1 quantity, has been like  the for a long time, it wasn't until I added the same feature in the shopping list
+that I realized by adding a new ingredient via the recipe creation or shopping list additional item, I was not actually
+obtaining those items in my inventory, they were in actuality a place holder that should have a quantity of 0.
+this was a small over look but glad I saw it as now things concerned with inventory are honest now. I even added
+in some UI prompts to let the user know this is happening.
