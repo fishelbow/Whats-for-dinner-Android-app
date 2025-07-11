@@ -42,9 +42,9 @@ import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
 import com.example.possiblythelastnewproject.features.scan.ui.componets.CreateFromScanDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.LinkScanCodeDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.UpdateItemDialog
+import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingListScreen
 import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
 import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingMainScreen
-import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingListScreen
 
 // 1) Tab model
 sealed class TabItem(val title: String, val icon: ImageVector) {

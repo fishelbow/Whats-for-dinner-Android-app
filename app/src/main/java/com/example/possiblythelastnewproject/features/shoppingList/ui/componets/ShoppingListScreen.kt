@@ -20,147 +20,99 @@ import com.example.possiblythelastnewproject.features.shoppingList.ui.model.Shop
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(
-    navController: NavController,
-    listName: String,
-    categorizedItems: List<CategorizedShoppingItem>,
-    onCheckToggled: (ShoppingListItem) -> Unit
+navController: NavController,
+listName: String,
+categorizedItems: List<CategorizedShoppingItem>,
+onCheckToggled: (ShoppingListItem) -> Unit
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
+val keyboardController = LocalSoftwareKeyboardController.current
+val viewModel: ShoppingListViewModel = hiltViewModel()
 
-    var showAddDialog by remember { mutableStateOf(false) }
-    var newItemName by remember { mutableStateOf("") }
-    var newItemQuantity by remember { mutableStateOf("") }
+val showPantryCreatedDialog by viewModel.showPantryCreatedDialog.collectAsState()
+val pantryItems by viewModel.allPantryItems.collectAsState()
 
-    val viewModel: ShoppingListViewModel = hiltViewModel()
-    val showPantryCreatedDialog by viewModel.showPantryCreatedDialog.collectAsState()
-    val pantryItems by viewModel.allPantryItems.collectAsState()
-    var hideChecked by remember { mutableStateOf(false) }
+var showSelectorDialog by remember { mutableStateOf(false) }
+var showAddDialog by remember { mutableStateOf(false) }
+var newItemName by remember { mutableStateOf("") }
+var newItemQuantity by remember { mutableStateOf("") }
+var hideChecked by remember { mutableStateOf(false) }
+    var showRecipeDialog by remember { mutableStateOf(false) }
+    var recipeQuery by remember { mutableStateOf("") }
+    val recipesViewModel: RecipesViewModel = hiltViewModel()
+    val allRecipes by recipesViewModel.allRecipes.collectAsState()
+    val selectedRecipeIds = remember { mutableStateListOf<Long>() }
+val groupedItems = remember(hideChecked, categorizedItems) {
+    categorizedItems
+        .filter { !hideChecked || !it.item.isChecked }
+        .groupBy { it.category.ifBlank { "Uncategorized" } }
+}
 
-    val groupedItems = remember(hideChecked, categorizedItems) {
-        categorizedItems
-            .filter { !hideChecked || !it.item.isChecked }
-            .groupBy { it.category.ifBlank { "Uncategorized" } }
-    }
 
-    if (showPantryCreatedDialog) {
+    if (showRecipeDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissPantryCreatedDialog() },
-            title = { Text("Pantry Item Created") },
-            text = { Text("A new item was added to your pantry.") },
-            confirmButton = {
-                TextButton(onClick = { viewModel.dismissPantryCreatedDialog() }) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-
-    if (showAddDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showAddDialog = false
-                newItemName = ""
-                newItemQuantity = ""
-            },
-            title = { Text("Add Item to List") },
+            onDismissRequest = { showRecipeDialog = false },
+            title = { Text("Select Recipes") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    var expanded by remember { mutableStateOf(false) }
-
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = newItemName,
-                            onValueChange = {
-                                newItemName = it
-                                expanded = true
-                            },
-                            label = { Text("Item name") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                            },
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded && newItemName.isNotBlank(),
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            pantryItems
-                                .filter { it.name.contains(newItemName, ignoreCase = true) }
-                                .take(5)
-                                .forEach { item ->
-                                    DropdownMenuItem(
-                                        text = { Text(item.name) },
-                                        onClick = {
-                                            newItemName = item.name
-                                            if (newItemQuantity.isBlank() || newItemQuantity == "0") {
-                                                newItemQuantity = item.quantity.toString()
-                                            }
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                        }
-                    }
-
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = newItemQuantity,
-                        onValueChange = { input ->
-                            // Keep only digits
-                            val digitsOnly = input.filter { it.isDigit() }
-
-                            val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
-                            val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
-
-                            newItemQuantity = clamped
-                        },
-                        label = { Text("Quantity (min 1)") },
+                        value = recipeQuery,
+                        onValueChange = { recipeQuery = it },
+                        label = { Text("Search Recipes") },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { keyboardController?.hide() }
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() })
                     )
 
+                    val filteredRecipes = allRecipes.filter {
+                        it.name.contains(recipeQuery, ignoreCase = true)
+                    }
+
+                    LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
+                        items(filteredRecipes, key = { it.id }) { recipe ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = recipe.id in selectedRecipeIds,
+                                    onCheckedChange = { isChecked ->
+                                        if (isChecked) selectedRecipeIds.add(recipe.id)
+                                        else selectedRecipeIds.remove(recipe.id)
+                                    }
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(recipe.name)
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val finalQuantity = newItemQuantity.trim().ifBlank { "1" }
-
-                    viewModel.addItemByName(
-                        name = newItemName.trim(),
-                        quantity = finalQuantity
-                    )
-                    newItemName = ""
-                    newItemQuantity = ""
-                    showAddDialog = false
+                    showRecipeDialog = false
+                    viewModel.mergeSelectedRecipesIntoActiveList(selectedRecipeIds.toList())
+                    selectedRecipeIds.clear()
+                    recipeQuery = ""
                 }) {
-                    Text("Add")
+                    Text("Add to List")
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    showAddDialog = false
-                    newItemName = ""
-                    newItemQuantity = ""
+                    showRecipeDialog = false
+                    recipeQuery = ""
+                    selectedRecipeIds.clear()
                 }) {
                     Text("Cancel")
                 }
@@ -168,70 +120,203 @@ fun ShoppingListScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = listName) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    FilterChip(
-                        selected = hideChecked,
-                        onClick = { hideChecked = !hideChecked },
-                        label = {
-                            Text(if (hideChecked) "Show Checked" else "Hide Checked")
-                        }
-                    )
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                showAddDialog = true
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Item")
+if (showPantryCreatedDialog) {
+    AlertDialog(
+        onDismissRequest = { viewModel.dismissPantryCreatedDialog() },
+        title = { Text("Pantry Item Created") },
+        text = { Text("A new item was added to your pantry.") },
+        confirmButton = {
+            TextButton(onClick = { viewModel.dismissPantryCreatedDialog() }) {
+                Text("OK")
             }
         }
-    ) { padding ->
-        LazyColumn(
-            contentPadding = padding,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            groupedItems.forEach { (category, items) ->
-                stickyHeader {
-                    Surface(
-                        tonalElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+if (showSelectorDialog) {
+    AlertDialog(
+        onDismissRequest = { showSelectorDialog = false },
+        title = { Text("Add New...") },
+        text = { Text("Would you like to add an ingredient or a recipe?") },
+        confirmButton = {
+            TextButton(onClick = {
+                showSelectorDialog = false
+                showAddDialog = true
+            }) {
+                Text("Ingredient")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                showSelectorDialog = false
+                showRecipeDialog = true
+            }) {
+                Text("Recipe")
+            }
+        }
+    )
+}
+
+if (showAddDialog) {
+    AlertDialog(
+        onDismissRequest = {
+            showAddDialog = false
+            newItemName = ""
+            newItemQuantity = ""
+        },
+        title = { Text("Add Item to List") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                var expanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = newItemName,
+                        onValueChange = {
+                            newItemName = it
+                            expanded = true
+                        },
+                        label = { Text("Item name") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded && newItemName.isNotBlank(),
+                        onDismissRequest = { expanded = false }
                     ) {
-                        Text(
-                            text = category,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier
-                                .padding(vertical = 8.dp, horizontal = 8.dp)
-                        )
+                        pantryItems
+                            .filter { it.name.contains(newItemName, ignoreCase = true) }
+                            .take(5)
+                            .forEach { item ->
+                                DropdownMenuItem(
+                                    text = { Text(item.name) },
+                                    onClick = {
+                                        newItemName = item.name
+                                        if (newItemQuantity.isBlank() || newItemQuantity == "0") {
+                                            newItemQuantity = item.quantity.toString()
+                                        }
+                                        expanded = false
+                                    }
+                                )
+                            }
                     }
                 }
 
-                items(items) { categorized ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        ShoppingListRow(
-                            item = categorized.item,
-                            onCheckToggled = onCheckToggled,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                OutlinedTextField(
+                    value = newItemQuantity,
+                    onValueChange = { input ->
+                        val digitsOnly = input.filter { it.isDigit() }
+                        val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
+                        val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
+                        newItemQuantity = clamped
+                    },
+                    label = { Text("Quantity (min 1)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { keyboardController?.hide() }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val finalQuantity = newItemQuantity.trim().ifBlank { "1" }
+                viewModel.addItemByName(
+                    name = newItemName.trim(),
+                    quantity = finalQuantity
+                )
+                newItemName = ""
+                newItemQuantity = ""
+                showAddDialog = false
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                showAddDialog = false
+                newItemName = ""
+                newItemQuantity = ""
+            }) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+Scaffold(
+    topBar = {
+        TopAppBar(
+            title = { Text(text = listName) },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                FilterChip(
+                    selected = hideChecked,
+                    onClick = { hideChecked = !hideChecked },
+                    label = {
+                        Text(if (hideChecked) "Show Checked" else "Hide Checked")
                     }
+                )
+            }
+        )
+    },
+    floatingActionButton = {
+        FloatingActionButton(onClick = {
+            showSelectorDialog = true
+        }) {
+            Icon(Icons.Filled.Add, contentDescription = "Add")
+        }
+    }
+) { padding ->
+    LazyColumn(
+        contentPadding = padding,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(horizontal = 16.dp)
+    ) {
+        groupedItems.forEach { (category, items) ->
+            stickyHeader {
+                Surface(
+                    tonalElevation = 4.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = category,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+                    )
+                }
+            }
+            items(items) { categorized ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    ShoppingListRow(
+                        item = categorized.item,
+                        onCheckToggled = onCheckToggled,
+                        modifier = Modifier.padding(12.dp)
+                    )
                 }
             }
         }
     }
+}
 }

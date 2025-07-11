@@ -232,4 +232,61 @@ class ShoppingListViewModel @Inject constructor(
             repository.insertShoppingItem(shoppingItem)
         }
     }
+
+    fun mergeSelectedRecipesIntoActiveList(selectedRecipeIds: List<Long>) = viewModelScope.launch {
+        val listId = currentListId.value ?: return@launch
+
+        // Fetch all recipe-linked pantry item cross-references
+        val crossRefs = selectedRecipeIds.flatMap {
+            recipePantryItemRepository.getCrossRefsForRecipeOnce(it)
+        }
+
+        val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
+        val pantryMap = pantryItems.associateBy { it.id }
+
+        val existingItems = shoppingItems.value
+        val existingMap = existingItems.associateBy { it.pantryItemId }
+
+        // Group and sum required amounts from recipes
+        val aggregatedNeeds = crossRefs
+            .filter { it.required }
+            .groupBy { it.pantryItemId }
+            .mapValues { (_, refs) -> refs.sumOf { parseAmount(it.amountNeeded) } }
+
+        val itemsToUpdate = mutableListOf<ShoppingListItem>()
+        val itemsToInsert = mutableListOf<ShoppingListItem>()
+
+        aggregatedNeeds.forEach { (pantryId, neededQty) ->
+            val ownedQty = pantryMap[pantryId]?.quantity?.toDouble() ?: 0.0
+            val toBuy = neededQty - ownedQty
+
+            if (toBuy > 0.0) {
+                val existing = existingMap[pantryId]
+                if (existing != null) {
+                    val existingQty = existing.quantity.toDoubleOrNull() ?: 0.0
+                    val updatedQty = existingQty + toBuy
+
+                    val updatedItem = existing.copy(
+                        quantity = "%.2f".format(updatedQty),
+                        isGenerated = true
+                    )
+                    itemsToUpdate.add(updatedItem)
+                } else {
+                    val newItem = ShoppingListItem(
+                        listId = listId,
+                        pantryItemId = pantryId,
+                        name = pantryMap[pantryId]?.name ?: "Unknown",
+                        quantity = "%.2f".format(toBuy),
+                        isChecked = false,
+                        isGenerated = true
+                    )
+                    itemsToInsert.add(newItem)
+                }
+            }
+        }
+
+        // Execute changes
+        itemsToUpdate.forEach { repository.updateShoppingItem(it) }
+        repository.insertShoppingItems(itemsToInsert)
+    }
 }
