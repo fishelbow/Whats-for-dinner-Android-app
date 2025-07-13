@@ -6,7 +6,7 @@ Changed overall architecture for feature base MVVM feature based
 I began using Hilt with Kapt, which translated Kotlin code into java for creating Dependency Injection,
 later found out about KSP which apparently works directly with Kotlin boast 2x build speeds, so I switched to this
 
-Implemented a NavGraph using navHostControllerto navigation the app, added tab layout,
+Implemented a NavGraph using navHostController navigation the app, added tab layout,
 also created a EditGuard to prevent losing changes this interacts with navigation.
 
 App is almost finished still need to do more work on the shopping list -> will be creating the current version
@@ -57,3 +57,26 @@ that I realized by adding a new ingredient via the recipe creation or shopping l
 obtaining those items in my inventory, they were in actuality a place holder that should have a quantity of 0.
 this was a small over look but glad I saw it as now things concerned with inventory are honest now. I even added
 in some UI prompts to let the user know this is happening.
+
+working on versioning, using 2 phones atm, one is using one ui 7....         android:allowBackup="false"
+                                                                             android:fullBackupContent="false"
+
+using backup false is a must or else db persists on one ui 7.
+
+current thinking is that my phone will be the development part, while the one ui 7 phone will be put into real use
+
+creating recipes and pantry Items, I consider both version 1 compatible as long as the one ui7 phone can export a file
+
+that my development phone can import.  I will be moving blobs out of the db later on and will be implementing a new
+
+db and json version along with migration strategies.
+
+currently both apps are current and standing at version 1 still.
+
+I will be working on the shopping list screen, after a little work this morning adding in the ability to
+
+add recipes/ingredients to the list I have decided to streamline the screens, no more creating a shopping list while
+
+adding recipes/ingredients, I am shrinking this to just a naming dialog, followed by an empty list that the user will
+
+populate. as note I should also add in ability to delete items and modify quantity ie reduce.

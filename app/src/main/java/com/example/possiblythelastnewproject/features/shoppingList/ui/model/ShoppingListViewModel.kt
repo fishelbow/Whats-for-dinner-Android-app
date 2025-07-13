@@ -23,11 +23,11 @@ class ShoppingListViewModel @Inject constructor(
 ) : ViewModel() {
 
 
+    private val recipeAddCounts = mutableMapOf<Long, Int>()
 
     val allPantryItems: StateFlow<List<PantryItem>> = pantryRepository
         .getAllPantryItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
 
     private val _showPantryCreatedDialog = MutableStateFlow(false)
     val showPantryCreatedDialog: StateFlow<Boolean> = _showPantryCreatedDialog.asStateFlow()
@@ -38,8 +38,6 @@ class ShoppingListViewModel @Inject constructor(
 
     private val _currentListId = MutableStateFlow<Long?>(null)
     private val currentListId: StateFlow<Long?> = _currentListId.asStateFlow()
-
-
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val shoppingItems: StateFlow<List<ShoppingListItem>> = currentListId
@@ -56,54 +54,40 @@ class ShoppingListViewModel @Inject constructor(
     }
 
     private fun generateFromSelectedRecipes(selectedRecipeIds: List<Long>) = viewModelScope.launch {
-        val listId = currentListId.value ?: return@launch
+    val listId = currentListId.value ?: return@launch
 
-        repository.deleteGeneratedItemsInList(listId)
+    repository.deleteGeneratedItemsInList(listId)
 
-        val crossRefs = selectedRecipeIds.flatMap {
-            recipePantryItemRepository.getCrossRefsForRecipeOnce(it)
-        }
-
-        val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
-        val pantryMap = pantryItems.associateBy { it.id }
-
-        val aggregatedNeeds = crossRefs
-            .filter { it.required }
-            .groupBy { it.pantryItemId }
-            .mapValues { (_, refs) -> refs.sumOf { parseAmount(it.amountNeeded) } }
-
-        val itemsToInsert = aggregatedNeeds.mapNotNull { (pantryId, neededQty) ->
-            val ownedQty = pantryMap[pantryId]?.quantity?.toDouble() ?: 0.0
-            val toBuy = neededQty - ownedQty
-
-            if (toBuy > 0.0) {
-                ShoppingListItem(
-                    listId = listId,
-                    pantryItemId = pantryId,
-                    name = pantryMap[pantryId]?.name ?: "Unknown",
-                    quantity = "%.2f".format(toBuy),
-                    isChecked = false,
-                    isGenerated = true
-                )
-            } else null
-        }
-
-        repository.insertShoppingItems(itemsToInsert)
+    val crossRefs = selectedRecipeIds.flatMap {
+        recipePantryItemRepository.getCrossRefsForRecipeOnce(it)
     }
 
-    fun createListWithRecipes(
-        name: String,
-        selectedRecipeIds: List<Long>,
-        onComplete: (Long) -> Unit
-    ) = viewModelScope.launch {
-        val newList = ShoppingList(name = name)
-        val newListId = repository.insertShoppingList(newList)
+    val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
+    val pantryMap = pantryItems.associateBy { it.id }
 
-        setActiveList(newListId)
-        generateFromSelectedRecipes(selectedRecipeIds)
+    val aggregatedNeeds = crossRefs
+        .filter { it.required }
+        .groupBy { it.pantryItemId }
+        .mapValues { (_, refs) -> refs.sumOf { parseAmount(it.amountNeeded) } }
 
-        onComplete(newListId)
+    val itemsToInsert = aggregatedNeeds.mapNotNull { (pantryId, neededQty) ->
+        val ownedQty = pantryMap[pantryId]?.quantity?.toDouble() ?: 0.0
+        val toBuy = neededQty - ownedQty
+
+        if (toBuy > 0.0) {
+            ShoppingListItem(
+                listId = listId,
+                pantryItemId = pantryId,
+                name = pantryMap[pantryId]?.name ?: "Unknown",
+                quantity = "%.2f".format(toBuy),
+                isChecked = false,
+                isGenerated = true
+            )
+        } else null
     }
+
+    repository.insertShoppingItems(itemsToInsert)
+}
 
     fun deleteListWithItems(list: ShoppingList) = viewModelScope.launch {
         repository.deleteShoppingListWithItems(list)
@@ -195,7 +179,7 @@ class ShoppingListViewModel @Inject constructor(
             ?.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
         val pantryItem = existingPantryItem ?: run {
-            val newItem = com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem(
+            val newItem = PantryItem(
                 name = name.trim(),
                 quantity = 0
             )
@@ -233,13 +217,27 @@ class ShoppingListViewModel @Inject constructor(
         }
     }
 
-    fun mergeSelectedRecipesIntoActiveList(selectedRecipeIds: List<Long>) = viewModelScope.launch {
+    fun mergeSelectedRecipesIntoActiveList(newSelections: Map<Long, Int>) = viewModelScope.launch {
         val listId = currentListId.value ?: return@launch
 
-        // Fetch all recipe-linked pantry item cross-references
-        val crossRefs = selectedRecipeIds.flatMap {
-            recipePantryItemRepository.getCrossRefsForRecipeOnce(it)
+        // Step 1: Update total intent count per recipe
+        newSelections.forEach { (recipeId, count) ->
+            val previous = recipeAddCounts[recipeId] ?: 0
+            recipeAddCounts[recipeId] = previous + count
         }
+
+        // Step 2: Build total pantry item needs from cumulative intent
+        val fullNeeds = recipeAddCounts.flatMap { (recipeId, count) ->
+            recipePantryItemRepository.getCrossRefsForRecipeOnce(recipeId)
+                .filter { it.required }
+                .map { crossRef ->
+                    crossRef.pantryItemId to parseAmount(crossRef.amountNeeded) * count
+                }
+        }
+
+        val aggregatedNeeds = fullNeeds
+            .groupBy { it.first }
+            .mapValues { (_, entries) -> entries.sumOf { it.second } }
 
         val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
         val pantryMap = pantryItems.associateBy { it.id }
@@ -247,46 +245,47 @@ class ShoppingListViewModel @Inject constructor(
         val existingItems = shoppingItems.value
         val existingMap = existingItems.associateBy { it.pantryItemId }
 
-        // Group and sum required amounts from recipes
-        val aggregatedNeeds = crossRefs
-            .filter { it.required }
-            .groupBy { it.pantryItemId }
-            .mapValues { (_, refs) -> refs.sumOf { parseAmount(it.amountNeeded) } }
-
         val itemsToUpdate = mutableListOf<ShoppingListItem>()
         val itemsToInsert = mutableListOf<ShoppingListItem>()
 
-        aggregatedNeeds.forEach { (pantryId, neededQty) ->
+        aggregatedNeeds.forEach { (pantryId, totalNeeded) ->
             val ownedQty = pantryMap[pantryId]?.quantity?.toDouble() ?: 0.0
-            val toBuy = neededQty - ownedQty
+            val existingQty = existingMap[pantryId]?.quantity?.toDoubleOrNull() ?: 0.0
+            val toBuy = (totalNeeded - ownedQty - existingQty).coerceAtLeast(0.0)
 
             if (toBuy > 0.0) {
-                val existing = existingMap[pantryId]
-                if (existing != null) {
-                    val existingQty = existing.quantity.toDoubleOrNull() ?: 0.0
-                    val updatedQty = existingQty + toBuy
+                val updatedQty = existingQty + toBuy
+                val itemName = pantryMap[pantryId]?.name ?: "Unknown"
 
-                    val updatedItem = existing.copy(
-                        quantity = "%.2f".format(updatedQty),
-                        isGenerated = true
+                if (existingMap.containsKey(pantryId)) {
+                    val existing = existingMap[pantryId]!!
+                    itemsToUpdate.add(
+                        existing.copy(
+                            quantity = "%.2f".format(updatedQty),
+                            isGenerated = true
+                        )
                     )
-                    itemsToUpdate.add(updatedItem)
                 } else {
-                    val newItem = ShoppingListItem(
-                        listId = listId,
-                        pantryItemId = pantryId,
-                        name = pantryMap[pantryId]?.name ?: "Unknown",
-                        quantity = "%.2f".format(toBuy),
-                        isChecked = false,
-                        isGenerated = true
+                    itemsToInsert.add(
+                        ShoppingListItem(
+                            listId = listId,
+                            pantryItemId = pantryId,
+                            name = itemName,
+                            quantity = "%.2f".format(toBuy),
+                            isChecked = false,
+                            isGenerated = true
+                        )
                     )
-                    itemsToInsert.add(newItem)
                 }
             }
         }
 
-        // Execute changes
         itemsToUpdate.forEach { repository.updateShoppingItem(it) }
         repository.insertShoppingItems(itemsToInsert)
+    }
+
+    private fun multiplyAmount(input: String, times: Int): String {
+        val value = parseAmount(input)
+        return "%.2f".format(value * times)
     }
 }
