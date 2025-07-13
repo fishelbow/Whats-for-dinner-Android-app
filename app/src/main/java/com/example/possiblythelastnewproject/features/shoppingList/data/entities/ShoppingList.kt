@@ -11,7 +11,8 @@ import java.util.UUID
     indices = [Index(value = ["uuid"], unique = true)]
 )
 data class ShoppingList(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0L,
     val name: String,
     val createdAt: Long = System.currentTimeMillis(),
     val uuid: String = UUID.randomUUID().toString()

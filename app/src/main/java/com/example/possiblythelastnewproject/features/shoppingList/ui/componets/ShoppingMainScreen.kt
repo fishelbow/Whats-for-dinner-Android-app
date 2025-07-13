@@ -22,10 +22,11 @@ fun ShoppingMainScreen(
     shoppingLists: List<ShoppingList>,
     onListClick: (ShoppingList) -> Unit,
     onCreateList: (String, List<Long>, Map<Long, String>) -> Unit,
-    onDeleteList: (ShoppingList) -> Unit // NEW: delete callback
+    onDeleteList: (ShoppingList) -> Unit
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var listToDelete by remember { mutableStateOf<ShoppingList?>(null) }
+    val existingListNames = remember(shoppingLists) { shoppingLists.map { it.name } }
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
 
     Scaffold(
@@ -34,64 +35,58 @@ fun ShoppingMainScreen(
                 Icon(Icons.Default.Add, contentDescription = "Create New List")
             }
         }
-    )
-
-
-    { innerPadding ->
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when {
-                shoppingLists.isEmpty() -> {
-                    Text(
-                        text = "No shopping lists yet.\nTap + to create one.",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-
-                else -> {
-                    LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
-                        items(shoppingLists) { list ->
-                            ListItem(
-                                headlineContent = { Text(list.name) },
-                                supportingContent = {
-                                    Text("Created: ${dateFormatter.format(Date(list.createdAt))}")
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = { onListClick(list) },
-                                        onLongClick = { listToDelete = list }
-                                    )
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
+            if (shoppingLists.isEmpty()) {
+                Text(
+                    text = "No shopping lists yet.\nTap + to create one.",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
+                    items(shoppingLists) { list ->
+                        ListItem(
+                            headlineContent = { Text(list.name) },
+                            supportingContent = {
+                                Text("Created: ${dateFormatter.format(Date(list.createdAt))}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { onListClick(list) },
+                                    onLongClick = { listToDelete = list }
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                     }
                 }
             }
 
             if (showCreateDialog) {
                 CreateShoppingListDialog(
+                    existingListNames = existingListNames,
                     onDismiss = { showCreateDialog = false },
-                    onConfirm = { name, selectedRecipeIds, selectedIngredients ->
-                        onCreateList(name, selectedRecipeIds, selectedIngredients)
+                    onConfirm = { name ->
+                        onCreateList(name, emptyList(), emptyMap())
                         showCreateDialog = false
                     }
                 )
             }
 
-            if (listToDelete != null) {
+            listToDelete?.let { list ->
                 AlertDialog(
                     onDismissRequest = { listToDelete = null },
                     title = { Text("Delete List") },
-                    text = { Text("Delete \"${listToDelete!!.name}\"? This action cannot be undone.") },
+                    text = { Text("Delete \"${list.name}\"? This action cannot be undone.") },
                     confirmButton = {
                         TextButton(onClick = {
-                            onDeleteList(listToDelete!!)
+                            onDeleteList(list)
                             listToDelete = null
                         }) {
                             Text("Delete")

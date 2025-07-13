@@ -29,238 +29,102 @@ import androidx.compose.ui.focus.FocusRequester
 
 @Composable
 fun CreateShoppingListDialog(
-onDismiss: () -> Unit,
-onConfirm: (String, List<Long>, Map<Long, String>) -> Unit
+    existingListNames: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
 ) {
-val keyboardController = LocalSoftwareKeyboardController.current
-val focusManager = LocalFocusManager.current
-val dummyFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val dummyFocusRequester = remember { FocusRequester() }
 
-var name by remember { mutableStateOf("") }
-var recipeQuery by remember { mutableStateOf("") }
-var ingredientQuery by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
 
-val viewModel: RecipesViewModel = hiltViewModel()
-val pantryVM: PantryViewModel = hiltViewModel()
-val allRecipes by viewModel.allRecipes.collectAsState()
-val allIngredients by pantryVM.getAllPantryItems().collectAsState(initial = emptyList())
-
-val selectedRecipeIds = remember { mutableStateListOf<Long>() }
-val selectedIngredients = remember { mutableStateMapOf<Long, String>() }
-
-val filteredRecipes = remember(recipeQuery, allRecipes) {
-if (recipeQuery.isBlank()) allRecipes
-else allRecipes.filter { it.name.contains(recipeQuery, ignoreCase = true) }
-}
-
-val filteredIngredients = remember(ingredientQuery, allIngredients) {
-if (ingredientQuery.isBlank()) allIngredients
-else allIngredients.filter { it.name.contains(ingredientQuery, ignoreCase = true) }
-}
-
-val isValid = name.isNotBlank() && (
-selectedRecipeIds.isNotEmpty() || selectedIngredients.any { (_, qty) ->
-qty.toDoubleOrNull()?.let { it > 0 } == true
-}
-)
-
-Dialog(onDismissRequest = onDismiss) {
-Surface(
-shape = MaterialTheme.shapes.medium,
-tonalElevation = 6.dp,
-modifier = Modifier
-.fillMaxWidth()
-.padding(16.dp)
-) {
-Box(
-modifier = Modifier
-    .fillMaxWidth()
-    .clickable(
-        indication = null,
-        interactionSource = remember { MutableInteractionSource() }
-    ) {
-        focusManager.clearFocus()
-        keyboardController?.hide()
-    }
-) {
-Column(
-    modifier = Modifier
-        .fillMaxWidth()
-        .verticalScroll(rememberScrollState())
-        .padding(16.dp),
-    verticalArrangement = Arrangement.spacedBy(16.dp)
-) {
-    // List Name
-    OutlinedTextField(
-        value = name,
-        onValueChange = { name = it },
-        label = { Text("List Name") },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                dummyFocusRequester.requestFocus()
-                keyboardController?.hide()
-            }
-        )
-    )
-
-    // Recipes
-    Column {
-        Text("Search & Select Recipes", style = MaterialTheme.typography.labelLarge)
-        OutlinedTextField(
-            value = recipeQuery,
-            onValueChange = { recipeQuery = it },
-            label = { Text("Search Recipes") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    dummyFocusRequester.requestFocus()
-                    keyboardController?.hide()
-                }
-            )
-        )
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 200.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(filteredRecipes, key = { it.id }) { recipe ->
-                val isSelected = recipe.id in selectedRecipeIds
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isSelected,
-                        onCheckedChange = {
-                            if (it) selectedRecipeIds.add(recipe.id)
-                            else selectedRecipeIds.remove(recipe.id)
-                        }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(recipe.name)
-                }
-            }
-        }
+    val nameExists = remember(name, existingListNames) {
+        existingListNames.any { it.equals(name.trim(), ignoreCase = true) }
     }
 
-    // Ingredients
-    Column {
-        Text("Search & Add Ingredients", style = MaterialTheme.typography.labelLarge)
-        OutlinedTextField(
-            value = ingredientQuery,
-            onValueChange = { ingredientQuery = it },
-            label = { Text("Search Ingredients") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    dummyFocusRequester.requestFocus()
-                    keyboardController?.hide()
-                }
-            )
-        )
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(
+    val isValid = name.isNotBlank() && !nameExists
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 200.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(16.dp)
         ) {
-            items(filteredIngredients, key = { it.id }) { ingredient ->
-                val isSelected = selectedIngredients.containsKey(ingredient.id)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isSelected,
-                        onCheckedChange = {
-                            if (it) {
-                                val pantryQty = ingredient.quantity
-                                val defaultQty = if (pantryQty <= 0) "0" else "1"
-                                selectedIngredients[ingredient.id] = defaultQty
-                            } else {
-                                selectedIngredients.remove(ingredient.id)
-                            }
-                        }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(ingredient.name, modifier = Modifier.weight(1f))
-                    if (isSelected) {
-                        OutlinedTextField(
-                            value = selectedIngredients[ingredient.id] ?: "",
-                            onValueChange = { input ->
-                                val digitsOnly = input.filter { it.isDigit() }
-                                val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
-                                val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
-                                selectedIngredients[ingredient.id] = clamped
-                            },
-                            label = { Text("Need") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    dummyFocusRequester.requestFocus()
-                                    keyboardController?.hide()
-                                }
-                            ),
-                            modifier = Modifier.width(80.dp),
-                            singleLine = true
-                        )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
                     }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Create New Shopping List",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("List Name") },
+                        isError = nameExists,
+                        supportingText = {
+                            if (nameExists) {
+                                Text(
+                                    "A list with this name already exists.",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            dummyFocusRequester.requestFocus()
+                            keyboardController?.hide()
+                        })
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = onDismiss) {
+                            Text("Cancel")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                dummyFocusRequester.requestFocus()
+                                keyboardController?.hide()
+                                onConfirm(name.trim())
+                            },
+                            enabled = isValid
+                        ) {
+                            Text("Create")
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(1.dp)
+                            .focusRequester(dummyFocusRequester)
+                            .focusable()
+                    )
                 }
             }
         }
     }
-
-    // Buttons
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End
-    ) {
-        TextButton(onClick = onDismiss) {
-            Text("Cancel")
-        }
-        Spacer(Modifier.width(8.dp))
-        TextButton(
-            onClick = {
-                dummyFocusRequester.requestFocus()
-                keyboardController?.hide()
-                onConfirm(
-                    name.trim(),
-                    selectedRecipeIds.toList(),
-                    selectedIngredients
-                )
-            },
-            enabled = isValid
-        ) {
-            Text("Save")
-        }
-    }
-
-    // Dummy focus target to absorb focus and drop keyboard
-    Box(
-        modifier = Modifier
-            .size(1.dp)
-            .focusRequester(dummyFocusRequester)
-            .focusable()
-    )
-}
-}
-}
-}
 }
