@@ -56,10 +56,56 @@ fun ShoppingListScreen(
 
     val selectedRecipeCounts = remember { mutableStateMapOf<Long, Int>() }
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedItemForEdit by remember { mutableStateOf<ShoppingListItem?>(null) }
+    var updatedQuantity by remember { mutableStateOf("") }
+
+    selectedItemForEdit?.let { item ->
+        AlertDialog(onDismissRequest = {
+            selectedItemForEdit = null
+            updatedQuantity = ""
+        }, title = { Text("Edit Item") }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Update quantity for \"${item.name}\" or delete it.")
+
+                OutlinedTextField(
+                    value = updatedQuantity,
+                    onValueChange = { input ->
+                        val numeric = input.filter { it.isDigit() }
+                        val clamped = numeric.trimStart('0').ifEmpty { "1" }
+                        updatedQuantity = clamped
+                    },
+                    label = { Text("New Quantity") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }, confirmButton = {
+            TextButton(onClick = {
+                val newQty = updatedQuantity.toIntOrNull()
+                if (newQty != null && newQty > 0) {
+                    val updatedItem = item.copy(quantity = newQty.toString())
+                    viewModel.updateShoppingItem(updatedItem)
+                }
+                selectedItemForEdit = null
+                updatedQuantity = ""
+            }) {
+                Text("Update")
+            }
+        }, dismissButton = {
+            TextButton(onClick = {
+                viewModel.deleteShoppingItem(item)
+                selectedItemForEdit = null
+                updatedQuantity = ""
+            }) {
+                Text("Delete")
+            }
+        })
+    }
 
     val groupedItems = remember(hideChecked, categorizedItems) {
-        categorizedItems
-            .filter { !hideChecked || !it.item.isChecked }
+        categorizedItems.filter { !hideChecked || !it.item.isChecked }
             .groupBy { it.category.ifBlank { "Uncategorized" } }
     }
 
@@ -95,15 +141,15 @@ fun ShoppingListScreen(
                                     onCheckedChange = { isChecked ->
                                         if (isChecked) selectedRecipeCounts[recipe.id] = 1
                                         else selectedRecipeCounts.remove(recipe.id)
-                                    }
-                                )
+                                    })
                                 Spacer(Modifier.width(8.dp))
                                 Text(recipe.name, modifier = Modifier.weight(1f))
                                 if (selectedRecipeCounts.contains(recipe.id)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(onClick = {
                                             val current = selectedRecipeCounts[recipe.id] ?: 1
-                                            if (current > 1) selectedRecipeCounts[recipe.id] = current - 1
+                                            if (current > 1) selectedRecipeCounts[recipe.id] =
+                                                current - 1
                                         }) { Text("-") }
                                         Text("${selectedRecipeCounts[recipe.id]}")
                                         IconButton(onClick = {
@@ -122,10 +168,11 @@ fun ShoppingListScreen(
                     showRecipeDialog = false
                     viewModel.mergeSelectedRecipesIntoActiveList(selectedRecipeCounts.toMap())
 
-                    val snackMessage = selectedRecipeCounts.entries.joinToString(", ") { (id, count) ->
-                        val name = allRecipes.find { it.id == id }?.name ?: "Recipe"
-                        "$name ×$count"
-                    }
+                    val snackMessage =
+                        selectedRecipeCounts.entries.joinToString(", ") { (id, count) ->
+                            val name = allRecipes.find { it.id == id }?.name ?: "Recipe"
+                            "$name ×$count"
+                        }
 
                     CoroutineScope(Dispatchers.Main).launch {
                         snackbarHostState.showSnackbar("Added: $snackMessage")
@@ -145,8 +192,7 @@ fun ShoppingListScreen(
                 }) {
                     Text("Cancel")
                 }
-            }
-        )
+            })
     }
 
     if (showPantryCreatedDialog) {
@@ -158,8 +204,7 @@ fun ShoppingListScreen(
                 TextButton(onClick = { viewModel.dismissPantryCreatedDialog() }) {
                     Text("OK")
                 }
-            }
-        )
+            })
     }
 
     if (showSelectorDialog) {
@@ -178,140 +223,110 @@ fun ShoppingListScreen(
                     showSelectorDialog = false
                     showRecipeDialog = true
                 }) { Text("Recipe") }
-            }
-        )
+            })
     }
 
     if (showAddDialog) {
-        AlertDialog(
-            onDismissRequest = {
+        AlertDialog(onDismissRequest = {
+            showAddDialog = false
+            newItemName = ""
+            newItemQuantity = ""
+        }, title = { Text("Add Item to List") }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                var expanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                    OutlinedTextField(
+                        value = newItemName,
+                        onValueChange = {
+                            newItemName = it
+                            expanded = true
+                        },
+                        label = { Text("Item name") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded && newItemName.isNotBlank(),
+                        onDismissRequest = { expanded = false }) {
+                        pantryItems.filter { it.name.contains(newItemName, ignoreCase = true) }
+                            .take(5).forEach { item ->
+                                DropdownMenuItem(text = { Text(item.name) }, onClick = {
+                                    newItemName = item.name
+                                    if (newItemQuantity.isBlank() || newItemQuantity == "0") {
+                                        newItemQuantity = item.quantity.toString()
+                                    }
+                                    expanded = false
+                                })
+                            }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = newItemQuantity,
+                    onValueChange = { input ->
+                        val digitsOnly = input.filter { it.isDigit() }
+                        val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
+                        val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
+                        newItemQuantity = clamped
+                    },
+                    label = { Text("Quantity (min 1)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { keyboardController?.hide() }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }, confirmButton = {
+            TextButton(onClick = {
+                val finalQuantity = newItemQuantity.trim().ifBlank { "1" }
+                viewModel.addItemByName(
+                    name = newItemName.trim(), quantity = finalQuantity
+                )
+                newItemName = ""
+                newItemQuantity = ""
+                showAddDialog = false
+            }) {
+                Text("Add")
+            }
+        }, dismissButton = {
+            TextButton(onClick = {
                 showAddDialog = false
                 newItemName = ""
                 newItemQuantity = ""
-            },
-            title = { Text("Add Item to List") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    var expanded by remember { mutableStateOf(false) }
-
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = newItemName,
-                            onValueChange = {
-                                newItemName = it
-                                expanded = true
-                            },
-                            label = { Text("Item name") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                            },
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded && newItemName.isNotBlank(),
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            pantryItems
-                                .filter { it.name.contains(newItemName, ignoreCase = true) }
-                                .take(5)
-                                .forEach { item ->
-                                    DropdownMenuItem(
-                                        text = { Text(item.name) },
-                                        onClick = {
-                                            newItemName = item.name
-                                            if (newItemQuantity.isBlank() || newItemQuantity == "0") {
-                                                newItemQuantity = item.quantity.toString()
-                                            }
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = newItemQuantity,
-                        onValueChange = { input ->
-                            val digitsOnly = input.filter { it.isDigit() }
-                            val cleaned = digitsOnly.trimStart('0').ifEmpty { "1" }
-                            val clamped = if ((cleaned.toIntOrNull() ?: 0) < 1) "1" else cleaned
-                            newItemQuantity = clamped
-                        },
-                        label = { Text("Quantity (min 1)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { keyboardController?.hide() }
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val finalQuantity = newItemQuantity.trim().ifBlank { "1" }
-                    viewModel.addItemByName(
-                        name = newItemName.trim(),
-                        quantity = finalQuantity
-                    )
-                    newItemName = ""
-                    newItemQuantity = ""
-                    showAddDialog = false
-                }) {
-                    Text("Add")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showAddDialog = false
-                    newItemName = ""
-                    newItemQuantity = ""
-                }) {
-                    Text("Cancel")
-                }
+            }) {
+                Text("Cancel")
             }
-        )
+        })
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = listName) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    FilterChip(
-                        selected = hideChecked,
-                        onClick = { hideChecked = !hideChecked },
-                        label = {
-                            Text(if (hideChecked) "Show Checked" else "Hide Checked")
-                        }
-                    )
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                showSelectorDialog = true
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add")
+    Scaffold(topBar = {
+        TopAppBar(title = { Text(text = listName) }, navigationIcon = {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
+        }, actions = {
+            FilterChip(selected = hideChecked, onClick = { hideChecked = !hideChecked }, label = {
+                Text(if (hideChecked) "Show Checked" else "Hide Checked")
+            })
+        })
+    }, floatingActionButton = {
+        FloatingActionButton(onClick = {
+            showSelectorDialog = true
+        }) {
+            Icon(Icons.Filled.Add, contentDescription = "Add")
+        }
+    }, snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(
             contentPadding = padding,
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -320,8 +335,7 @@ fun ShoppingListScreen(
             groupedItems.forEach { (category, items) ->
                 stickyHeader {
                     Surface(
-                        tonalElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
+                        tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = category,
@@ -338,8 +352,10 @@ fun ShoppingListScreen(
                         ShoppingListRow(
                             item = categorized.item,
                             onCheckToggled = onCheckToggled,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                            modifier = Modifier.padding(12.dp),
+                            onLongPress = {
+                                selectedItemForEdit = it; updatedQuantity = it.quantity
+                            })
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package com.example.possiblythelastnewproject.features.shoppingList.ui.componets
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,12 +23,16 @@ import com.example.possiblythelastnewproject.features.shoppingList.data.entities
 fun ShoppingListRow(
     item: ShoppingListItem,
     onCheckToggled: (ShoppingListItem) -> Unit,
-    modifier: Modifier
+    onLongPress: (ShoppingListItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clickable { onCheckToggled(item) }
+            .combinedClickable(
+                onClick = { onCheckToggled(item) },
+                onLongClick = { onLongPress(item) }
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -35,29 +40,33 @@ fun ShoppingListRow(
             checked = item.isChecked,
             onCheckedChange = { onCheckToggled(item) }
         )
+
         Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = item.name,
-                style = if (item.isChecked) {
-                    MaterialTheme.typography.bodyLarge.copy(textDecoration = TextDecoration.LineThrough)
-                } else {
-                    MaterialTheme.typography.bodyLarge
-                }
-            )
-            if (item.quantity.isNotBlank()) {
-                val quantityDisplay = item.quantity.toDoubleOrNull()?.toInt()?.toString() ?: item.quantity
-                Text(
-                    text = "need: $quantityDisplay",
-                    style = MaterialTheme.typography.bodySmall
-                )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            val textStyle = MaterialTheme.typography.bodyLarge.let { base ->
+                if (item.isChecked) base.copy(textDecoration = TextDecoration.LineThrough) else base
             }
 
+            Text(
+                text = item.name,
+                style = textStyle
+            )
 
+            item.quantity
+                .takeIf { it.isNotBlank() }
+                ?.let { raw ->
+                    val formatted = raw.toDoubleOrNull()?.toInt()?.toString() ?: raw
+                    Text(
+                        text = "need: $formatted",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
         }
     }
 }
-
 @Composable
 @Preview(showBackground = true)
 fun PreviewShoppingListRow() {
@@ -73,6 +82,7 @@ fun PreviewShoppingListRow() {
                 isGenerated = false
             ),
             onCheckToggled = {},
+            onLongPress = {},
             modifier = Modifier.padding(12.dp)
         )
     }
