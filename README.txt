@@ -81,9 +81,11 @@ adding recipes/ingredients, I am shrinking this to just a naming dialog, followe
 
 populate. as note I should also add in ability to delete items and modify quantity ie reduce.
 
-
 still tweaking the shopping list, recipes add correctly now, ingredients add correctly now.
 
 I want to implement a way to track which recipes have been added to the shopping list and the ability
 
 to delete an item from the shopping list.
+
+thinking of redoing the shopping list from the ground up. I will need a new entity for tracking recipes that made
+the shopping list

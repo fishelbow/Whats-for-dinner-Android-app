@@ -18,28 +18,12 @@ class ShoppingListRepository @Inject constructor(
     fun getShoppingItemsForList(listId: Long): Flow<List<ShoppingListItem>> =
         dao.getShoppingItemsForList(listId)
 
-    suspend fun upsertShoppingItem(item: ShoppingListItem) {
-        val existing = dao.findItemByNameAndList(item.name, item.listId)
-        if (existing != null) {
-            val updated = existing.copy(quantity = item.quantity)
-            dao.updateShoppingItem(updated)
-        } else {
-            dao.insertShoppingItem(item)
-        }
-    }
-
     suspend fun insertShoppingItems(items: List<ShoppingListItem>) {
         items.forEach { dao.insertShoppingItem(it) }
     }
 
     suspend fun updateShoppingItem(item: ShoppingListItem) =
         dao.updateShoppingItem(item)
-
-    suspend fun deleteShoppingItem(item: ShoppingListItem) =
-        dao.deleteShoppingItem(item)
-
-    suspend fun clearCheckedItemsInList(listId: Long) =
-        dao.clearCheckedItemsInList(listId)
 
     suspend fun insertShoppingList(list: ShoppingList): Long =
         dao.insertShoppingList(list)
