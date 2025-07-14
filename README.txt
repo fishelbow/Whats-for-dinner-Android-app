@@ -80,3 +80,10 @@ add recipes/ingredients to the list I have decided to streamline the screens, no
 adding recipes/ingredients, I am shrinking this to just a naming dialog, followed by an empty list that the user will
 
 populate. as note I should also add in ability to delete items and modify quantity ie reduce.
+
+
+still tweaking the shopping list, recipes add correctly now, ingredients add correctly now.
+
+I want to implement a way to track which recipes have been added to the shopping list and the ability
+
+to delete an item from the shopping list.
