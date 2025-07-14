@@ -172,17 +172,18 @@ class ShoppingListViewModel @Inject constructor(
         val listId = currentListId.value ?: return@launch
         if (name.isBlank()) return@launch
 
-        val existingPantryItem = pantryRepository.getAllPantryItems().firstOrNull()
-            ?.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        val pantryItems = pantryRepository.getAllPantryItems().firstOrNull().orEmpty()
+        val existingPantryItem = pantryItems.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
         val pantryItem = existingPantryItem ?: run {
-            val newItem = PantryItem(
-                name = name.trim(), quantity = 0
-            )
+            val newItem = PantryItem(name = name.trim(), quantity = 0)
             val newId = pantryRepository.insert(newItem)
             _showPantryCreatedDialog.value = true
             newItem.copy(id = newId)
         }
+
+// 🛑 Don’t add if the item is already stocked
+        if (pantryItem.quantity > 0) return@launch
 
         val existingItem = shoppingItems.value.firstOrNull {
             it.name.equals(name, ignoreCase = true)

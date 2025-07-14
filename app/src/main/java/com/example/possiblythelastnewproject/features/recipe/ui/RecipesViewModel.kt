@@ -39,18 +39,27 @@ class RecipesViewModel @Inject constructor(
     private var originalIngredients: List<RecipeIngredientUI> = emptyList()
 
     // Load full recipe into UI state
-    fun loadRecipeIntoUiState(recipe: RecipeWithIngredients, pantryItems: List<PantryItem>) {
+    suspend fun loadRecipeIntoUiState(
+        recipe: RecipeWithIngredients,
+        pantryItems: List<PantryItem>
+    ) {
         val pantryMap = pantryItems.associateBy { it.id }
+        val crossRefs = ingredientRepository.getCrossRefsForRecipeOnce(recipe.recipe.id)
+        val crossRefMap = crossRefs.associateBy { it.pantryItemId }
 
-        val ingredients = recipe.ingredients.map {
-            val pantry = pantryMap[it.id]
-            RecipeIngredientUI(
-                name = pantry?.name ?: it.name,
-                pantryItemId = it.id,
-                includeInShoppingList = pantry?.addToShoppingList == true,
-                includeInPantry = true,
-                hasScanCode = pantry?.scanCode?.isNotBlank() == true
-            )
+        val ingredients = recipe.ingredients.mapNotNull { pantry ->
+            val ref = crossRefMap[pantry.id]
+            ref?.let {
+                RecipeIngredientUI(
+                    name = pantry.name,
+                    pantryItemId = pantry.id,
+                    includeInShoppingList = pantry.addToShoppingList,
+                    includeInPantry = true,
+                    hasScanCode = pantry.scanCode?.isNotBlank() == true,
+                    amountNeeded = it.amountNeeded,
+                    required = it.required
+                )
+            }
         }
 
         originalIngredients = ingredients
