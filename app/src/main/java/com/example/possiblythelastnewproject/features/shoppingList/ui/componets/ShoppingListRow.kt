@@ -67,6 +67,7 @@ fun ShoppingListRow(
         }
     }
 }
+
 @Composable
 @Preview(showBackground = true)
 fun PreviewShoppingListRow() {
