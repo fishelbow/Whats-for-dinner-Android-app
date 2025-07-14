@@ -42,7 +42,7 @@ val viewModel: ShoppingListViewModel = hiltViewModel()
 val showPantryCreatedDialog by viewModel.showPantryCreatedDialog.collectAsState()
 val allPantryItems by viewModel.allPantryItems.collectAsState()
 val shoppableItems = remember(allPantryItems) { allPantryItems.filter { it.quantity <= 0 } }
-
+val availableItems = remember(allPantryItems) { allPantryItems }
 var showSelectorDialog by remember { mutableStateOf(false) }
 var showAddDialog by remember { mutableStateOf(false) }
 var newItemName by remember { mutableStateOf("") }
@@ -137,34 +137,34 @@ keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() })
 
 LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
 items(filteredRecipes, key = { it.id }) { recipe ->
-Row(
-modifier = Modifier
-.fillMaxWidth()
-.padding(vertical = 4.dp),
-verticalAlignment = Alignment.CenterVertically
-) {
-Checkbox(
-checked = selectedRecipeCounts.contains(recipe.id),
-onCheckedChange = { isChecked ->
-if (isChecked) selectedRecipeCounts[recipe.id] = 1
-else selectedRecipeCounts.remove(recipe.id)
-}
-)
-Spacer(Modifier.width(8.dp))
-Text(recipe.name, modifier = Modifier.weight(1f))
-selectedRecipeCounts[recipe.id]?.let { count ->
-Row(verticalAlignment = Alignment.CenterVertically) {
-IconButton(onClick = {
-if (count > 1) selectedRecipeCounts[recipe.id] =
-count - 1
-}) { Text("-") }
-Text("$count")
-IconButton(onClick = {
-selectedRecipeCounts[recipe.id] = count + 1
-}) { Text("+") }
-}
-}
-}
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = selectedRecipeCounts.contains(recipe.id),
+            onCheckedChange = { isChecked ->
+                if (isChecked) selectedRecipeCounts[recipe.id] = 1
+                else selectedRecipeCounts.remove(recipe.id)
+            }
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(recipe.name, modifier = Modifier.weight(1f))
+        selectedRecipeCounts[recipe.id]?.let { count ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = {
+                    if (count > 1) selectedRecipeCounts[recipe.id] =
+                        count - 1
+                }) { Text("-") }
+                Text("$count")
+                IconButton(onClick = {
+                    selectedRecipeCounts[recipe.id] = count + 1
+                }) { Text("+") }
+            }
+        }
+    }
 }
 }
 }
@@ -175,8 +175,8 @@ showRecipeDialog = false
 viewModel.mergeSelectedRecipesIntoActiveList(selectedRecipeCounts.toMap())
 val snackMessage =
 selectedRecipeCounts.entries.joinToString(", ") { (id, count) ->
-val name = allRecipes.find { it.id == id }?.name ?: "Recipe"
-"$name ×$count"
+    val name = allRecipes.find { it.id == id }?.name ?: "Recipe"
+    "$name ×$count"
 }
 CoroutineScope(Dispatchers.Main).launch {
 snackbarHostState.showSnackbar("Added: $snackMessage")
@@ -248,38 +248,38 @@ expanded = expanded,
 onExpandedChange = { expanded = !expanded }
 ) {
 OutlinedTextField(
-value = newItemName,
-onValueChange = {
-newItemName = it
-expanded = true
-},
-label = { Text("Item name") },
-trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-modifier = Modifier
-.menuAnchor(MenuAnchorType.PrimaryNotEditable)
-.fillMaxWidth(),
-singleLine = true
+    value = newItemName,
+    onValueChange = {
+        newItemName = it
+        expanded = true
+    },
+    label = { Text("Item name") },
+    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+    modifier = Modifier
+        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+        .fillMaxWidth(),
+    singleLine = true
 )
 
 ExposedDropdownMenu(
-expanded = expanded && newItemName.isNotBlank(),
-onDismissRequest = { expanded = false }
+    expanded = expanded && newItemName.isNotBlank(),
+    onDismissRequest = { expanded = false }
 ) {
-shoppableItems
-.filter { it.name.contains(newItemName, ignoreCase = true) }
-.take(5)
-.forEach { item ->
-DropdownMenuItem(
-text = { Text(item.name) },
-onClick = {
-newItemName = item.name
-if (newItemQuantity.isBlank() || newItemQuantity == "0") {
-newItemQuantity = item.quantity.toString()
-}
-expanded = false
-}
-)
-}
+    shoppableItems
+        .filter { it.name.contains(newItemName, ignoreCase = true) }
+        .take(5)
+        .forEach { item ->
+            DropdownMenuItem(
+                text = { Text(item.name) },
+                onClick = {
+                    newItemName = item.name
+                    if (newItemQuantity.isBlank() || newItemQuantity == "0") {
+                        newItemQuantity = item.quantity.toString()
+                    }
+                    expanded = false
+                }
+            )
+        }
 }
 }
 
@@ -289,8 +289,8 @@ onValueChange = { newItemQuantity = formatQuantityInput(it) },
 label = { Text("Quantity (min 1)") },
 singleLine = true,
 keyboardOptions = KeyboardOptions(
-keyboardType = KeyboardType.Number,
-imeAction = ImeAction.Done
+    keyboardType = KeyboardType.Number,
+    imeAction = ImeAction.Done
 ),
 keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
 modifier = Modifier.fillMaxWidth()
@@ -361,9 +361,9 @@ tonalElevation = 4.dp,
 modifier = Modifier.fillMaxWidth()
 ) {
 Text(
-text = category,
-style = MaterialTheme.typography.titleMedium,
-modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
+    text = category,
+    style = MaterialTheme.typography.titleMedium,
+    modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp)
 )
 }
 }
@@ -373,14 +373,14 @@ modifier = Modifier.fillMaxWidth(),
 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
 ) {
 ShoppingListRow(
-item = categorized.item,
-onCheckToggled = onCheckToggled,
-modifier = Modifier.padding(12.dp),
-onLongPress = {
-selectedItemForEdit = it
-updatedQuantity = it.quantity.toDoubleOrNull()?.toInt()?.toString()
-?: it.quantity
-}
+    item = categorized.item,
+    onCheckToggled = onCheckToggled,
+    modifier = Modifier.padding(12.dp),
+    onLongPress = {
+        selectedItemForEdit = it
+        updatedQuantity = it.quantity.toDoubleOrNull()?.toInt()?.toString()
+            ?: it.quantity
+    }
 )
 }
 }
