@@ -1,4 +1,5 @@
 package com.example.possiblythelastnewproject.features.recipe.data.entities
+
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
