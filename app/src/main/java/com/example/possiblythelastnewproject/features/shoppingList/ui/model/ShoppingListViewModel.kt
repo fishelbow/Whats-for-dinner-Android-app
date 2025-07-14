@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
-import com.example.possiblythelastnewproject.features.shoppingList.data.ShoppingListRepository
+import com.example.possiblythelastnewproject.features.shoppingList.data.repositories.ShoppingListRepository
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -210,7 +210,6 @@ class ShoppingListViewModel @Inject constructor(
                 isGenerated = false,
                 uuid = UUID.randomUUID().toString()
             )
-            repository.insertShoppingItem(shoppingItem)
         }
     }
 
@@ -284,9 +283,6 @@ class ShoppingListViewModel @Inject constructor(
     }
 
     fun deleteShoppingItem(item: ShoppingListItem) = viewModelScope.launch {
-        val qty = item.quantity.toDoubleOrNull()
-        if (qty != null && qty % 1.0 == 0.0) {
-            repository.deleteShoppingItem(item)
-        }
+        repository.deleteShoppingItem(item)
     }
 }

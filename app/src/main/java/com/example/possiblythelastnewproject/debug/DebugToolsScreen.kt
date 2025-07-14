@@ -59,8 +59,7 @@ fun DebugToolsScreen() {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = launchImagePicker,
-            enabled = !isLoading
+            onClick = launchImagePicker, enabled = !isLoading
         ) {
             Text("Generate Test Data with Image")
         }
@@ -68,15 +67,17 @@ fun DebugToolsScreen() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Button(
-            onClick = { viewModel.clearAllData() },
-            enabled = !isLoading
+            onClick = { viewModel.clearAllData() }, enabled = !isLoading
         ) {
             Text("Clear All Test Data")
         }
 
         if (isLoading) {
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Loading... ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Loading... ${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.bodyMedium
+            )
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
