@@ -43,8 +43,8 @@ import com.example.possiblythelastnewproject.features.scan.ui.componets.CreateFr
 import com.example.possiblythelastnewproject.features.scan.ui.componets.LinkScanCodeDialog
 import com.example.possiblythelastnewproject.features.scan.ui.componets.UpdateItemDialog
 import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingListScreen
-import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
 import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingMainScreen
+import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
 
 // 1) Tab model
 sealed class TabItem(val title: String, val icon: ImageVector) {
@@ -193,8 +193,12 @@ fun PantryNavHost(navController: NavHostController) {
 }
 
 @Composable
-fun ShoppingNavHost(navController: NavHostController) {
-    NavHost(navController, startDestination = "shopping_main") {
+fun ShoppingNavHost(navHostController: NavHostController) {
+    NavHost(
+        navController = navHostController,
+        startDestination = "shopping_main"
+    ) {
+        // 📝 List Overview + Create New
         composable("shopping_main") {
             val viewModel: ShoppingListViewModel = hiltViewModel()
             val shoppingLists by viewModel.allShoppingLists.collectAsState()
@@ -202,42 +206,32 @@ fun ShoppingNavHost(navController: NavHostController) {
             ShoppingMainScreen(
                 shoppingLists = shoppingLists,
                 onListClick = { list ->
-                    viewModel.setActiveList(list.id)
-                    navController.navigate("shopping_list/${list.id}")
+                    viewModel.setActiveListId(list.id)
+                    navHostController.navigate("shopping_list/${list.id}")
                 },
-                onCreateList = { name, recipeIds, ingredientQuantities ->
-                    viewModel.createListWithRecipesAndIngredients(
-                        name = name,
-                        recipeIds = recipeIds,
-                        ingredientQuantities = ingredientQuantities
-                    ) { newListId ->
-                        navController.navigate("shopping_list/$newListId")
+                onCreateList = { name ->
+                    viewModel.createNewList(name) { newId ->
+                        navHostController.navigate("shopping_list/$newId")
                     }
                 },
-                onDeleteList = { list ->
-                    viewModel.deleteListWithItems(list)
-                }
+                onDeleteList = viewModel::deleteList
             )
         }
 
+        // 🛒 Shopping List Detail
         composable("shopping_list/{listId}") { backStackEntry ->
-            val viewModel: ShoppingListViewModel = hiltViewModel()
             val listId = backStackEntry.arguments?.getString("listId")?.toLongOrNull()
                 ?: return@composable
 
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+
             LaunchedEffect(listId) {
-                viewModel.setActiveList(listId)
+                viewModel.setActiveListId(listId)
             }
 
-            val categorizedItems by viewModel.categorizedItems.collectAsState()
-            val allLists by viewModel.allShoppingLists.collectAsState()
-            val listName = allLists.firstOrNull { it.id == listId }?.name ?: "Shopping List"
-
             ShoppingListScreen(
-                navController = navController,
-                listName = listName,
-                categorizedItems = categorizedItems,
-                onCheckToggled = viewModel::toggleCheck
+                viewModel = viewModel,
+                onBack = { navHostController.popBackStack() }
             )
         }
     }

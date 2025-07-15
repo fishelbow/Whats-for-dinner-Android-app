@@ -7,7 +7,11 @@ import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
 import com.example.possiblythelastnewproject.features.pantry.data.dao.CategoryDao
 import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.RecipeSelectionDao
 import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListEntryDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListItemDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.UndoDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,53 +23,33 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    // Provide the Room Database instance
     @Provides
     @Singleton
     fun provideAppDatabase(
-        @ApplicationContext context: Context): AppDatabase {
+        @ApplicationContext context: Context
+    ): AppDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             "PossiblyTheLastNewProject"
         )
-            .fallbackToDestructiveMigration(false) // Adjust migration as needed
+            .fallbackToDestructiveMigration(false)
             .build()
     }
 
-    // Provide RecipeDao instance
-    @Provides
-    fun provideRecipeDao(appDatabase: AppDatabase): RecipeDao {
-        return appDatabase.recipeDao()
-    }
+    @Provides fun provideRecipeDao(db: AppDatabase): RecipeDao = db.recipeDao()
+    @Provides fun providePantryItemDao(db: AppDatabase): PantryItemDao = db.pantryItemDao()
+    @Provides fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
+    @Provides fun provideRecipePantryItemDao(db: AppDatabase): RecipePantryItemDao = db.recipePantryItemDao()
+    @Provides fun provideShoppingListDao(db: AppDatabase): ShoppingListDao = db.shoppingListDao()
+    @Provides fun provideShoppingListEntryDao(db: AppDatabase): ShoppingListItemDao = db.shoppingListItemDao()
+    @Provides fun provideRecipeSelectionDao(db: AppDatabase): RecipeSelectionDao = db.recipeSelectionDao()
+    @Provides fun provideUndoDao(db: AppDatabase): UndoDao = db.undoDao()
 
-    // Provide PantryItemDao instance
-    @Provides
-    fun providePantryItemDao(appDatabase: AppDatabase): PantryItemDao {
-        return appDatabase.pantryItemDao()
-    }
-
-    // Provide ShoppingListDao instance
-    @Provides
-    fun provideShoppingListDao(appDatabase: AppDatabase): ShoppingListDao {
-        return appDatabase.shoppingListDao()
-    }
-
-    // Provide RecipePantryItemDao instance
-    @Provides
-    fun provideRecipePantryItemDao(appDatabase: AppDatabase): RecipePantryItemDao {
-        return appDatabase.recipePantryItemDao()
-    }
-
-    @Provides
-    fun provideCategoryDao(appDatabase: AppDatabase): CategoryDao {
-        return appDatabase.categoryDao()
-    }
-
-    // Provide CategoryDao instance
     @Provides
     fun provideDefaultCategoryNames(): List<String> = listOf(
         "Produce", "Snacks", "Dairy", "Meat", "Grains", "Sauce",
-        "Frozen", "Drinks", "Paper goods", "Canned goods", "Spices", "Toiletries", "Other"
+        "Frozen", "Drinks", "Paper goods", "Canned goods",
+        "Spices", "Toiletries", "Other"
     )
 }

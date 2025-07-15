@@ -27,11 +27,11 @@ interface CategoryDao {
     suspend fun getAllCategoriesOnce(): List<Category>
 
 
-        @Query("SELECT * FROM Category")
-        suspend fun getAllOnce(): List<Category>
+    @Query("SELECT * FROM Category")
+    suspend fun getAllOnce(): List<Category>
 
-        @Insert(onConflict = OnConflictStrategy.REPLACE)
-        suspend fun insertAll(items: List<Category>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<Category>)
 
 
 }

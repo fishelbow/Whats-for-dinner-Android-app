@@ -8,92 +8,128 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.material3.ListItem
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingMainScreen(
     shoppingLists: List<ShoppingList>,
     onListClick: (ShoppingList) -> Unit,
-    onCreateList: (String, List<Long>, Map<Long, String>) -> Unit,
+    onCreateList: (String) -> Unit,
     onDeleteList: (ShoppingList) -> Unit
 ) {
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var listToDelete by remember { mutableStateOf<ShoppingList?>(null) }
-    val existingListNames = remember(shoppingLists) { shoppingLists.map { it.name } }
-    val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    var showDialog by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<ShoppingList?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Validate as user types in dialog
+    LaunchedEffect(newName, shoppingLists) {
+        nameError = when {
+            newName.isBlank() -> "Name cannot be empty"
+            shoppingLists.any { it.name.equals(newName.trim(), ignoreCase = true) } ->
+                "You already have a list named “${newName.trim()}”"
+            else -> null
+        }
+    }
 
     Scaffold(
+        topBar = { TopAppBar(title = { Text("Your Shopping Lists") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showCreateDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Create New List")
+            FloatingActionButton(onClick = {
+                newName = ""
+                nameError = null
+                showDialog = true
+            }) {
+                Icon(Icons.Default.Add, contentDescription = "Create List")
             }
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (shoppingLists.isEmpty()) {
-                Text(
-                    text = "No shopping lists yet.\nTap + to create one.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
-                    items(shoppingLists) { list ->
-                        ListItem(
-                            headlineContent = { Text(list.name) },
-                            supportingContent = {
-                                Text("Created: ${dateFormatter.format(Date(list.createdAt))}")
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = { onListClick(list) },
-                                    onLongClick = { listToDelete = list }
-                                )
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn {
+                items(shoppingLists) { list ->
+                    val formattedDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                        .format(list.createdAt)
+
+                    ListItem(
+                        headlineContent = { Text(list.name) },
+                        supportingContent = { Text("Created: $formattedDate") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = { onListClick(list) },
+                                onLongClick = { pendingDelete = list }
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    HorizontalDivider()
                 }
             }
 
-            if (showCreateDialog) {
-                CreateShoppingListDialog(
-                    existingListNames = existingListNames,
-                    onDismiss = { showCreateDialog = false },
-                    onConfirm = { name ->
-                        onCreateList(name, emptyList(), emptyMap())
-                        showCreateDialog = false
+            // Create new-list dialog
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("New Shopping List") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = newName,
+                                onValueChange = { newName = it },
+                                label = { Text("List Name") },
+                                isError = nameError != null,
+                                singleLine = true
+                            )
+                            nameError?.let { err ->
+                                Text(
+                                    text = err,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                val trimmed = newName.trim()
+                                if (nameError == null) {
+                                    onCreateList(trimmed)
+                                    keyboardController?.hide()
+                                    showDialog = false
+                                }
+                            }
+                        ) { Text("Create") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDialog = false }) {
+                            Text("Cancel")
+                        }
                     }
                 )
             }
 
-            listToDelete?.let { list ->
+            // Delete confirmation dialog
+            pendingDelete?.let { target ->
                 AlertDialog(
-                    onDismissRequest = { listToDelete = null },
-                    title = { Text("Delete List") },
-                    text = { Text("Delete \"${list.name}\"? This action cannot be undone.") },
+                    onDismissRequest = { pendingDelete = null },
+                    title = { Text("Delete list?") },
+                    text = { Text("Are you sure you want to delete “${target.name}”?") },
                     confirmButton = {
                         TextButton(onClick = {
-                            onDeleteList(list)
-                            listToDelete = null
-                        }) {
-                            Text("Delete")
-                        }
+                            onDeleteList(target)
+                            pendingDelete = null
+                        }) { Text("Delete") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { listToDelete = null }) {
+                        TextButton(onClick = { pendingDelete = null }) {
                             Text("Cancel")
                         }
                     }

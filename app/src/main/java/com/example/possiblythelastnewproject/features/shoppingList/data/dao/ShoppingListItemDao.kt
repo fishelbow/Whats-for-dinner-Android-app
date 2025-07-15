@@ -1,18 +1,23 @@
 package com.example.possiblythelastnewproject.features.shoppingList.data.dao
 
 import androidx.room.*
-import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ShoppingListEntryDao {
+interface ShoppingListItemDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: ShoppingListItem)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(items: List<ShoppingListItem>)
+
     @Query("SELECT * FROM ShoppingListItem WHERE listId = :listId")
     fun getItemsForList(listId: Long): Flow<List<ShoppingListItem>>
+
+    @Query("SELECT * FROM ShoppingListItem")
+    suspend fun getAllOnce(): List<ShoppingListItem>
 
     @Query("DELETE FROM ShoppingListItem WHERE listId = :listId AND isGenerated = 1")
     suspend fun deleteGeneratedItems(listId: Long)
@@ -28,11 +33,4 @@ interface ShoppingListEntryDao {
 
     @Query("SELECT * FROM ShoppingListItem WHERE listId = :listId")
     suspend fun getItemsForListOnce(listId: Long): List<ShoppingListItem>
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(items: List<ShoppingListItem>)
-
-    @Query("SELECT * FROM ShoppingListItem")
-    suspend fun getAllOnce(): List<ShoppingListItem>
-
 }

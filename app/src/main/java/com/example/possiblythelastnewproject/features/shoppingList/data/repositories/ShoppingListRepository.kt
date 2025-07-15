@@ -1,43 +1,187 @@
 package com.example.possiblythelastnewproject.features.shoppingList.data.repositories
 
-import androidx.room.Transaction
+import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
-import com.example.possiblythelastnewproject.features.shoppingList.data.dao.ShoppingListDao
-import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
-import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
+import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
+import com.example.possiblythelastnewproject.features.shoppingList.data.dao.*
+import com.example.possiblythelastnewproject.features.shoppingList.data.entities.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.util.UUID
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 class ShoppingListRepository @Inject constructor(
-    private val dao: ShoppingListDao,
-    private val recipeDao: RecipeDao
+    private val pantryDao: PantryItemDao,
+    private val recipeDao: RecipeDao,
+    private val recipeSelectionDao: RecipeSelectionDao,
+    private val recipePantryItemDao: RecipePantryItemDao,
+    private val shoppingListDao: ShoppingListDao,
+    private val shoppingListEntryDao: ShoppingListItemDao,
+    private val undoDao: UndoDao
 ) {
 
+    // 📋 List Management
+
+    fun getAllShoppingLists(): Flow<List<ShoppingList>> =
+        shoppingListDao.getAllListsFlow()
+
+    suspend fun insertShoppingList(list: ShoppingList): Long =
+        shoppingListDao.insert(list)
+
+    suspend fun deleteShoppingListWithItems(list: ShoppingList) {
+        shoppingListDao.delete(list.id)
+        shoppingListEntryDao.deleteAllFromList(list.id)
+        recipeSelectionDao.deleteAllForList(list.id)
+        undoDao.clearUndoHistory(list.id)
+    }
+
+    // 🍽️ Recipe Contributions
+
+    suspend fun addRecipeToList(listId: Long, recipeId: Long) {
+        val current = recipeSelectionDao.getSelectionsForList(listId)
+            .find { it.recipeId == recipeId }
+
+        val updated = RecipeSelection(
+            listId = listId,
+            recipeId = recipeId,
+            count = (current?.count ?: 0) + 1,
+            uuid = current?.uuid ?: UUID.randomUUID().toString()
+        )
+
+        recipeSelectionDao.upsert(updated)
+        recalculateIngredients(listId)
+        logUndoAction(listId, "ADD_RECIPE", updated)
+    }
+
+    suspend fun removeRecipeInstance(listId: Long, recipeId: Long) {
+        val current = recipeSelectionDao.getSelectionsForList(listId)
+            .find { it.recipeId == recipeId } ?: return
+
+        val newCount = current.count - 1
+        if (newCount <= 0) {
+            recipeSelectionDao.deleteSelection(listId, recipeId)
+        } else {
+            recipeSelectionDao.upsert(current.copy(count = newCount))
+        }
+
+        recalculateIngredients(listId)
+        logUndoAction(listId, "REMOVE_RECIPE", current)
+    }
+
+    fun getSelectionsForListFlow(listId: Long): Flow<List<RecipeSelection>> =
+        recipeSelectionDao.getSelectionsFlow(listId)
+
+    // 🛒 Item Management
+
     fun getShoppingItemsForList(listId: Long): Flow<List<ShoppingListItem>> =
-        dao.getShoppingItemsForList(listId)
+        shoppingListEntryDao.getItemsForList(listId)
 
     suspend fun insertShoppingItems(items: List<ShoppingListItem>) {
-        items.forEach { dao.insertShoppingItem(it) }
+        items.forEach { shoppingListEntryDao.insert(it) }
     }
 
     suspend fun updateShoppingItem(item: ShoppingListItem) =
-        dao.updateShoppingItem(item)
+        shoppingListEntryDao.insert(item)
 
-    suspend fun insertShoppingList(list: ShoppingList): Long =
-        dao.insertShoppingList(list)
-
-    fun getAllShoppingLists(): Flow<List<ShoppingList>> =
-        dao.getAllShoppingLists()
-
-    suspend fun deleteGeneratedItemsInList(listId: Long) =
-        dao.deleteGeneratedItemsInList(listId)
-
-    @Transaction
-    suspend fun deleteShoppingListWithItems(list: ShoppingList) {
-        dao.deleteAllItemsInList(list.id)
-        dao.deleteShoppingList(list)
+    suspend fun deleteManualIngredient(item: ShoppingListItem) {
+        shoppingListEntryDao.deleteByUuid(item.uuid)
+        logUndoAction(item.listId, "DELETE_INGREDIENT", item)
     }
 
+    suspend fun deleteGeneratedItemsInList(listId: Long) =
+        shoppingListEntryDao.deleteGeneratedItems(listId)
+
+    suspend fun toggleFoundStatus(uuid: String, found: Boolean) =
+        shoppingListEntryDao.setFoundStatus(uuid, found)
+
+    // 🧮 Recalculation Logic
+
+    private suspend fun recalculateIngredients(listId: Long) {
+        val selections = recipeSelectionDao.getSelectionsForList(listId)
+        val pantry = pantryDao.getAll()
+        val existingManuals = shoppingListEntryDao.getItemsForListOnce(listId)
+            .filter { !it.isGenerated }
+
+        val aggregatedNeeds = mutableMapOf<Long, Double>()
+
+        for (sel in selections) {
+            recipePantryItemDao.getCrossRefsForRecipeOnce(sel.recipeId).forEach { ref ->
+                val amount = parseAmount(ref.amountNeeded) * sel.count
+                aggregatedNeeds[ref.pantryItemId] = (aggregatedNeeds[ref.pantryItemId] ?: 0.0) + amount
+            }
+        }
+
+        val autoGenerated = aggregatedNeeds.mapNotNull { (pantryId, requiredQty) ->
+            val pantryItem = pantry.find { it.id == pantryId }
+
+            // ❌ Skip if not shoppable
+            if (pantryItem?.addToShoppingList == false) return@mapNotNull null
+
+            val ownedQty = pantryItem?.quantity?.toDouble() ?: 0.0
+            val missingQty = maxOf(0.0, requiredQty - ownedQty)
+            if (missingQty <= 0.0) return@mapNotNull null
+
+            ShoppingListItem(
+                id = 0L,
+                listId = listId,
+                pantryItemId = pantryId,
+                name = pantryItem?.name ?: "Unknown",
+                quantity = formatQty(missingQty),
+                category = pantryItem?.category ?: "",
+                isChecked = false,
+                isGenerated = true,
+                manuallyRemoved = false,
+                recipeId = null,
+                uuid = UUID.randomUUID().toString()
+            )
+        }
+
+        shoppingListEntryDao.deleteGeneratedItems(listId)
+        (existingManuals + autoGenerated).forEach { shoppingListEntryDao.insert(it) }
+    }
+
+    // 🔁 Undo
+
+    suspend fun undoLastAction(listId: Long) {
+        val action = undoDao.getLastAction(listId) ?: return
+        when (action.actionType) {
+            "ADD_RECIPE" -> deserialize<RecipeSelection>(action.payload).let {
+                removeRecipeInstance(it.listId, it.recipeId)
+            }
+            "REMOVE_RECIPE" -> deserialize<RecipeSelection>(action.payload).let {
+                recipeSelectionDao.upsert(it)
+                recalculateIngredients(it.listId)
+            }
+            "DELETE_INGREDIENT" -> deserialize<ShoppingListItem>(action.payload).let {
+                shoppingListEntryDao.insert(it)
+            }
+        }
+        undoDao.delete(action)
+    }
+
+    // ✏️ Internal Helpers
+
+    private suspend inline fun <reified T> logUndoAction(listId: Long, type: String, data: T) {
+        val json = Json.encodeToString(data)
+        val undo = UndoAction(
+            listId = listId,
+            actionType = type,
+            payload = json,
+            timestamp = System.currentTimeMillis(),
+            uuid = UUID.randomUUID().toString()
+        )
+        undoDao.insert(undo)
+    }
+
+    private inline fun <reified T> deserialize(json: String): T =
+        Json.decodeFromString(json)
+
+    private fun parseAmount(text: String): Double =
+        text.trim().takeWhile { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+
+    private fun formatQty(value: Double): String =
+        if (value % 1.0 == 0.0) value.toInt().toString() else "%.2f".format(value)
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "be8882ab831f14477c362038abf91bd3",
+    "identityHash": "0adb9f343710d0cfca0ed2437a4d1465",
     "entities": [
       {
         "tableName": "Recipe",
@@ -210,7 +210,7 @@
       },
       {
         "tableName": "ShoppingListItem",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `pantryItemId` INTEGER, `name` TEXT NOT NULL, `quantity` TEXT NOT NULL, `isChecked` INTEGER NOT NULL, `isGenerated` INTEGER NOT NULL, `recipeId` INTEGER, `uuid` TEXT NOT NULL, FOREIGN KEY(`listId`) REFERENCES `ShoppingList`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `pantryItemId` INTEGER, `name` TEXT NOT NULL, `quantity` TEXT NOT NULL, `unit` TEXT, `category` TEXT NOT NULL, `isChecked` INTEGER NOT NULL, `isGenerated` INTEGER NOT NULL, `manuallyRemoved` INTEGER NOT NULL, `recipeId` INTEGER, `uuid` TEXT NOT NULL, FOREIGN KEY(`listId`) REFERENCES `ShoppingList`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -242,6 +242,17 @@
             "notNull": true
           },
           {
+            "fieldPath": "unit",
+            "columnName": "unit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "isChecked",
             "columnName": "isChecked",
             "affinity": "INTEGER",
@@ -250,6 +261,12 @@
           {
             "fieldPath": "isGenerated",
             "columnName": "isGenerated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manuallyRemoved",
+            "columnName": "manuallyRemoved",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -432,11 +449,133 @@
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_Category_uuid` ON `${TABLE_NAME}` (`uuid`)"
           }
         ]
+      },
+      {
+        "tableName": "RecipeSelection",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `recipeId` INTEGER NOT NULL, `count` INTEGER NOT NULL, `uuid` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "listId",
+            "columnName": "listId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipeId",
+            "columnName": "recipeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_RecipeSelection_listId_recipeId",
+            "unique": true,
+            "columnNames": [
+              "listId",
+              "recipeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_RecipeSelection_listId_recipeId` ON `${TABLE_NAME}` (`listId`, `recipeId`)"
+          },
+          {
+            "name": "index_RecipeSelection_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_RecipeSelection_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          }
+        ]
+      },
+      {
+        "tableName": "UndoAction",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `listId` INTEGER NOT NULL, `actionType` TEXT NOT NULL, `payload` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `uuid` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "listId",
+            "columnName": "listId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionType",
+            "columnName": "actionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_UndoAction_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_UndoAction_uuid` ON `${TABLE_NAME}` (`uuid`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'be8882ab831f14477c362038abf91bd3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0adb9f343710d0cfca0ed2437a4d1465')"
     ]
   }
 }

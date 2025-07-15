@@ -42,11 +42,10 @@ interface PantryItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<PantryItem>)
 
-
     @Query("DELETE FROM pantryitem")
     suspend fun clearAll()
 
-
-
+    @Query("SELECT * FROM PantryItem ORDER BY name")
+    suspend fun getAll(): List<PantryItem>
 
 }

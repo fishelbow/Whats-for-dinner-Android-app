@@ -20,17 +20,20 @@ import java.util.UUID
     ],
     indices = [
         Index(value = ["listId"]),
-        Index(value = ["uuid"], unique = true) // ✅ Enforce UUID uniqueness
+        Index(value = ["uuid"], unique = true)
     ]
 )
 data class ShoppingListItem(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val listId: Long,
-    val pantryItemId: Long?,
-    val name: String,
-    val quantity: String,
-    val isChecked: Boolean = false,
-    val isGenerated: Boolean = false,
-    val recipeId: Long? = null,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val listId: Long,                         // Link to parent ShoppingList
+    val pantryItemId: Long?,                  // Optional reference to PantryItem
+    val name: String,                         // Ingredient name
+    val quantity: String,                     // Display quantity (e.g., "2 cups")
+    val unit: String? = null,                 // Optional unit ("g", "pcs", etc.)
+    val category: String = "",                // Category for display/grouping
+    val isChecked: Boolean = false,           // Marked "found" by user
+    val isGenerated: Boolean = false,         // True if auto-added by recipe
+    val manuallyRemoved: Boolean = false,     // True if user manually deleted earlier
+    val recipeId: Long? = null,               // Source recipe reference, if applicable
     val uuid: String = UUID.randomUUID().toString()
 )
