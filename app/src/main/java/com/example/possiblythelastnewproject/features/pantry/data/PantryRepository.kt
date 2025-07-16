@@ -19,15 +19,13 @@ class PantryRepository @Inject constructor(
     private val defaultCategoryNames: List<String> = listOf(
         "Grains", "Vegetables", "Fruits", "Dairy", "Proteins", "Snacks", "Spices"
     )
-
-
 ) {
 
     suspend fun populateDefaultCategoriesIfEmpty() {
         val current = categoryDao.getAllCategoriesOnce()
         if (current.isEmpty()) {
             defaultCategoryNames.forEach { name ->
-            //    categoryDao.insertCategory(Category(name = name))
+                categoryDao.insertCategory(Category(name = name))
             }
         }
     }
