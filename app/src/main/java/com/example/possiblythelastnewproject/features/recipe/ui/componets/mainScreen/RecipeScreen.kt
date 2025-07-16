@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ import com.example.possiblythelastnewproject.features.recipe.data.entities.Recip
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 
 @Composable
 fun RecipeScreenWithSearch(
@@ -108,10 +110,14 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            val bitmap by produceState<android.graphics.Bitmap?>(null, recipe.imageData) {
+            val context = LocalContext.current
+            val bitmap by produceState<android.graphics.Bitmap?>(null, recipe.imageUri) {
                 value = withContext(Dispatchers.IO) {
-                    recipe.imageData?.let {
-                        BitmapFactory.decodeByteArray(it, 0, it.size)
+                    recipe.imageUri?.let { uriString ->
+                        val uri = uriString.toUri()
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            android.graphics.BitmapFactory.decodeStream(stream)
+                        }
                     }
                 }
             }

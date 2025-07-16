@@ -12,7 +12,7 @@ data class RecipeEditUiState(
     var category: TextFieldValue = TextFieldValue(""),
     val instructions: TextFieldValue = TextFieldValue(""),
     var cardColor: Color = Color.White,
-    val imageData: ByteArray? = null,
+    val imageUri: String? = null,
     val ingredients: List<RecipeIngredientUI> = emptyList(),
     val newIngredient: String = ""
 ) {
@@ -22,21 +22,16 @@ data class RecipeEditUiState(
 
         other as RecipeEditUiState
 
-        if (name != other.name) return false
-        if (temp != other.temp) return false
-        if (prepTime != other.prepTime) return false
-        if (cookTime != other.cookTime) return false
-        if (category != other.category) return false
-        if (instructions != other.instructions) return false
-        if (cardColor != other.cardColor) return false
-        if (imageData != null) {
-            if (other.imageData == null) return false
-            if (!imageData.contentEquals(other.imageData)) return false
-        } else if (other.imageData != null) return false
-        if (ingredients != other.ingredients) return false
-        if (newIngredient != other.newIngredient) return false
-
-        return true
+        return name == other.name &&
+                temp == other.temp &&
+                prepTime == other.prepTime &&
+                cookTime == other.cookTime &&
+                category == other.category &&
+                instructions == other.instructions &&
+                cardColor == other.cardColor &&
+                imageUri == other.imageUri && // ✅ Simple string comparison
+                ingredients == other.ingredients &&
+                newIngredient == other.newIngredient
     }
 
     override fun hashCode(): Int {
@@ -47,9 +42,11 @@ data class RecipeEditUiState(
         result = 31 * result + category.hashCode()
         result = 31 * result + instructions.hashCode()
         result = 31 * result + cardColor.hashCode()
-        result = 31 * result + (imageData?.contentHashCode() ?: 0)
+        result = 31 * result + (imageUri?.hashCode() ?: 0) // ✅ URI-based hash
         result = 31 * result + ingredients.hashCode()
         result = 31 * result + newIngredient.hashCode()
         return result
+
+
     }
 }

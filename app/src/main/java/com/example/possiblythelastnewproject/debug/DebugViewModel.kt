@@ -1,5 +1,7 @@
 package com.example.possiblythelastnewproject.debug
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,13 +22,16 @@ class DebugViewModel @Inject constructor(
     val isLoading = mutableStateOf(false)
     val progress = mutableStateOf(0f)
 
-    fun loadTestData(imageBytes: ByteArray, pantryCount: Int, recipeCount: Int) {
+    fun loadTestData(context: Context, pantryCount: Int, recipeCount: Int, imageUri: Uri?) {
         viewModelScope.launch {
             isLoading.value = true
             progress.value = 0f
 
+            val mockImageUri = saveMockImageToInternalStorage(context)
+
             populateTestDataWithImage(
-                imageBytes = imageBytes,
+                imageUri = mockImageUri,
+                context = context,
                 pantryRepo = pantryRepo,
                 recipeRepo = recipeRepo,
                 crossRefRepo = crossRefRepo,

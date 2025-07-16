@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "0adb9f343710d0cfca0ed2437a4d1465",
+    "identityHash": "a62b1d513b22b0113ceee5a42dfc4e1d",
     "entities": [
       {
         "tableName": "Recipe",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `recipe_name` TEXT NOT NULL, `temp` TEXT NOT NULL, `prepTime` TEXT NOT NULL, `cookTime` TEXT NOT NULL, `category` TEXT NOT NULL, `instructions` TEXT NOT NULL, `imageData` BLOB, `color` INTEGER NOT NULL, `uuid` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `recipe_name` TEXT NOT NULL, `temp` TEXT NOT NULL, `prepTime` TEXT NOT NULL, `cookTime` TEXT NOT NULL, `category` TEXT NOT NULL, `instructions` TEXT NOT NULL, `imageUri` TEXT, `color` INTEGER NOT NULL, `uuid` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -51,9 +51,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "imageData",
-            "columnName": "imageData",
-            "affinity": "BLOB"
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "color",
@@ -88,7 +88,7 @@
       },
       {
         "tableName": "PantryItem",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `imageData` BLOB, `shouldTrack` INTEGER NOT NULL, `addToShoppingList` INTEGER NOT NULL, `scanCode` TEXT, `category` TEXT NOT NULL, `uuid` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `imageUri` TEXT, `shouldTrack` INTEGER NOT NULL, `addToShoppingList` INTEGER NOT NULL, `scanCode` TEXT, `category` TEXT NOT NULL, `uuid` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -109,9 +109,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "imageData",
-            "columnName": "imageData",
-            "affinity": "BLOB"
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "shouldTrack",
@@ -575,7 +575,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0adb9f343710d0cfca0ed2437a4d1465')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a62b1d513b22b0113ceee5a42dfc4e1d')"
     ]
   }
 }

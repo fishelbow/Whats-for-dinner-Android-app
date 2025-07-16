@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -41,19 +42,20 @@ fun PantryScreen(
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newIngredient by remember { mutableStateOf("") }
-    var addImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+
+
     var showScanDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showBlankNameDialog by remember { mutableStateOf(false) }
     // Create two distinct image pickers by calling your universal function.
     // One is for adding a new ingredient and updates addImageBytes.
-    val launchImagePickerForAdd = imagePicker { imageBytes ->
-        addImageBytes = imageBytes
+    val launchImagePickerForAdd = imagePicker { pickedUri ->
+        viewModel.updateAddImage(pickedUri)
     }
     // The other is for editing an existing ingredient.
     // It calls a ViewModel function (or could update local state) for the edit image.
-    val launchImagePickerForEdit = imagePicker { imageBytes ->
-        viewModel.updateEditImage(imageBytes)
+    val launchImagePickerForEdit = imagePicker { pickedUri ->
+        viewModel.updateEditImage(pickedUri)
     }
 
     // Filter ingredients based on search query.
@@ -95,7 +97,7 @@ fun PantryScreen(
                                 IngredientCard(
                                     ingredient = displayName,
                                     quantity = validItem.quantity,
-                                    imageData = validItem.imageData,
+                                    imageUri = validItem.imageUri,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { selectedItem = validItem }
@@ -119,9 +121,9 @@ fun PantryScreen(
                     IngredientCard(
                         ingredient = item.name,
                         quantity = item.quantity,
-                        imageData = item.imageData,
+                        modifier = Modifier.fillMaxWidth(),
                         category = item.category,
-                        modifier = Modifier.fillMaxWidth()
+                        imageUri = item.imageUri
                     )
 
                     // PLU Button below image, right-aligned
@@ -172,6 +174,8 @@ fun PantryScreen(
             }
         )
     }
+
+
     // --- Add Dialog ---
     if (showAddDialog) {
         val nameExists = pantryItems.any { it.name.equals(newIngredient.trim(), ignoreCase = true) }
@@ -205,11 +209,11 @@ fun PantryScreen(
                     IngredientCard(
                         ingredient = newIngredient.ifBlank { "No Name" },
                         quantity = 1,
-                        imageData = addImageBytes,
+                        modifier = Modifier.padding(top = 8.dp),
                         category = selectedCategory?.name,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                        imageUri = uiState.addImageUri
 
+                    )
                     TextButton(onClick = { launchImagePickerForAdd() }) {
                         Text("Pick Image")
                     }
@@ -269,12 +273,11 @@ fun PantryScreen(
                             PantryItem(
                                 name = newIngredient.trim(),
                                 quantity = 1,
-                                imageData = addImageBytes,
+                                imageUri = uiState.addImageUri,
                                 category = finalCategory?.name ?: "Other"
                             )
                         )
                         newIngredient = ""
-                        addImageBytes = null
                         showAddDialog = false
                         viewModel.updateSelectedCategory(null)
                     }
@@ -286,7 +289,6 @@ fun PantryScreen(
                 TextButton(onClick = {
                     showAddDialog = false
                     newIngredient = ""
-                    addImageBytes = null
                     viewModel.updateSelectedCategory(null)
                 }) {
                     Text("Cancel")
@@ -320,9 +322,9 @@ fun PantryScreen(
                     IngredientCard(
                         ingredient = previewName,
                         quantity = previewQty,
-                        imageData = uiState.editImageBytes,
+                        modifier = Modifier.fillMaxWidth(),
                         category = uiState.editCategory?.name,
-                        modifier = Modifier.fillMaxWidth()
+                        imageUri = uiState.editImageUri // ✅ Correct state field
                     )
 
                     TextButton(onClick = { launchImagePickerForEdit() }) {

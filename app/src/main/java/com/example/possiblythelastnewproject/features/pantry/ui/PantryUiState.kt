@@ -7,51 +7,41 @@ data class PantryUiState(
     val searchQuery: String = "",
     val showAddDialog: Boolean = false,
     val newIngredientName: String = "",
-    val addImageBytes: ByteArray? = null,
+    val addImageUri: String? = null,
     val editingItem: PantryItem? = null,
     val editName: String = "",
     val editQuantityText: String = "",
-    val editImageBytes: ByteArray? = null,
+    val editImageUri: String? = null,
     val itemToDelete: PantryItem? = null,
     val selectedCategory: Category? = null,
     val editCategory: Category? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is PantryUiState) return false
 
-        other as PantryUiState
-
-        if (showAddDialog != other.showAddDialog) return false
-        if (searchQuery != other.searchQuery) return false
-        if (newIngredientName != other.newIngredientName) return false
-        if (addImageBytes != null) {
-            if (other.addImageBytes == null) return false
-            if (!addImageBytes.contentEquals(other.addImageBytes)) return false
-        } else if (other.addImageBytes != null) return false
-        if (editingItem != other.editingItem) return false
-        if (editName != other.editName) return false
-        if (editQuantityText != other.editQuantityText) return false
-        if (editImageBytes != null) {
-            if (other.editImageBytes == null) return false
-            if (!editImageBytes.contentEquals(other.editImageBytes)) return false
-        } else if (other.editImageBytes != null) return false
-        if (itemToDelete != other.itemToDelete) return false
-        if (selectedCategory != other.selectedCategory) return false
-        if (editCategory != other.editCategory) return false
-
-        return true
+        return searchQuery == other.searchQuery &&
+                showAddDialog == other.showAddDialog &&
+                newIngredientName == other.newIngredientName &&
+                addImageUri == other.addImageUri &&
+                editingItem == other.editingItem &&
+                editName == other.editName &&
+                editQuantityText == other.editQuantityText &&
+                editImageUri == other.editImageUri &&
+                itemToDelete == other.itemToDelete &&
+                selectedCategory == other.selectedCategory &&
+                editCategory == other.editCategory
     }
 
     override fun hashCode(): Int {
         var result = showAddDialog.hashCode()
         result = 31 * result + searchQuery.hashCode()
         result = 31 * result + newIngredientName.hashCode()
-        result = 31 * result + (addImageBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (addImageUri?.hashCode() ?: 0)
         result = 31 * result + (editingItem?.hashCode() ?: 0)
         result = 31 * result + editName.hashCode()
         result = 31 * result + editQuantityText.hashCode()
-        result = 31 * result + (editImageBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (editImageUri?.hashCode() ?: 0)
         result = 31 * result + (itemToDelete?.hashCode() ?: 0)
         result = 31 * result + (selectedCategory?.hashCode() ?: 0)
         result = 31 * result + (editCategory?.hashCode() ?: 0)

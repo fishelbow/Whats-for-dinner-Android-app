@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.scan.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
@@ -94,40 +95,12 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    fun handleManualNameEntry(
-        name: String,
-        pendingScanCode: String,
-        quantity: Int,
-        imageData: ByteArray?
-    ) = viewModelScope.launch {
-        val existingItem = repository.findByName(name.trim())
-        if (existingItem != null) {
-            pendingItemExtras = Triple(quantity, imageData, name)
-            _uiState.update {
-                it.copy(
-                    scannedItem = existingItem,
-                    lastScanCode = pendingScanCode,
-                    promptLinkScanCodeDialog = true
-                )
-            }
-        } else {
-            val newItem = PantryItem(
-                name = name.trim(),
-                quantity = quantity,
-                scanCode = pendingScanCode,
-                imageData = imageData
-            )
-            addItem(newItem)
-        }
-    }
-
-
     fun linkScanCodeToItem(item: PantryItem, scanCode: String) = viewModelScope.launch {
-        val (qty, image, _) = pendingItemExtras ?: Triple(0, null, "")
+        val (qty, imageUri, _) = pendingItemExtras ?: Triple(0, null, "")
         val updated = item.copy(
             scanCode = scanCode,
             quantity = item.quantity + qty,
-            imageData = item.imageData ?: image
+            imageUri = (item.imageUri ?: imageUri).toString()
         )
         repository.updateItem(updated)
         _uiState.update {
@@ -135,7 +108,7 @@ class ScanViewModel @Inject constructor(
                 scannedItem = null,
                 scanSuccess = false,
                 promptLinkScanCodeDialog = false,
-                promptNewItemDialog = false,  // 👈 add this line
+                promptNewItemDialog = false, // 👈 stays as is
                 itemAdded = true
             )
         }

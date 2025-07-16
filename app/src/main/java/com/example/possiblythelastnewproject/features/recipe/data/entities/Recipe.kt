@@ -21,42 +21,37 @@ data class Recipe(
     val cookTime: String,
     val category: String,
     val instructions: String,
-    val imageData: ByteArray? = null,
+    val imageUri: String? = null,
     @ColorInt val color: Int = 0,
     val uuid: String = UUID.randomUUID().toString()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is Recipe) return false
 
-        other as Recipe
-
-        if (id != other.id) return false
-        if (color != other.color) return false
-        if (name != other.name) return false
-        if (temp != other.temp) return false
-        if (prepTime != other.prepTime) return false
-        if (cookTime != other.cookTime) return false
-        if (category != other.category) return false
-        if (instructions != other.instructions) return false
-        if (imageData != null) {
-            if (other.imageData == null) return false
-            if (!imageData.contentEquals(other.imageData)) return false
-        } else if (other.imageData != null) return false
-
-        return true
+        return id == other.id &&
+                name == other.name &&
+                temp == other.temp &&
+                prepTime == other.prepTime &&
+                cookTime == other.cookTime &&
+                category == other.category &&
+                instructions == other.instructions &&
+                imageUri == other.imageUri &&
+                color == other.color &&
+                uuid == other.uuid
     }
 
     override fun hashCode(): Int {
         var result = id.hashCode()
-        result = 31 * result + color
         result = 31 * result + name.hashCode()
         result = 31 * result + temp.hashCode()
         result = 31 * result + prepTime.hashCode()
         result = 31 * result + cookTime.hashCode()
         result = 31 * result + category.hashCode()
         result = 31 * result + instructions.hashCode()
-        result = 31 * result + (imageData?.contentHashCode() ?: 0)
+        result = 31 * result + (imageUri?.hashCode() ?: 0)
+        result = 31 * result + color
+        result = 31 * result + uuid.hashCode()
         return result
     }
 }

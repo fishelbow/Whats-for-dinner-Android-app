@@ -19,8 +19,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import android.net.Uri
+
 @Composable
-fun RecipeImagePicker(imageBytes: ByteArray?, onClick: () -> Unit) {
+fun RecipeImagePicker(imageUri: Uri?, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         tonalElevation = 4.dp,
@@ -29,23 +34,25 @@ fun RecipeImagePicker(imageBytes: ByteArray?, onClick: () -> Unit) {
             .height(200.dp)
             .clickable(onClick = onClick)
     ) {
-        imageBytes?.takeIf { it.isNotEmpty() }?.let { bytes ->
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            Image(
-                bitmap = bitmap.asImageBitmap(),
+        if (imageUri != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUri)
+                    .crossfade(true)
+                    .build(),
                 contentDescription = "Recipe image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        } ?: Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Tap to select image", color = Color.DarkGray)
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Tap to select image", color = Color.DarkGray)
+            }
         }
     }
-
-
 }

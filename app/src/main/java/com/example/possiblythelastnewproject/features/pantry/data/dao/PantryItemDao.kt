@@ -48,4 +48,8 @@ interface PantryItemDao {
     @Query("SELECT * FROM PantryItem ORDER BY name")
     suspend fun getAll(): List<PantryItem>
 
+    @Query("SELECT imageUri FROM PantryItem WHERE imageUri IS NOT NULL")
+    suspend fun getAllPantryImageUris(): List<String>
+
+
 }

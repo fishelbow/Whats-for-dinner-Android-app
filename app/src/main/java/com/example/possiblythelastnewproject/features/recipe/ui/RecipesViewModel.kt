@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 @HiltViewModel
 class RecipesViewModel @Inject constructor(
@@ -72,7 +73,7 @@ class RecipesViewModel @Inject constructor(
             category = TextFieldValue(recipe.recipe.category),
             instructions = TextFieldValue(recipe.recipe.instructions),
             cardColor = Color(recipe.recipe.color),
-            imageData = recipe.recipe.imageData,
+            imageUri = recipe.recipe.imageUri?.toUri().toString(),
             ingredients = ingredients,
             newIngredient = ""
         )
@@ -86,7 +87,7 @@ class RecipesViewModel @Inject constructor(
     fun updateCategory(value: TextFieldValue) = updateUi { copy(category = value) }
     fun updateInstructions(value: TextFieldValue) = updateUi { copy(instructions = value) }
     fun updateCardColor(color: Color) = updateUi { copy(cardColor = color) }
-    fun updateImageData(data: ByteArray?) = updateUi { copy(imageData = data) }
+    fun updateImageUri(uri: String) = updateUi { copy(imageUri = uri.toString()) }
     fun updateIngredients(list: List<RecipeIngredientUI>) = updateUi { copy(ingredients = list) }
     fun updateNewIngredient(value: String) = updateUi { copy(newIngredient = value) }
 
@@ -97,7 +98,7 @@ class RecipesViewModel @Inject constructor(
     fun hasUnsavedChanges(original: RecipeWithIngredients): Boolean {
         val current = editUiState
         return hasRecipeFieldChanges(current, original.recipe) ||
-                hasImageChanged(current.imageData, original.recipe.imageData) ||
+                hasImageUriChanged(current.imageUri, original.recipe.imageUri) ||
                 hasIngredientChanges(current.ingredients)
     }
 
@@ -219,4 +220,7 @@ class RecipesViewModel @Inject constructor(
                 )
             }
         }
+    private fun hasImageUriChanged(currentUri: String?, originalUri: String?): Boolean {
+        return currentUri?.toString() != originalUri
+    }
 }

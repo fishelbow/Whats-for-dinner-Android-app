@@ -18,6 +18,9 @@ fun UpdateItemDialog(
     onDismiss: () -> Unit,
     onConfirmUpdate: (PantryItem) -> Unit
 ) {
+
+    val validItem = item.copy(imageUri = item.imageUri) // or however you're validating
+
     AlertDialog(
         onDismissRequest = {},
         title = { Text("Item Already Exists") },
@@ -28,7 +31,7 @@ fun UpdateItemDialog(
                 IngredientCard(
                     ingredient = item.name,
                     quantity = item.quantity,
-                    imageData = item.imageData
+                    imageUri = validItem.imageUri
                 )
                 Spacer(Modifier.height(8.dp))
                 Text("Would you like to update or keep it as is?")

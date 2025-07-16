@@ -27,7 +27,7 @@ class PantryRepository @Inject constructor(
         val current = categoryDao.getAllCategoriesOnce()
         if (current.isEmpty()) {
             defaultCategoryNames.forEach { name ->
-                categoryDao.insertCategory(Category(name = name))
+            //    categoryDao.insertCategory(Category(name = name))
             }
         }
     }
@@ -53,7 +53,7 @@ class PantryRepository @Inject constructor(
         pantryItemDao.getByScanCode(code)
 
     /** Returns true only if no recipe cross-refs exist */
-    suspend fun canDelete(itemId: Long): Boolean =
+    private suspend fun canDelete(itemId: Long): Boolean =
         pantryItemDao.countRecipesUsing(itemId) == 0
 
     /** Deletes if and only if there are no recipe cross-refs */

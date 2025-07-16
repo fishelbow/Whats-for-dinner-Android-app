@@ -2,6 +2,7 @@ package com.example.possiblythelastnewproject.features.recipe.ui.componets.recip
 
 import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -57,9 +58,11 @@ fun RecipeCreationFormScreen(
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var ingredientList by remember { mutableStateOf(mutableListOf<RecipeIngredientUI>()) }
 
-    val launchImagePicker = imagePicker { imageBytes = it }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-
+    val launchImagePicker = imagePicker { selectedUri ->
+        imageUri = selectedUri
+    }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
 
@@ -128,7 +131,7 @@ fun RecipeCreationFormScreen(
                 .animateContentSize(tween(300)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            RecipeImagePicker(imageBytes) { launchImagePicker() }
+            RecipeImagePicker(imageUri) { launchImagePicker() }
             val scope = rememberCoroutineScope()
             RecipeFormCard(
                 name = name,
@@ -171,7 +174,7 @@ fun RecipeCreationFormScreen(
                             cookTime = cookTime.trim(),
                             category = category.trim(),
                             instructions = instructions.trim(),
-                            imageData = imageBytes ?: ByteArray(0),
+                            imageUri = imageUri?.toString() ?: "", // safe default fallback
                             color = cardColor.toArgb()
                         )
 

@@ -291,12 +291,12 @@ fun ScanningNavHost(navController: NavHostController) {
                         onCategoryChange = { category ->
                             viewModel.updateSelectedCategory(category)
                         },
-                        onConfirm = { name, qty, imageData, categoryName ->
+                        onConfirm = { name, qty, imageUri, categoryName ->
                             viewModel.addPantryItem(
                                 PantryItem(
                                     name = name,
                                     quantity = qty,
-                                    imageData = imageData,
+                                    imageUri = imageUri?.toString(),
                                     scanCode = uiState.lastScanCode.orEmpty(),
                                     category = categoryName ?: ""
                                 )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.core.utils.imagePicker
@@ -12,11 +13,13 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun DebugToolsScreen() {
+    val context = LocalContext.current
     val viewModel: DebugViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
 
-    var pantryCount by remember { mutableStateOf(1000f) }
-    var recipeCount by remember { mutableStateOf(200f) }
+
+    var pantryCount by remember { mutableFloatStateOf(1000f) }
+    var recipeCount by remember { mutableFloatStateOf(200f) }
 
     val isLoading by viewModel.isLoading
     val progress by viewModel.progress
@@ -25,15 +28,18 @@ fun DebugToolsScreen() {
         BackHandler(enabled = true) {}
     }
 
-    val launchImagePicker = imagePicker { imageBytes ->
+    val launchImagePicker = imagePicker { pickedUri ->
         coroutineScope.launch {
             viewModel.loadTestData(
-                imageBytes = imageBytes,
+                context = context, // ← now captured properly
+                imageUri = pickedUri,
                 pantryCount = pantryCount.toInt(),
                 recipeCount = recipeCount.toInt()
             )
         }
     }
+
+
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text("Pantry Items: ${pantryCount.toInt()}")

@@ -1,6 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
 
-import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -22,12 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.example.possiblythelastnewproject.core.ui.LocalEditingGuard
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
@@ -37,6 +37,7 @@ import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingred
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.LazyFlowRow
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,8 +120,8 @@ fun RecipeDetailScreen(
         }
     }
 
-    val pickImage = imagePicker { byteArray ->
-        viewModel.updateImageData(byteArray)
+    val pickImage = imagePicker { uri ->
+        viewModel.updateImageUri(uri.toString())
     }
 
     Scaffold(
@@ -173,22 +174,23 @@ fun RecipeDetailScreen(
                 .animateContentSize(tween(300)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-// Image Picker
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.LightGray)
-                    .clickable(enabled = editingGuard.isEditing) { pickImage() }) {
-                uiState.imageData?.takeIf { it.isNotEmpty() }?.let { data ->
-                    val bmp = BitmapFactory.decodeByteArray(data, 0, data.size)
+                    .clickable(enabled = editingGuard.isEditing) { pickImage() }
+            ) {
+                uiState.imageUri?.takeIf { it.isNotEmpty() }?.let { uriString ->
+                    val uri = uriString.toUri()
                     Image(
-                        bitmap = bmp.asImageBitmap(),
+                        painter = rememberAsyncImagePainter(model = uri),
                         contentDescription = "Recipe photo",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+
                 } ?: Box(
                     modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                 ) {
@@ -198,10 +200,10 @@ fun RecipeDetailScreen(
                     )
                 }
 
-                uiState.imageData?.takeIf { it.isNotEmpty() }?.let { data ->
-                    val bmp = BitmapFactory.decodeByteArray(data, 0, data.size)
+                uiState.imageUri?.takeIf { it.isNotEmpty() }?.let { uriString ->
+                    val uri = Uri.parse(uriString)
                     Image(
-                        bitmap = bmp.asImageBitmap(),
+                        painter = rememberAsyncImagePainter(model = uri),
                         contentDescription = "Recipe photo",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -382,7 +384,7 @@ fun RecipeDetailScreen(
                                         prepTime = uiState.prepTime.text.trim(),
                                         cookTime = uiState.cookTime.text.trim(),
                                         category = uiState.category.text.trim(),
-                                        imageData = uiState.imageData,
+                                        imageUri = uiState.imageUri ?: "",
                                         instructions = uiState.instructions.text.trim(),
                                         color = uiState.cardColor.toArgb()
                                     )

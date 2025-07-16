@@ -51,5 +51,8 @@ interface RecipeDao {
     @Query("DELETE FROM recipe")
     suspend fun clearAll()
 
+    @Query("SELECT imageUri FROM Recipe WHERE imageUri IS NOT NULL")
+    suspend fun getAllRecipeImageUris(): List<String>
+
 
 }

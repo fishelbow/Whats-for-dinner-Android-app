@@ -1,6 +1,7 @@
 package com.example.possiblythelastnewproject.features.pantry.ui.componets
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,27 +35,28 @@ fun IngredientCard(
     defaultImage: ImageVector = Icons.Default.Image,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     category: String? = null,
-    imageData: ByteArray? = null // move this to the end and give it a default value
-){
+    imageUri: String? = null,
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(1f), // Ensures the card is square.
+            .aspectRatio(1f),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Display the image area.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (imageData != null) {
+                    val painterModel = imageUri?.let { Uri.parse(it) }
+
+                    if (painterModel != null) {
                         AsyncImage(
-                            model = imageData,
+                            model = painterModel,
                             contentDescription = "Ingredient Image",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -64,33 +66,31 @@ fun IngredientCard(
                     } else {
                         Icon(
                             imageVector = defaultImage,
-                            contentDescription = "Ingredient Image",
+                            contentDescription = "Default Ingredient Image",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .fillMaxWidth(0.5f)
                                 .fillMaxSize()
                         )
+
                     }
                 }
-                // Ingredient name.
+
                 val displayName = truncateWithEllipsis(ingredient)
                 Text(
                     text = displayName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Clip, // ellipsis is now manual
+                    overflow = TextOverflow.Clip,
                     modifier = Modifier
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                         .fillMaxWidth()
                 )
             }
-            // Quantity overlay in the bottom right corner.
+
             Text(
                 text = "x$quantity",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                ),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = Color.Gray,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -105,9 +105,9 @@ fun IngredientCard(
 fun IngredientCardPreview() {
     MaterialTheme {
         IngredientCard(
-            ingredient = "lllllllllllllllllllllllllllllllllllll",
+            ingredient = "Test Ingredient",
             quantity = 12,
-            imageData = null
+            imageUri = "file:///mock/test_image.jpg" // Replace with real or dummy Uri if needed
         )
     }
 }

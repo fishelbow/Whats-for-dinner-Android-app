@@ -18,6 +18,8 @@ fun LinkScanCodeDialog(
     onDismiss: () -> Unit,
     onConfirmLink: (PantryItem1) -> Unit
 ) {
+    val validItem = item.copy(/* any transformations or validations here */)
+
     AlertDialog(
         onDismissRequest = {},
         title = { Text("Name Conflict") },
@@ -28,7 +30,7 @@ fun LinkScanCodeDialog(
                 IngredientCard(
                     ingredient = item.name,
                     quantity = item.quantity,
-                    imageData = item.imageData
+                    imageUri = validItem.imageUri
                 )
                 Spacer(Modifier.height(8.dp))
                 Text("Would you like to link the scanned code to this item?")

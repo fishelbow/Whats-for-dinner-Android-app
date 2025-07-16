@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -83,22 +84,11 @@ class PantryViewModel @Inject constructor(
                     editingItem = item,
                     editName = item.name,
                     editQuantityText = item.quantity.toString(),
-                    editImageBytes = item.imageData,
+                    editImageUri = item.imageUri,
                     editCategory = allCategories.value.firstOrNull { cat -> cat.name == item.category }
                 )
-
             }
         }
-    }
-
-    fun updateEditFields(name: String, quantity: String) {
-        _uiState.update {
-            it.copy(editName = name, editQuantityText = quantity)
-        }
-    }
-
-    fun updateEditImage(bytes: ByteArray?) {
-        _uiState.update { it.copy(editImageBytes = bytes) }
     }
 
     fun confirmEditItem() = viewModelScope.launch {
@@ -109,12 +99,25 @@ class PantryViewModel @Inject constructor(
         val updatedItem = original.copy(
             name = state.editName.trim(),
             quantity = newQuantity,
-            imageData = state.editImageBytes,
+            imageUri = state.editImageUri,
             category = state.editCategory?.name ?: original.category
         )
         repository.update(updatedItem)
         _uiState.update { it.copy(editingItem = null) }
     }
+
+
+
+    fun updateEditFields(name: String, quantity: String) {
+        _uiState.update {
+            it.copy(editName = name, editQuantityText = quantity)
+        }
+    }
+
+    fun updateEditImage(uri: Uri?) {
+        _uiState.update { it.copy(editImageUri = uri?.toString()) }
+    }
+
 
     fun promptDelete(item: PantryItem) {
             _uiState.update { it.copy(itemToDelete = item) }
@@ -168,4 +171,8 @@ class PantryViewModel @Inject constructor(
         fun getAllPantryItems(): Flow<List<PantryItem>> {
             return pantryItemDao.getAllPantryItems()
         }
+
+    fun updateAddImage(uri: Uri?) {
+        _uiState.update { it.copy(addImageUri = uri?.toString()) }
+    }
 }

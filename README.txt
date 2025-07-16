@@ -31,13 +31,13 @@ the help of co-pilot and will be doing the same to analyze RecipeViewModel a Vie
 
 After I optimize this I will be moving the blobs out of the data base in favor of uri and storing the
 image files local to the device, I plan on employing pageing 3 along with coil for displaying the images
-I may already have the coil and compressiong under jpeg with the image utilis I’d have to double check.
+I may already have the coil and compressing under jpeg with the image utilis I’d have to double check.
  After the objects are moved out I will be updating the import/export functionality to now include the
  images that in internal storage, so that a full back up and import can occur. This will see the json
  going to version 2, and the db will need a new migration strategy as it moves from version 1 to version 2.
   (side thought this kinda indirectly is teaching me about how apps are updated in the real world and why an
-   app may not be fully backwards compatibable, for every version my app would be compatibable with it would
-   also need a mirgration strategy pretty much telling all of the eveolutions of its database.)
+   app may not be fully backwards compatible, for every version my app would be compatible with it would
+   also need a migration strategy pretty much telling all of the evolution of its database.)
 
 
 I dont want to switch to coil yet as id rather streamline things before switching, it's my thinking that
@@ -89,3 +89,133 @@ to delete an item from the shopping list.
 
 thinking of redoing the shopping list from the ground up. I will need a new entity for tracking recipes that made
 the shopping list
+
+revamped the shopping list, previously it was more of a create and set, now its a dynamic make as you go.
+
+I owe this quick turn around to spending a day talking out the flow of the shopping list, and creating a flow with
+co-pilot.
+
+
+Shopping Tab Flow Summary (Finalized and Refined)
+ Create a Shopping List
+•	Tap + to begin a new list
+•	Prompt user to enter a unique name
+o	Duplicate names rejected with inline message
+•	On confirm:
+o	List saved via Room
+o	Appears immediately in overview
+•	Long-press any list item:
+•	Dialog: “Delete list?”
+•	Confirm → removes list from storage
+Open a Shopping List
+•	Tap to enter the selected list view
+•    Selected Recipes section (collapsible):
+•	Each recipe row includes:
+•   Name
+•	Count badge: ×N
+•	Tap to view/edit
+•	Long-press → remove one instance
+•	Count decrements: ×N → ×(N−1)
+•	Shopping list recalculated accordingly
+Add Recipes or Ingredients
+     Add a Recipe
+•	Tap + → select a recipe
+•	App retrieves:
+o	Recipe ingredient requirements
+o	Pantry stock at that moment
+•	Calculates:
+•	Total required for ×N batches
+•	Subtracts owned quantities
+•	Adds only what's still missing to the shopping list
+    Stateless logic → no need to track contributions per instance
+    Shopping list becomes dynamic reflection of current gaps
+Delete a Recipe
+•	Long-press → delete one instance of recipe
+•	App recalculates total ingredient need for remaining ×(N−1) batches
+•	For each related ingredient:
+•	Checks if any quantity was manually removed earlier
+•	Subtracts only the remaining active contribution
+•	Prevents over-subtraction or negative values
+
+ Add Manual Ingredient
+Step 1: Tap + → “Add Ingredient”
+Step 2: Material 3 SearchBar appears
+•	Search strictly by ingredient name
+•	No category or quantity previews
+Step 3: No match found
+•	Create a temporary PantryItem (not saved yet):
+PantryItem(name = input, category = defaultOrSelected, quantity = 0, addToShoppingList = true)
+
+Step 4: Confirmation Dialog
+•	“Create New Pantry Item?”
+•	“‘Coconut Cream’ will be added with zero quantity and flagged for shopping. Continue?”
+•	Confirm → saves item to Room, adds to shopping list
+•	Cancel → discards temporary entry
+Step 5: Behind the Scenes
+•	Only confirmed entries persist
+•	Cancel avoids pollution
+•	Ingredient can be deleted manually if needed—undo supported
+    Ingredient Layout & Interaction
+    Categorized View
+•	Ingredients merged across recipe contributions
+•	Grouped by category: Produce, Pantry, Dairy, etc.
+•	Each item displays:
+•	Name
+•	Total quantity needed
+•	️ Checkbox → mark “found”
+ Toggle
+•	“Hide Found Items” → hides checked entries dynamically
+    Edit, Delete, Undo/Redo
+    Ingredient
+•Long-press → remove from shopping list
+•	Tracked with manuallyRemoved = true if related to a recipe
+•	Undo stack logs this override
+Recipe
+•	Long-press → remove recipe instance
+•	App subtracts only what that instance contributed
+•	Adjusts logic to respect any manually removed ingredients
+•	Ensures accurate totals without duplication or underflow
+Undo/Redo Stack
+•	Tracks:
+o	Recipe adds/deletes (by count)
+o	Ingredient edits/removals
+o	Manual overrides
+•	Behaviors:
+o	Undo reverses last action (e.g. restore deleted ingredient)
+o	Redo reapplies undone change
+o	Recipe deletions undo both recipe and ingredient recalculations
+•	Optional: Persist across sessions for reliability
+Data Persistence (Room)
+•	Room database stores:
+o	 Shopping Lists
+o	 Recipe selections + count
+o    Pantry items
+o    Shopping list ingredients
+o	 Undo history
+•	Fully survives:
+•	Tab switches
+•	App restarts
+•	Session resumes
+•	Open and re-close
+
+looks like I am staring down the blob issue now.
+
+note: need to fix import/export after database shift, will most likely avoid doing migrations and just call this v1 lol
+were are still in development after all.
+
+alright gonna plan this out again, that really helped last time ha ha. Sometimes its just fun to grab co-pilot and
+inherit a bunch of technical debt, only once I immersed in the problem with tools in hand can I properly plan lol.
+
+So the big Blob move to uri, and possibly paging 3. Goal being a more robust and scalable app
+
+I am going to start by identifying the entities that use blobs.
+
+Recipe.kt uses ByteArray val imageData: ByteArray? = null, RecipeDao as well
+
+PantryItem.kt uses ByteArray  val imageData: ByteArray? = null, PantryItemDao as well
+
+okay this may be a smaller hurdle then I had guessed.
+
+I will be doing internal storage
+
+

@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.scan.ui.componets
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +34,7 @@ fun CreateFromScanDialog(
     categories: List<Category>,
     selectedCategory: Category?,
     onCategoryChange: (Category) -> Unit,
-    onConfirm: (String, Int, ByteArray?, String?) -> Unit,
+    onConfirm: (String, Int, Uri?, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     val pantryViewModel: PantryViewModel = hiltViewModel()
@@ -43,11 +44,12 @@ fun CreateFromScanDialog(
 
     var name by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("1") }
-    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var categoryDropdownExpanded by remember { mutableStateOf(false) }
 
-    val launchImagePicker = imagePicker { newBytes -> imageBytes = newBytes }
-
+    val launchImagePicker = imagePicker { newUri ->
+        imageUri = newUri
+    }
     AlertDialog(
         onDismissRequest = {},
         title = { Text("New Item from Scan") },
@@ -73,10 +75,10 @@ fun CreateFromScanDialog(
                     Text("Pick Image")
                 }
 
-                if (imageBytes != null) {
+                if (imageUri != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(imageBytes)
+                            .data(imageUri)
                             .crossfade(true)
                             .build(),
                         contentDescription = "Selected Image",
@@ -143,7 +145,7 @@ fun CreateFromScanDialog(
                     if (nameExists) {
                         showDuplicateDialog = true
                     } else {
-                        onConfirm(trimmedName, qty, imageBytes, selectedCategory?.name)
+                        onConfirm(trimmedName, qty, imageUri, selectedCategory?.name)
                     }
                 }
             ) {

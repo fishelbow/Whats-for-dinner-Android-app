@@ -7,6 +7,8 @@ import android.media.ExifInterface
 import android.net.Uri
 import java.io.ByteArrayOutputStream
 import android.graphics.Matrix
+import java.io.File
+import java.io.FileOutputStream
 
 fun calculateInSampleSize(
     options: BitmapFactory.Options,
@@ -25,37 +27,34 @@ fun calculateInSampleSize(
     return inSampleSize
 }
 
-fun compressImageFromUri(
+fun compressImageToCache(
     context: Context,
     imageUri: Uri,
     reqWidth: Int = 300,
     reqHeight: Int = 300,
     quality: Int = 80
-): ByteArray? {
+): Uri? {
     return try {
-        // Step 1: Decode bounds to compute sample size.
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(imageUri)?.use { stream ->
             BitmapFactory.decodeStream(stream, null, options)
         }
 
-        // Step 2: Apply downsampling.
         options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
         options.inJustDecodeBounds = false
 
-        // Step 3: Decode and rotate the bitmap if needed.
         val bitmap = context.contentResolver.openInputStream(imageUri)?.use { stream ->
             BitmapFactory.decodeStream(stream, null, options)
         }?.let { bmp ->
             correctBitmapRotation(context, imageUri, bmp)
         }
 
-        // Step 4: Compress and return byte array.
         bitmap?.let {
-            ByteArrayOutputStream().use { baos ->
-                it.compress(Bitmap.CompressFormat.JPEG, quality, baos)
-                baos.toByteArray()
+            val file = File.createTempFile("compressed_", ".jpg", context.cacheDir)
+            FileOutputStream(file).use { out ->
+                it.compress(Bitmap.CompressFormat.JPEG, quality, out)
             }
+            Uri.fromFile(file)
         }
     } catch (e: Exception) {
         e.printStackTrace()
