@@ -216,6 +216,92 @@ PantryItem.kt uses ByteArray  val imageData: ByteArray? = null, PantryItemDao as
 
 okay this may be a smaller hurdle then I had guessed.
 
-I will be doing internal storage
+I will be doing internal storage ....
+
+alright wow the turn around lately has been insane, last night I switched over all the byteArrays to uri
+
+I am beyond stocked atm this has given an extreme performance gain, I will admit recipe could still use a look
+
+over to truly optimize, may come back for paging possibly.
+
+originally I had just about finished all 4 tabs of the app and was good to go. so I decided to do some testing
+
+a function to create fake recipes with x amount of ingredients, and fake ingredients, both having images.
+
+at about 100 pantrys items, and 50 recipes with 50 ingredients to each recipe, the app was crashing hard.
+
+mostly in the recipe tab, as the image is probably being called to many times. and as I have learned
+
+ByteArray is fat in a DB out of memory errors prevented any true scalability so I searched and got put
+
+on to uri and local storage. so i went through all the code starting at the recipe and pantry item entities
+
+switching the byteArray over to uri. then daos then repository and view model and endless composable,
+
+I had an interesting approach to finding what I needed to change. I started as I mentioned then found myself
+
+adrift so i hit the play/debug button the IDE began the process of build and compile and would throw an
+
+error for all occurrences of the byteArray which was now uri. I figured that by working at the base it would
+
+ripple through. eventually it became clear to me that I would need to work in my core/utilis/imagePicker and imageUtilis
+
+also due to the time and learning with copilot many features the 4 tabs really are all built a bit different. the
+
+ImagePicker is the main engine but there is also a RecipeImagePicker for the ui of that tab, and unfortunately there
+
+is an image picker buried in the monolith that is pantryScreen also look to pantryUI future note to self.
+
+any ways, happy to report that I seem to be able to load large amount of recipes and pantry items talking
+
+5k pantry Items, 1k recipes, 50 ingredients per recipe. That's way beyond what I expect to be in use the recipe
+
+end least for my use. But its cool to see how a change in architecture such as byteArray to uri in my room db
+
+can have huge effects on scalability and performance. also want to say that I am right now adding more and more
+
+I think I am about to hit the 15k mark on pantry items and 3k recipes loading now..........
+
+this testing aside the next phase will be to update the import export to account for all the new uri and
+
+anything else that may be new and then we will mint this version 1. as a note the 2 phone thing has been
+
+temp suspended while the shopping list was reworked along with this byteArray -> uri Transition.
+
+so many db changes I knew a migration strat would be needed or a hold on version 1 I chose version 1
+
+I deal with the mess of migration, its ascetics I just don't like the look I get the use if we go playStore
+
+no doubt for updates.
+
+any hoo v1 kicks off after fixing of import/export json along with imageFolder.zip or some other variation I will
+
+discover. but the idea is to take the photos along with the db.
+
+testing note. 20k pantry items, 4k recipes, 50 ingredients per recipe. runs normal amazing.
+
+gonna add a button to delete the db for me too.
+
+ohh ohh another point before import/export need to make sure the images are deleted in internal
+
+storage when i delete a recipe or pantryItem or change the image too i guess. so that it dosent
+
+clog up internal storage. then on to import/export.
+
+and the final dream goals are to be setup for playstore maybe and/or google drive api for shared db file.
+
+I have learned that my repository layer works as the interface between internal and external data access
+
+like the db. might be fun to sync dbs with the online db so my wife and I could have a fully synced db.
+
+not really needed but sounds like a fun project.
+
++ return tasks +
+
+* delete/change recipe/pantryItem image-> check for delete in storage
+* expand import/export json for new entities associated with shoppingList and other changes
+ - discover how to include the images in the import export. will it be a .zip of images, can it
+ be put in the json possibly? stay tuned.
+
 
 

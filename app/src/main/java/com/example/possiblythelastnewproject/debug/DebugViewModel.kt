@@ -27,10 +27,17 @@ class DebugViewModel @Inject constructor(
             isLoading.value = true
             progress.value = 0f
 
-            val mockImageUri = saveMockImageToInternalStorage(context)
+            // 🔍 Validate imageUri or fallback to a safe mock image
+            val validatedImageUri = try {
+                context.contentResolver.openInputStream(imageUri ?: Uri.EMPTY)?.close()
+                imageUri ?: saveMockImageToInternalStorage(context)
+            } catch (e: Exception) {
+                saveMockImageToInternalStorage(context)
+            }
 
+            // 🚀 Generate debug data using validated image
             populateTestDataWithImage(
-                imageUri = mockImageUri,
+                imageUri = validatedImageUri,
                 context = context,
                 pantryRepo = pantryRepo,
                 recipeRepo = recipeRepo,
@@ -50,7 +57,21 @@ class DebugViewModel @Inject constructor(
             isLoading.value = true
             progress.value = 0f
 
-            // Clear all data from the repositories
+            // 🧹 Clear all database tables for fresh testing
+            pantryRepo.clearAll()
+            recipeRepo.clearAll()
+            crossRefRepo.clearAll()
+
+            progress.value = 1f
+            isLoading.value = false
+        }
+    }
+
+    fun wipeDatabase(context: Context) {
+        viewModelScope.launch {
+            isLoading.value = true
+            progress.value = 0f
+
             pantryRepo.clearAll()
             recipeRepo.clearAll()
             crossRefRepo.clearAll()

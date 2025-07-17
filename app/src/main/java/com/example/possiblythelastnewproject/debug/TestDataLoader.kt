@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import android.graphics.Color
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
@@ -27,7 +28,9 @@ suspend fun populateTestDataWithImage(
     onProgress: (Float) -> Unit = {},
     imageUri: Uri
 ) {
-    val categories = listOf("Grains", "Vegetables", "Fruits", "Dairy", "Proteins", "Snacks", "Spices")
+    val categories = listOf("Produce", "Snacks", "Dairy", "Meat", "Grains", "Sauce",
+        "Frozen", "Drinks", "Paper goods", "Canned goods",
+        "Spices", "Toiletries", "Other")
     val totalSteps = pantryCount + recipeCount + recipeCount
     var completedSteps = 0
     fun reportProgress() = onProgress(completedSteps.toFloat() / totalSteps)
@@ -112,5 +115,5 @@ fun saveMockImageToInternalStorage(context: Context): Uri {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
         }
     }
-    return file.toUri()
+    return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
 }
