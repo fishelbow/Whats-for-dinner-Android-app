@@ -296,12 +296,41 @@ like the db. might be fun to sync dbs with the online db so my wife and I could 
 
 not really needed but sounds like a fun project.
 
+ add a delete db button, need to add to it to delete the entire db, remember to delete crossRefs first
+
+ or sql will block, also this will be an issue if I don't also delete the images it has created in internal
+ storage.
+
 + return tasks +
 
 * delete/change recipe/pantryItem image-> check for delete in storage
 * expand import/export json for new entities associated with shoppingList and other changes
  - discover how to include the images in the import export. will it be a .zip of images, can it
  be put in the json possibly? stay tuned.
+
+
+
+
+
+You can add cleanup logic when deleting a recipe:
+
+fun deleteImageFromInternalStorage(context: Context, uriString: String?) {
+    uriString?.let {
+        val file = File(Uri.parse(it).path ?: return)
+        if (file.exists() && file.parent == context.filesDir.path) {
+            file.delete()
+        }
+    }
+}
+
+Then inside your delete flow:
+deleteImageFromInternalStorage(context, recipe.imageUri)
+recipeRepo.delete(recipe)
+
+deleteImageFromInternalStorage(context, recipe.imageUri)
+recipeRepo.delete(recipe)
+
+
 
 
 

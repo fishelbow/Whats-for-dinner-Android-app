@@ -72,9 +72,13 @@ class DebugViewModel @Inject constructor(
             isLoading.value = true
             progress.value = 0f
 
+
+            // funny note crossRef has to be deleted first or sql blocks the others going first
+            // as they have a ref
+            crossRefRepo.clearAll()
             pantryRepo.clearAll()
             recipeRepo.clearAll()
-            crossRefRepo.clearAll()
+
 
             progress.value = 1f
             isLoading.value = false

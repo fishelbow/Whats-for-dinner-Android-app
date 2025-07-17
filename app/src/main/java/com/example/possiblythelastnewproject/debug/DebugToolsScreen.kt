@@ -21,6 +21,9 @@ fun DebugToolsScreen() {
     var pantryCount by remember { mutableFloatStateOf(1000f) }
     var recipeCount by remember { mutableFloatStateOf(200f) }
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showSecondConfirm by remember { mutableStateOf(false) }
+
     val isLoading by viewModel.isLoading
     val progress by viewModel.progress
 
@@ -69,15 +72,9 @@ fun DebugToolsScreen() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = launchImagePicker,
-                enabled = !isLoading
-            ) {
-                Text("Generate Test Data")
-            }
         }
 
-        // 🚨 Bottom persistent actions
+        //  Bottom persistent actions
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,15 +99,15 @@ fun DebugToolsScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = { viewModel.clearAllData() },
+                    onClick = launchImagePicker,
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
-                    Text("Clear Test Data")
+                    Text("Generate Data")
                 }
 
                 Button(
-                    onClick = { viewModel.wipeDatabase(context) },
+                    onClick = { showDeleteDialog = true },
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -120,4 +117,49 @@ fun DebugToolsScreen() {
             }
         }
     }
+    //  First confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirm Delete") },
+            text = { Text("Are you sure you want to delete the database? This action is irreversible.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    showSecondConfirm = true
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+//  Second (final) confirmation dialog
+    if (showSecondConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSecondConfirm = false },
+            title = { Text("Final Confirmation") },
+            text = { Text("Are you 100% sure? Everything will be wiped.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSecondConfirm = false
+                    viewModel.wipeDatabase(context)
+                }) {
+                    Text("Yes, Wipe DB", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSecondConfirm = false }) {
+                    Text("Go Back")
+                }
+            }
+        )
+    }
 }
+
+
