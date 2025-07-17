@@ -18,7 +18,7 @@ import java.io.FileOutputStream
 import androidx.core.graphics.createBitmap
 
 suspend fun populateTestDataWithImage(
-    context: Context, // NEW: Needed for file access
+    context: Context,
     pantryRepo: PantryRepository,
     recipeRepo: RecipeRepository,
     crossRefRepo: RecipePantryItemRepository,
@@ -32,13 +32,16 @@ suspend fun populateTestDataWithImage(
     var completedSteps = 0
     fun reportProgress() = onProgress(completedSteps.toFloat() / totalSteps)
 
-    // 0. Preload a test image URI
-    val testImageUri = imageUri.takeIf {
-        val filePath = it.path
-        filePath != null && File(filePath).exists()
-    } ?: saveMockImageToInternalStorage(context)
+    // 🔍 Validate imageUri using content resolver instead of file path check
+    val testImageUri = try {
+        context.contentResolver.openInputStream(imageUri)?.close()
+        imageUri
+    } catch (e: Exception) {
+        Log.w("TestData", "Fallback to mock image: ${e.message}")
+        saveMockImageToInternalStorage(context)
+    }
 
-    // 1. Insert Pantry Items
+    // 🥫 Pantry Items
     val pantryItems = (1..pantryCount).map { i ->
         PantryItem(
             name = "Item $i",
@@ -58,7 +61,7 @@ suspend fun populateTestDataWithImage(
     val allPantry = pantryRepo.getAllPantryItems().first()
     val pantryIdPool = allPantry.map { it.id }
 
-    // 2. Insert Recipes
+    // 🍲 Recipes
     val recipes = (1..recipeCount).map { i ->
         Recipe(
             name = "Recipe $i",
@@ -80,7 +83,7 @@ suspend fun populateTestDataWithImage(
         }
     }
 
-    // 3. Cross-References
+    // 🔗 CrossRefs
     recipeIds.forEach { recipeId ->
         val refs = pantryIdPool.shuffled().take(minOf(50, pantryIdPool.size)).map { pantryId ->
             RecipePantryItemCrossRef(
@@ -95,7 +98,7 @@ suspend fun populateTestDataWithImage(
         reportProgress()
     }
 
-    Log.d("TestData", "Inserted $pantryCount pantry items, $recipeCount recipes, and ${recipeCount * 50} cross-refs.")
+    Log.d("TestData", "Inserted $pantryCount pantry items, $recipeCount recipes, and ${recipeIds.size * 50} cross-refs.")
 }
 
 fun saveMockImageToInternalStorage(context: Context): Uri {

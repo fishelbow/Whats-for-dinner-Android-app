@@ -2,6 +2,7 @@ package com.example.possiblythelastnewproject.core.utils
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -28,9 +29,18 @@ fun imagePicker(
     var showDialog by remember { mutableStateOf(false) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        onImagePicked(uri)
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            coroutineScope.launch {
+                val savedUri = copyUriToInternalStorage(context, it)
+                onImagePicked(savedUri)
+            }
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -50,7 +60,7 @@ fun imagePicker(
         if (granted) {
             cameraLauncher.launch(null)
         } else {
-            // Optionally show a warning dialog or toast
+            // Optionally notify the user that camera access is required
         }
     }
 
@@ -58,7 +68,7 @@ fun imagePicker(
         ImageSourceDialog(
             onDismiss = { showDialog = false },
             onPickGallery = {
-                galleryLauncher.launch("image/*")
+                galleryLauncher.launch(arrayOf("image/*"))
                 showDialog = false
             },
             onTakePhoto = {
@@ -80,20 +90,44 @@ fun imagePicker(
 }
 
 fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? {
-    val filename = "image_${System.currentTimeMillis()}.jpg"
+    val filename = "camera_${System.currentTimeMillis()}.jpg"
     return try {
         val file = File(context.filesDir, filename)
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
         }
-        FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            file
-        )
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     } catch (e: Exception) {
         e.printStackTrace()
         null
     }
 }
+
+fun copyUriToInternalStorage(context: Context, sourceUri: Uri): Uri? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(sourceUri)
+        val filename = "gallery_${System.currentTimeMillis()}.jpg"
+        val file = File(context.filesDir, filename)
+        FileOutputStream(file).use { out ->
+            inputStream?.copyTo(out)
+        }
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+fun deleteInternalImage(context: Context, uri: Uri?) {
+    uri?.let {
+        try {
+            val file = File(it.path ?: return)
+            if (file.exists() && file.parent == context.filesDir.path) {
+                file.delete()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
 

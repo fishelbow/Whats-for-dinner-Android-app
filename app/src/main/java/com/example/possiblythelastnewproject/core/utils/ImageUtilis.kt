@@ -3,10 +3,9 @@ package com.example.possiblythelastnewproject.core.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.ExifInterface
 import android.net.Uri
-import java.io.ByteArrayOutputStream
 import android.graphics.Matrix
+import android.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
 
