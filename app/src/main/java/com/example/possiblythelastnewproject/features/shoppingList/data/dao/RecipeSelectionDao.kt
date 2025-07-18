@@ -25,4 +25,7 @@ interface RecipeSelectionDao {
     @Query("SELECT * FROM RecipeSelection WHERE listId = :listId")
     fun getSelectionsFlow(listId: Long): Flow<List<RecipeSelection>>
 
+    @Query("DELETE FROM RecipeSelection")
+    suspend fun clearAll()
+
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,7 +60,7 @@ fun RecipeCreationFormScreen(
     var ingredientList by remember { mutableStateOf(mutableListOf<RecipeIngredientUI>()) }
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-
+    val context = LocalContext.current
     val launchImagePicker = imagePicker { selectedUri ->
         imageUri = selectedUri
     }
@@ -196,7 +197,13 @@ fun RecipeCreationFormScreen(
                 },
                 pantryItems = pantryItems,
                 onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
-                onToggleShoppingStatus = { pantryViewModel.update(it) }
+                onToggleShoppingStatus = { item ->
+                    pantryViewModel.update(
+                        item.copy(addToShoppingList = !item.addToShoppingList),
+                        oldImageUri = item.imageUri ?: "",
+                        context = context
+                    )
+                }
             )
         }
     }

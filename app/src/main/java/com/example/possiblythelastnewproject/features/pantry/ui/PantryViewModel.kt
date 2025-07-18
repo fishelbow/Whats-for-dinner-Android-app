@@ -1,9 +1,11 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
@@ -47,8 +49,20 @@ class PantryViewModel @Inject constructor(
             .map { it.map { ref -> ref.pantryItemId }.toSet() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
-    fun update(item: PantryItem) = viewModelScope.launch {
-        repository.update(item)
+    fun update(item: PantryItem, oldImageUri: String, context: Context) {
+        viewModelScope.launch {
+            // 🧹 Clean up old image if replaced
+            if (item.imageUri != oldImageUri) {
+                deleteImageFromStorage(oldImageUri, context)
+            }
+
+            // 📝 Update DB
+            repository.update(
+                item,
+                oldImageUri = oldImageUri,
+                context = context
+            )
+        }
     }
         // Reactive stream of all pantry items
         val pantryItems: StateFlow<List<PantryItem>> = repository
@@ -91,7 +105,7 @@ class PantryViewModel @Inject constructor(
         }
     }
 
-    fun confirmEditItem() = viewModelScope.launch {
+    fun confirmEditItem(context: Context) = viewModelScope.launch {
         val state = _uiState.value
         val original = state.editingItem ?: return@launch
         val newQuantity = state.editQuantityText.toIntOrNull() ?: original.quantity
@@ -102,10 +116,21 @@ class PantryViewModel @Inject constructor(
             imageUri = state.editImageUri,
             category = state.editCategory?.name ?: original.category
         )
-        repository.update(updatedItem)
+
+        // 🧼 Handle image replacement cleanup
+        if (updatedItem.imageUri != original.imageUri) {
+            original.imageUri?.let { deleteImageFromStorage(it, context) }
+        }
+
+        // 📝 Update DB
+        repository.update(
+            updatedItem,
+            oldImageUri = original.imageUri ?: "",
+            context = context
+        )
+
         _uiState.update { it.copy(editingItem = null) }
     }
-
 
 
     fun updateEditFields(name: String, quantity: String) {
@@ -127,10 +152,15 @@ class PantryViewModel @Inject constructor(
             _uiState.update { it.copy(itemToDelete = null) }
         }
 
-    fun confirmDelete() = viewModelScope.launch {
-            uiState.value.itemToDelete?.let { repository.delete(it) }
-            _uiState.update { it.copy(itemToDelete = null, editingItem = null) }
+    fun confirmDelete(context: Context) = viewModelScope.launch {
+        uiState.value.itemToDelete?.let { item ->
+            repository.delete(
+                item,
+                context = context
+            )
         }
+        _uiState.update { it.copy(itemToDelete = null, editingItem = null) }
+    }
 
     fun insertAndReturn(name: String): PantryItem = runBlocking {
             val trimmed = name.trim()
@@ -153,17 +183,22 @@ class PantryViewModel @Inject constructor(
             }
         }
     }
-    fun updateScanCode(id: Long, scannedCode: String) {
+    fun updateScanCode(id: Long, scannedCode: String, context: Context) {
         viewModelScope.launch {
             val duplicate = pantryItems.value.any { it.scanCode == scannedCode && it.id != id }
             if (duplicate) {
                 Log.w("PantryViewModel", "Duplicate PLU/Barcode: $scannedCode already used.")
-                // Optional: emit a Snackbar, dialog, or update UI state to notify
                 return@launch
             }
 
             pantryItems.value.find { it.id == id }?.let { item ->
-                repository.update(item.copy(scanCode = scannedCode))
+                val updated = item.copy(scanCode = scannedCode)
+
+                repository.update(
+                    updated,
+                    oldImageUri = item.imageUri ?: "",
+                    context = context
+                )
             }
         }
     }

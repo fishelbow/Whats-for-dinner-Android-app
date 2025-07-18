@@ -331,6 +331,26 @@ deleteImageFromInternalStorage(context, recipe.imageUri)
 recipeRepo.delete(recipe)
 
 
+making sure the debug delete db delete entire db, checking all Daos for clearAll()
 
 
 
+    everything is going well even found a miswire in the hilt with shoppingListItem and ShoppingListEntryDao mis matched
+
+    so i created 2 entries for them.
+
+    also added the removal of images the app creates on db wipe. testing now
+
+    update images delete just fine now using the debug Repository to wrap all the clearAll()
+
+    working where to clean up images leftover from deleting pantryItems or Recipes, also for when a new
+
+    photo is saved over the old photo. need that's 4 deletes i reckon.
+
+just noticed i need to re-work category at some point, I had planned to have the ability for the user
+
+to add categorys so i have a temp situation where I load them into the db so i am removing the category.clearAll()
+
+    PantryRepository added imaged deletion  for delete and update
+
+    RecipceRepository

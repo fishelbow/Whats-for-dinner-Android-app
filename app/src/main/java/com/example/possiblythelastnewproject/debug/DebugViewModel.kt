@@ -2,6 +2,7 @@ package com.example.possiblythelastnewproject.debug
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,19 +11,21 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class DebugViewModel @Inject constructor(
     private val pantryRepo: PantryRepository,
     private val recipeRepo: RecipeRepository,
-    private val crossRefRepo: RecipePantryItemRepository
+    private val crossRefRepo: RecipePantryItemRepository,
+    private val debugRepo: DebugRepository
 ) : ViewModel() {
 
     val isLoading = mutableStateOf(false)
     val progress = mutableStateOf(0f)
 
-    fun loadTestData(context: Context, pantryCount: Int, recipeCount: Int, imageUri: Uri?) {
+    fun loadTestData(context: Context, pantryCount: Int, recipeCount: Int, ingredientCount: Int, imageUri: Uri?) {
         viewModelScope.launch {
             isLoading.value = true
             progress.value = 0f
@@ -44,6 +47,7 @@ class DebugViewModel @Inject constructor(
                 crossRefRepo = crossRefRepo,
                 pantryCount = pantryCount,
                 recipeCount = recipeCount,
+                ingredientCount = ingredientCount,
                 onProgress = { progress.value = it }
             )
 
@@ -58,10 +62,7 @@ class DebugViewModel @Inject constructor(
             progress.value = 0f
 
             // 🧹 Clear all database tables for fresh testing
-            pantryRepo.clearAll()
-            recipeRepo.clearAll()
-            crossRefRepo.clearAll()
-
+            debugRepo.clearDbEntries()
             progress.value = 1f
             isLoading.value = false
         }
@@ -72,13 +73,14 @@ class DebugViewModel @Inject constructor(
             isLoading.value = true
             progress.value = 0f
 
+            // delete db of entries
+            debugRepo.clearDbEntries()
+            debugRepo.deleteAllAppImages(context)
 
-            // funny note crossRef has to be deleted first or sql blocks the others going first
-            // as they have a ref
-            crossRefRepo.clearAll()
-            pantryRepo.clearAll()
-            recipeRepo.clearAll()
-
+            // remove created images
+            val imageDir = File(context.filesDir, "images")
+            val remaining = imageDir.listFiles()?.size ?: 0
+            Log.d("ImageCleanup", "Images remaining after wipe: $remaining")
 
             progress.value = 1f
             isLoading.value = false

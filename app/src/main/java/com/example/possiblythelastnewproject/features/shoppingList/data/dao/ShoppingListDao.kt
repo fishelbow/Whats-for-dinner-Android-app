@@ -28,4 +28,7 @@ interface ShoppingListDao {
     @Query("SELECT * FROM ShoppingList")
     suspend fun getAllOnce(): List<ShoppingList>
 
+    @Query("DELETE FROM ShoppingList")
+    suspend fun clearAll()
+
 }

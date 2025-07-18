@@ -6,7 +6,6 @@ import android.net.Uri
 import android.util.Log
 import android.graphics.Color
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
@@ -26,7 +25,8 @@ suspend fun populateTestDataWithImage(
     pantryCount: Int,
     recipeCount: Int,
     onProgress: (Float) -> Unit = {},
-    imageUri: Uri
+    imageUri: Uri,
+    ingredientCount: Int
 ) {
     val categories = listOf("Produce", "Snacks", "Dairy", "Meat", "Grains", "Sauce",
         "Frozen", "Drinks", "Paper goods", "Canned goods",
@@ -88,7 +88,9 @@ suspend fun populateTestDataWithImage(
 
     // 🔗 CrossRefs
     recipeIds.forEach { recipeId ->
-        val refs = pantryIdPool.shuffled().take(minOf(50, pantryIdPool.size)).map { pantryId ->
+        val refs = pantryIdPool.shuffled()
+            .take(minOf(ingredientCount, pantryIdPool.size))
+            .map { pantryId ->
             RecipePantryItemCrossRef(
                 recipeId = recipeId,
                 pantryItemId = pantryId,

@@ -33,4 +33,7 @@ interface ShoppingListItemDao {
 
     @Query("SELECT * FROM ShoppingListItem WHERE listId = :listId")
     suspend fun getItemsForListOnce(listId: Long): List<ShoppingListItem>
+
+    @Query("DELETE FROM RecipeSelection")
+    suspend fun clearAll()
 }

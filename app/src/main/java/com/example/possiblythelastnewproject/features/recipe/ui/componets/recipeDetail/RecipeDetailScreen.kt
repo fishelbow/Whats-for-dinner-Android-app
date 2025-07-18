@@ -1,6 +1,5 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -24,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -54,7 +54,7 @@ fun RecipeDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
 
-
+    val context = LocalContext.current
     val initialDataState = produceState<RecipeWithIngredients?>(null, recipeId) {
         value = viewModel.getRecipeWithIngredients(recipeId)
     }
@@ -67,6 +67,8 @@ fun RecipeDetailScreen(
         }
         return@RecipeDetailScreen // avoids early return
     }
+    var originalImageUri by remember { mutableStateOf<String?>(null) }
+
 
     val uiState = viewModel.editUiState
     val observedIngredients by viewModel.observeIngredientsForRecipe(
@@ -86,15 +88,13 @@ fun RecipeDetailScreen(
     val initialized = remember { mutableStateOf(false) }
 
     LaunchedEffect(recipeId) {
-        viewModel.getRecipeWithIngredients(recipeId)?.let {
-            viewModel.loadRecipeIntoUiState(
-                it, pantryItems = pantryItems
-            )
+        val recipeWithIngredients = viewModel.getRecipeWithIngredients(recipeId)
+        if (recipeWithIngredients != null) {
+            viewModel.loadRecipeIntoUiState(recipeWithIngredients, pantryItems)
+            originalImageUri = recipeWithIngredients.recipe.imageUri
             initialized.value = true
         }
     }
-
-
     DisposableEffect(Unit) {
         onDispose { editingGuard.isEditing = false }
     }
@@ -180,7 +180,8 @@ fun RecipeDetailScreen(
                     .height(200.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.LightGray)
-                    .clickable(enabled = editingGuard.isEditing) { pickImage() }
+                    .clickable(enabled = editingGuard.isEditing) { pickImage() },
+                contentAlignment = Alignment.Center
             ) {
                 uiState.imageUri?.takeIf { it.isNotEmpty() }?.let { uriString ->
                     val uri = uriString.toUri()
@@ -190,35 +191,10 @@ fun RecipeDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-
-                } ?: Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (editingGuard.isEditing) "Tap to select image" else "No image",
-                        color = Color.DarkGray
-                    )
-                }
-
-                uiState.imageUri?.takeIf { it.isNotEmpty() }?.let { uriString ->
-                    val uri = Uri.parse(uriString)
-                    Image(
-                        painter = rememberAsyncImagePainter(model = uri),
-                        contentDescription = "Recipe photo",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } ?: Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (editingGuard.isEditing) "Tap to select image" else "No image",
-                        color = Color.DarkGray
-                    )
-                }
+                } ?: Text(
+                    text = if (editingGuard.isEditing) "Tap to select image" else "No image",
+                    color = Color.DarkGray
+                )
             }
 
 // Details Card
@@ -278,7 +254,7 @@ fun RecipeDetailScreen(
                             }
                         }
 
-// ✅ Always show these, regardless of ingredients
+//  Always show these, regardless of ingredients
                         HorizontalDivider()
                         ReadOnlyField("Instructions", uiState.instructions.text)
 
@@ -310,10 +286,12 @@ fun RecipeDetailScreen(
                             onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
                             onToggleShoppingStatus = { updatedItem ->
                                 pantryViewModel.update(
-                                    updatedItem
+                                    updatedItem.copy(addToShoppingList = !updatedItem.addToShoppingList),
+                                    oldImageUri = updatedItem.imageUri ?: "",
+                                    context = context
                                 )
-                            })
-
+                            }
+                        )
                         HorizontalDivider()
 
                         EditableField(
@@ -399,7 +377,11 @@ fun RecipeDetailScreen(
                                         }
 
                                         viewModel.updateRecipeWithIngredientsUi(
-                                            updated, uiState.ingredients
+                                            updated,
+                                            uiState.ingredients,
+                                            originalImageUri = originalImageUri
+                                                ?: initialData.recipe.imageUri,
+                                            context = context
                                         )
                                         refreshUiFromDb()
                                         editingGuard.isEditing = false
@@ -427,55 +409,58 @@ fun RecipeDetailScreen(
                 }
             }
         }
-    }
+
 // Delete confirmation dialog
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Recipe") },
-            text = { Text("Are you sure? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.delete(initialData.recipe)
-                    showDeleteDialog = false
-                    navController.navigateUp()
-                }) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            })
-    }
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Recipe") },
+                text = { Text("Are you sure? This cannot be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.delete(
+                            initialData.recipe,
+                            context = context
+                        )
+                        showDeleteDialog = false
+                        navController.navigateUp()
+                    }) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                })
+        }
 
 // Duplicate name warning dialog
-    if (showDuplicateNameDialog) {
-        AlertDialog(
-            onDismissRequest = { showDuplicateNameDialog = false },
-            title = { Text("Duplicate Recipe Name") },
-            text = { Text("Another recipe already uses this name. Please choose a different one.") },
-            confirmButton = {
-                TextButton(onClick = { showDuplicateNameDialog = false }) {
-                    Text("OK")
-                }
-            })
+        if (showDuplicateNameDialog) {
+            AlertDialog(
+                onDismissRequest = { showDuplicateNameDialog = false },
+                title = { Text("Duplicate Recipe Name") },
+                text = { Text("Another recipe already uses this name. Please choose a different one.") },
+                confirmButton = {
+                    TextButton(onClick = { showDuplicateNameDialog = false }) {
+                        Text("OK")
+                    }
+                })
+        }
+
+
+        if (showNameRequiredDialog) {
+            AlertDialog(
+                onDismissRequest = { showNameRequiredDialog = false },
+                title = { Text("Missing Name") },
+                text = { Text("Please enter a name for the recipe.") },
+                confirmButton = {
+                    TextButton(onClick = { showNameRequiredDialog = false }) {
+                        Text("OK")
+                    }
+                })
+        }
     }
-
-
-    if (showNameRequiredDialog) {
-        AlertDialog(
-            onDismissRequest = { showNameRequiredDialog = false },
-            title = { Text("Missing Name") },
-            text = { Text("Please enter a name for the recipe.") },
-            confirmButton = {
-                TextButton(onClick = { showNameRequiredDialog = false }) {
-                    Text("OK")
-                }
-            })
-    }
-
 }
 
 

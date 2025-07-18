@@ -21,4 +21,7 @@ interface UndoDao {
     @Query("DELETE FROM UndoAction WHERE listId = :listId")
     suspend fun clearUndoHistory(listId: Long)
 
+    @Query("DELETE FROM RecipeSelection")
+    suspend fun clearAll()
+
 }

@@ -2,6 +2,8 @@ package com.example.possiblythelastnewproject.debug
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,8 +20,9 @@ fun DebugToolsScreen() {
     val viewModel: DebugViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
 
-    var pantryCount by remember { mutableFloatStateOf(1000f) }
-    var recipeCount by remember { mutableFloatStateOf(200f) }
+    var pantryCount by remember { mutableFloatStateOf(0f) }
+    var recipeCount by remember { mutableFloatStateOf(0f) }
+    var ingredientAmount by remember { mutableFloatStateOf(0f) }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSecondConfirm by remember { mutableStateOf(false) }
@@ -27,9 +30,7 @@ fun DebugToolsScreen() {
     val isLoading by viewModel.isLoading
     val progress by viewModel.progress
 
-    if (isLoading) {
-        BackHandler(enabled = true) {}
-    }
+    if (isLoading) BackHandler(enabled = true) {}
 
     val launchImagePicker = imagePicker { pickedUri ->
         coroutineScope.launch {
@@ -37,55 +38,55 @@ fun DebugToolsScreen() {
                 context = context,
                 imageUri = pickedUri,
                 pantryCount = pantryCount.toInt(),
-                recipeCount = recipeCount.toInt()
+                recipeCount = recipeCount.toInt(),
+                ingredientCount = ingredientAmount.toInt()
             )
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 🎛 Top controls
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // 🧮 Scrollable sliders section
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.TopStart)
+                .weight(1f)
+                .verticalScroll(scrollState)
         ) {
-            Text("Pantry Items: ${pantryCount.toInt()}")
-            Slider(
+            SliderWithLabel(
+                label = "Avg Ingredients per Recipe",
+                value = ingredientAmount,
+                onValueChange = { ingredientAmount = it },
+                valueRange = 1f..100f,
+                enabled = !isLoading
+            )
+
+            SliderWithLabel(
+                label = "Pantry Items",
                 value = pantryCount,
                 onValueChange = { pantryCount = it },
-                valueRange = 100f..5000f,
-                steps = 9,
+                valueRange = 0f..100_000f,
                 enabled = !isLoading
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Recipes: ${recipeCount.toInt()}")
-            Slider(
+            SliderWithLabel(
+                label = "Recipes",
                 value = recipeCount,
                 onValueChange = { recipeCount = it },
-                valueRange = 50f..1000f,
-                steps = 9,
+                valueRange = 0f..5_000f,
                 enabled = !isLoading
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
         }
 
-        //  Bottom persistent actions
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.BottomCenter)
-        ) {
+        // ⚙️ Persistent bottom controls
+        Column {
             if (isLoading) {
-                Text(
-                    "Loading... ${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("Loading... ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
@@ -117,7 +118,8 @@ fun DebugToolsScreen() {
             }
         }
     }
-    //  First confirmation dialog
+
+    //  First confirmation
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -139,7 +141,7 @@ fun DebugToolsScreen() {
         )
     }
 
-//  Second (final) confirmation dialog
+    //  Final confirmation
     if (showSecondConfirm) {
         AlertDialog(
             onDismissRequest = { showSecondConfirm = false },
@@ -162,4 +164,22 @@ fun DebugToolsScreen() {
     }
 }
 
-
+@Composable
+fun SliderWithLabel(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int = 20,
+    enabled: Boolean = true
+) {
+    Text("$label: ${value.toInt()}", style = MaterialTheme.typography.bodySmall)
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = valueRange,
+        steps = steps,
+        enabled = enabled
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+}

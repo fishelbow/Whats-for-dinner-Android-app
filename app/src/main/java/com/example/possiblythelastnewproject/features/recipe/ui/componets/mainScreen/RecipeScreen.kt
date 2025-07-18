@@ -1,6 +1,8 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -111,13 +113,18 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
     ) {
         Column {
             val context = LocalContext.current
-            val bitmap by produceState<android.graphics.Bitmap?>(null, recipe.imageUri) {
+            val bitmap by produceState<Bitmap?>(null, recipe.imageUri) {
                 value = withContext(Dispatchers.IO) {
-                    recipe.imageUri?.let { uriString ->
-                        val uri = uriString.toUri()
-                        context.contentResolver.openInputStream(uri)?.use { stream ->
-                            android.graphics.BitmapFactory.decodeStream(stream)
+                    try {
+                        val uri = recipe.imageUri?.toUri()
+                        uri?.let {
+                            context.contentResolver.openInputStream(it)?.use { stream ->
+                                BitmapFactory.decodeStream(stream)
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.w("RecipeTile", "Failed to decode image: ${e.message}")
+                        null
                     }
                 }
             }

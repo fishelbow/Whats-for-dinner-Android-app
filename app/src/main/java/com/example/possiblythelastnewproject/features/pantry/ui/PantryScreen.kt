@@ -12,11 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
@@ -27,7 +29,7 @@ import com.example.possiblythelastnewproject.features.pantry.ui.componets.Ingred
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantryScreen(
-    viewModel: PantryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: PantryViewModel = viewModel()
 ) {
     // State from ViewModel
     val uiState by viewModel.uiState.collectAsState()
@@ -36,7 +38,7 @@ fun PantryScreen(
 
     // Common local variables
     val focusManager = LocalFocusManager.current
-
+    val context = LocalContext.current
     // Local UI state
     var duplicateCodeDetected by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
@@ -407,7 +409,9 @@ fun PantryScreen(
                         }
 
                         else -> {
-                            viewModel.confirmEditItem()
+                            viewModel.confirmEditItem(
+                                context = context
+                            )
                             viewModel.startEditing(null)
                         }
                     }
@@ -458,7 +462,9 @@ fun PantryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { if (!isInUse) viewModel.confirmDelete() },
+                    onClick = { if (!isInUse) viewModel.confirmDelete(
+                        context = context
+                    ) },
                     enabled = !isInUse
                 ) { Text("Yes, Delete") }
             }
@@ -483,7 +489,10 @@ fun PantryScreen(
                             } else {
                                 selectedItem = selectedItem?.copy(scanCode = scannedCode)
                                 selectedItem?.let {
-                                    viewModel.updateScanCode(it.id, scannedCode)
+                                    viewModel.updateScanCode(
+                                        it.id, scannedCode,
+                                        context = context
+                                    )
                                 }
                             }
                             showScanDialog = false

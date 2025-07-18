@@ -33,5 +33,6 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<Category>)
 
-
+    @Query("DELETE FROM Category")
+    suspend fun clearAll()
 }

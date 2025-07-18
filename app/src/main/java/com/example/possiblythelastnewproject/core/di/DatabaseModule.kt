@@ -42,9 +42,12 @@ object DatabaseModule {
     @Provides fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
     @Provides fun provideRecipePantryItemDao(db: AppDatabase): RecipePantryItemDao = db.recipePantryItemDao()
     @Provides fun provideShoppingListDao(db: AppDatabase): ShoppingListDao = db.shoppingListDao()
-    @Provides fun provideShoppingListEntryDao(db: AppDatabase): ShoppingListItemDao = db.shoppingListItemDao()
+    @Provides fun provideShoppingListEntryDao(db: AppDatabase): ShoppingListEntryDao = db.shoppingListEntryDao()
+    @Provides fun provideShoppingListItemDao(db: AppDatabase): ShoppingListItemDao = db.shoppingListItemDao()
     @Provides fun provideRecipeSelectionDao(db: AppDatabase): RecipeSelectionDao = db.recipeSelectionDao()
     @Provides fun provideUndoDao(db: AppDatabase): UndoDao = db.undoDao()
+
+
 
     @Provides
     fun provideDefaultCategoryNames(): List<String> = listOf(
