@@ -8,6 +8,7 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.abs
 import kotlin.random.Random
+import androidx.core.graphics.createBitmap
 
 fun generateMockImage(context: Context, label: String): Uri {
     val safeName = label
@@ -21,7 +22,7 @@ fun generateMockImage(context: Context, label: String): Uri {
     val bitmap = createMockBitmap(label)
 
     FileOutputStream(file).use { out ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) // Slightly more compression
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out) // Slightly more compression
     }
 
     return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -31,7 +32,7 @@ private fun createMockBitmap(label: String): Bitmap {
     val width = 1080
     val height = 720
 
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(width, height)
     val canvas = Canvas(bitmap)
 
     // 🎨 Background

@@ -185,7 +185,7 @@ fun DebugToolsScreen() {
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(" Camera or File")
+                        Text("Camera or File")
                     }
 
                     Button(

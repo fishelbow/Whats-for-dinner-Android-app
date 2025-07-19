@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.features.shoppingList.data.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.UndoAction
 
@@ -24,4 +25,10 @@ interface UndoDao {
     @Query("DELETE FROM RecipeSelection")
     suspend fun clearAll()
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(actions: List<UndoAction>)
+
+
+    @Query("SELECT * FROM UndoAction")
+    suspend fun getAllOnce(): List<UndoAction>
 }

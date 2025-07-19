@@ -394,10 +394,28 @@ just finshed up debug to allow selecting gallery photo or camera photo or genera
 
 for the test data. all looks good on size, I now feel i have a good tool to set limits in the app.
 
+// note sure if I noted but recipes is feeling just as snappy as pantry is lately,
+
+the other night I found some code the was doubled up in a couple spaces along with a couple other
+
+tweaks but it seems to handle volume better than before. I may have broken a new rule about focusing
+
+on task at hand and may have changed some things in recipes while working with other things.
+
+may still circle back to re working it if testing warrants it.
+
+when not plugged in it for sure seems to need it i suppose recipes is still slow at volume now?
+
+ohh jpeg quality went from 80 to 85 maybe that's the performance hit i see?
+
 /////////////////////////////
 ////// import / export
 
+current state of import export is better than I thought, there are however some things not being
 
+backed up. report coming soon....
+
+alright able to import and export the db now just need to work out zipping up the images
 
 /////////////////////////////
 ////// next next ////////////

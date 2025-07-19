@@ -28,4 +28,11 @@ interface RecipeSelectionDao {
     @Query("DELETE FROM RecipeSelection")
     suspend fun clearAll()
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(selections: List<RecipeSelection>)
+
+    @Query("SELECT * FROM RecipeSelection")
+    suspend fun getAllOnce(): List<RecipeSelection>
+
+
 }

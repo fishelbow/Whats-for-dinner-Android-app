@@ -46,8 +46,8 @@ class DbBackupViewModel @Inject constructor(
             }
 
             result = resultFile.fold(
-                onSuccess = { "✅ Exported to: ${uri.lastPathSegment}" },
-                onFailure = { "❌ Failed to export: ${it.localizedMessage}" }
+                onSuccess = { " Exported to: ${uri.lastPathSegment}" },
+                onFailure = { " Failed to export: ${it.localizedMessage}" }
             )
         }
     }
@@ -56,19 +56,19 @@ class DbBackupViewModel @Inject constructor(
         launchWithLoading {
             val jsonResult = backupRepo.readJsonFromUri(uri)
             if (jsonResult.isFailure) {
-                result = "❌ Failed to read file: ${jsonResult.exceptionOrNull()?.localizedMessage}"
+                result = " Failed to read file: ${jsonResult.exceptionOrNull()?.localizedMessage}"
                 return@launchWithLoading
             }
 
             val backupResult = serializer.deserialize(jsonResult.getOrThrow())
             if (backupResult.isFailure) {
-                result = "❌ Failed to parse backup: ${backupResult.exceptionOrNull()?.localizedMessage}"
+                result = " Failed to parse backup: ${backupResult.exceptionOrNull()?.localizedMessage}"
                 return@launchWithLoading
             }
 
             val importResult = importer.import(backupResult.getOrThrow())
             result = buildString {
-                appendLine("✅ Import complete:")
+                appendLine(" Import complete:")
                 appendLine("• Pantry items added: ${importResult.pantryItems}")
                 appendLine("• Recipes added: ${importResult.recipes}")
                 appendLine("• Categories added: ${importResult.categories}")
@@ -87,7 +87,9 @@ class DbBackupViewModel @Inject constructor(
             recipePantryRefs = db.recipePantryItemDao().getAllOnce(),
             shoppingLists = db.shoppingListDao().getAllOnce(),
             shoppingListItems = db.shoppingListEntryDao().getAllOnce(),
-            categories = db.categoryDao().getAllOnce()
+            categories = db.categoryDao().getAllOnce(),
+            recipeSelections = db.recipeSelectionDao().getAllOnce(),
+            undoActions = db.undoDao().getAllOnce()
         )
     }
 
@@ -97,7 +99,7 @@ class DbBackupViewModel @Inject constructor(
             try {
                 block()
             } catch (e: Exception) {
-                result = "❌ Error: ${e.localizedMessage}"
+                result = " Error: ${e.localizedMessage}"
             } finally {
                 isLoading = false
             }

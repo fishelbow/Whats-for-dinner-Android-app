@@ -13,5 +13,7 @@ data class FullDatabaseBackup(
     val recipePantryRefs: List<RecipePantryItemCrossRef>,
     val shoppingLists: List<ShoppingList>,
     val shoppingListItems: List<ShoppingListItem>,
+    val recipeSelections: List<RecipeSelection>,
+    val undoActions: List<UndoAction>,
     val categories: List<Category>
 )

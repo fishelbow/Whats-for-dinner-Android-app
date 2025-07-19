@@ -1,12 +1,8 @@
 package com.example.possiblythelastnewproject.debug
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
-import android.graphics.Color
-import androidx.core.content.FileProvider
-import androidx.core.graphics.createBitmap
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
@@ -16,8 +12,6 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlin.random.Random
-import java.io.File
-import java.io.FileOutputStream
 
 suspend fun populateTestDataWithImage(
     context: Context,
@@ -32,7 +26,7 @@ suspend fun populateTestDataWithImage(
     onInit: () -> Unit,
     onDetail: (String) -> Unit = {}
 ) {
-    onDetail("🚀 Beginning mock data generation...")
+    onDetail(" Beginning mock data generation...")
     val categories = listOf(
         "Produce", "Snacks", "Dairy", "Meat", "Grains", "Sauce",
         "Frozen", "Drinks", "Paper goods", "Canned goods",
@@ -48,10 +42,10 @@ suspend fun populateTestDataWithImage(
     var completedSteps = 0
     fun reportProgress() = onProgress(completedSteps.toFloat() / totalSteps)
 
-    onDetail("🧪 Creating pantry items with mock images")
+    onDetail(" Creating pantry items with mock images")
     val pantryItems = (1..pantryCount).map { i ->
         val name = "Item $i"
-        onDetail("🔧 Generating pantry image $i of $pantryCount")
+        onDetail(" Generating pantry image $i of $pantryCount")
         val imageUri = generateImage(name).toString()
         completedSteps++
         reportProgress()
@@ -64,10 +58,10 @@ suspend fun populateTestDataWithImage(
         )
     }
 
-    onDetail("🎨 Creating recipe items with mock images and color tags")
+    onDetail(" Creating recipe items with mock images and color tags")
     val recipes = (1..recipeCount).map { i ->
         val name = "Recipe $i"
-        onDetail("📸 Generating recipe image $i of $recipeCount")
+        onDetail(" Generating recipe image $i of $recipeCount")
         val imageUri = generateImage(name).toString()
         completedSteps++
         reportProgress()
@@ -87,9 +81,9 @@ suspend fun populateTestDataWithImage(
 
     onInit()
 
-    onDetail("📦 Beginning pantry inserts")
+    onDetail("Beginning pantry inserts")
     pantryItems.chunked(500).forEachIndexed { chunkIndex, chunk ->
-        onDetail("📦 Inserting pantry chunk ${chunkIndex + 1} of ${pantryItems.size / 500 + 1}")
+        onDetail("Inserting pantry chunk ${chunkIndex + 1} of ${pantryItems.size / 500 + 1}")
         chunk.forEach {
             pantryRepo.insert(it)
             completedSteps++
@@ -98,12 +92,12 @@ suspend fun populateTestDataWithImage(
         delay(5)
     }
 
-    onDetail("🍽️ Beginning recipe inserts")
+    onDetail("Beginning recipe inserts")
     val pantryIdPool = pantryRepo.getAllPantryItems().first().map { it.id }
     val recipeIds = mutableListOf<Long>()
 
     recipes.chunked(100).forEachIndexed { chunkIndex, chunk ->
-        onDetail("🍽️ Inserting recipe chunk ${chunkIndex + 1} of ${recipes.size / 100 + 1}")
+        onDetail("Inserting recipe chunk ${chunkIndex + 1} of ${recipes.size / 100 + 1}")
         chunk.forEach { recipe ->
             val id = recipeRepo.insert(recipe)
             recipeIds.add(id)
@@ -113,9 +107,9 @@ suspend fun populateTestDataWithImage(
         delay(5)
     }
 
-    onDetail("🔗 Linking pantry items to recipes")
+    onDetail("Linking pantry items to recipes")
     recipeIds.forEachIndexed { i, recipeId ->
-        onDetail("🔗 Linking ingredients for Recipe ${i + 1} of ${recipeIds.size}")
+        onDetail("Linking ingredients for Recipe ${i + 1} of ${recipeIds.size}")
         val refs = pantryIdPool.shuffled()
             .take(minOf(ingredientCount, pantryIdPool.size))
             .map { pantryId ->
@@ -133,6 +127,6 @@ suspend fun populateTestDataWithImage(
         delay(2)
     }
 
-    onDetail("✅ All steps complete! $pantryCount pantry items, $recipeCount recipes, ${recipeIds.size * ingredientCount} links created.")
-    Log.d("TestData", "✅ Finished: $pantryCount pantry items, $recipeCount recipes, ${recipeIds.size * ingredientCount} cross-refs.")
+    onDetail(" All steps complete! $pantryCount pantry items, $recipeCount recipes, ${recipeIds.size * ingredientCount} links created.")
+    Log.d("TestData", " Finished: $pantryCount pantry items, $recipeCount recipes, ${recipeIds.size * ingredientCount} cross-refs.")
 }
