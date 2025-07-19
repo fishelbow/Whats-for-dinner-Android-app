@@ -379,12 +379,11 @@ fun RecipeDetailScreen(
                                         viewModel.updateRecipeWithIngredientsUi(
                                             updated,
                                             uiState.ingredients,
-                                            originalImageUri = originalImageUri
-                                                ?: initialData.recipe.imageUri,
+                                            originalImageUri = originalImageUri ?: initialData.recipe.imageUri,
                                             context = context
                                         )
-                                        refreshUiFromDb()
-                                        editingGuard.isEditing = false
+                                        originalImageUri = uiState.imageUri // ✅ Keep in sync after save
+                                        navController.popBackStack("recipes_main", inclusive = false)
                                     }
                                 }, enabled = hasChanges.value, modifier = Modifier.weight(1f)
                             ) {

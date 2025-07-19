@@ -1,6 +1,7 @@
 package com.example.possiblythelastnewproject.debug
 
 import android.content.Context
+import android.util.Log
 import com.example.possiblythelastnewproject.features.pantry.data.dao.CategoryDao
 import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
@@ -44,10 +45,14 @@ class DebugRepository @Inject constructor(
     }
 
     fun deleteAllAppImages(context: Context) {
-        val imageDir = File(context.filesDir, "images")
-        if (imageDir.exists()) {
-            imageDir.listFiles()?.forEach { it.delete() }
-        }
+        val exempt = listOf("profileInstalled") // optionally preserve known files
+
+        context.filesDir.listFiles()
+            ?.filter { it.isFile && it.name.startsWith("gallery_") && it.name !in exempt }
+            ?.forEach { file ->
+                val deleted = file.delete()
+                Log.d("ImageCleanup", "🗑️ Deleted ${file.name} → $deleted")
+            }
     }
 
 }

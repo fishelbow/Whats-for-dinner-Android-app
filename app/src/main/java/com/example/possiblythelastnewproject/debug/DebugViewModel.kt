@@ -1,7 +1,6 @@
 package com.example.possiblythelastnewproject.debug
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -10,7 +9,9 @@ import com.example.possiblythelastnewproject.features.pantry.data.PantryReposito
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -24,66 +25,82 @@ class DebugViewModel @Inject constructor(
 
     val isLoading = mutableStateOf(false)
     val progress = mutableStateOf(0f)
-
-    fun loadTestData(context: Context, pantryCount: Int, recipeCount: Int, ingredientCount: Int, imageUri: Uri?) {
+    val loadingStage = mutableStateOf("Idle")
+    val loadingDetail = mutableStateOf("")
+    fun loadTestData(
+        context: Context,
+        pantryCount: Int,
+        recipeCount: Int,
+        ingredientCount: Int
+    ) {
         viewModelScope.launch {
-            isLoading.value = true
-            progress.value = 0f
+            beginLoading()
+            loadingStage.value = "Generating mock images..."
 
-            // 🔍 Validate imageUri or fallback to a safe mock image
-            val validatedImageUri = try {
-                context.contentResolver.openInputStream(imageUri ?: Uri.EMPTY)?.close()
-                imageUri ?: saveMockImageToInternalStorage(context)
-            } catch (e: Exception) {
-                saveMockImageToInternalStorage(context)
+            withContext(Dispatchers.IO) {
+                populateTestDataWithImage(
+                    context = context,
+                    pantryRepo = pantryRepo,
+                    recipeRepo = recipeRepo,
+                    crossRefRepo = crossRefRepo,
+                    pantryCount = pantryCount,
+                    recipeCount = recipeCount,
+                    ingredientCount = ingredientCount,
+                    onInit = {
+                        loadingStage.value = "Inserting mock data..."
+                    },
+                    onProgress = { progress.value = it },
+                    onDetail = { msg -> loadingDetail.value = msg }, // 👈 This line is crucial
+                    generateImage = { label ->
+                        withContext(Dispatchers.IO) {
+                            generateMockImage(context, label)
+                        }
+                    }
+                )
             }
 
-            // 🚀 Generate debug data using validated image
-            populateTestDataWithImage(
-                imageUri = validatedImageUri,
-                context = context,
-                pantryRepo = pantryRepo,
-                recipeRepo = recipeRepo,
-                crossRefRepo = crossRefRepo,
-                pantryCount = pantryCount,
-                recipeCount = recipeCount,
-                ingredientCount = ingredientCount,
-                onProgress = { progress.value = it }
-            )
-
-            isLoading.value = false
-            progress.value = 1f
+            finishLoading()
         }
     }
 
-    fun clearAllData() {
-        viewModelScope.launch {
-            isLoading.value = true
-            progress.value = 0f
+    fun wipeDatabase(context: Context) = viewModelScope.launch {
+        beginLoading()
+        loadingStage.value = "Wiping database..."
 
-            // 🧹 Clear all database tables for fresh testing
-            debugRepo.clearDbEntries()
-            progress.value = 1f
-            isLoading.value = false
-        }
-    }
+        withContext(Dispatchers.IO) {
 
-    fun wipeDatabase(context: Context) {
-        viewModelScope.launch {
-            isLoading.value = true
-            progress.value = 0f
-
-            // delete db of entries
+            val internalFiles = listFilesInAppStorage(context)
+            Log.d("ImageCleanup", " Files in internal storage: $internalFiles")
+            val imageDir = File(context.filesDir, "images")
             debugRepo.clearDbEntries()
             debugRepo.deleteAllAppImages(context)
 
-            // remove created images
-            val imageDir = File(context.filesDir, "images")
-            val remaining = imageDir.listFiles()?.size ?: 0
-            Log.d("ImageCleanup", "Images remaining after wipe: $remaining")
 
-            progress.value = 1f
-            isLoading.value = false
+            val remainingImages = imageDir.listFiles()?.size ?: 0
+            Log.d("ImageCleanup", "Images remaining after wipe: $remainingImages")
+
+
         }
+
+        finishLoading()
+    }
+
+    private fun listFilesInAppStorage(context: Context): List<String> {
+        return context.filesDir.listFiles()
+            ?.filter { it.isFile }
+            ?.map { it.name }
+            ?: emptyList()
+    }
+
+    fun beginLoading() {
+        isLoading.value = true
+        progress.value = 0f
+        loadingStage.value = "Starting..."
+    }
+
+    private fun finishLoading() {
+        progress.value = 1f
+        isLoading.value = false
+        loadingStage.value = "Idle"
     }
 }

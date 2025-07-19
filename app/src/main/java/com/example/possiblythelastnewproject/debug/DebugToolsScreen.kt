@@ -6,12 +6,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.possiblythelastnewproject.core.utils.imagePicker
 import kotlinx.coroutines.launch
 
 @Composable
@@ -32,11 +30,13 @@ fun DebugToolsScreen() {
 
     if (isLoading) BackHandler(enabled = true) {}
 
-    val launchImagePicker = imagePicker { pickedUri ->
+    val scrollState = rememberScrollState()
+
+    fun triggerMockGeneration() {
+        viewModel.beginLoading() // 🔥 trigger loading UI immediately
         coroutineScope.launch {
             viewModel.loadTestData(
                 context = context,
-                imageUri = pickedUri,
                 pantryCount = pantryCount.toInt(),
                 recipeCount = recipeCount.toInt(),
                 ingredientCount = ingredientAmount.toInt()
@@ -44,15 +44,12 @@ fun DebugToolsScreen() {
         }
     }
 
-    val scrollState = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 🧮 Scrollable sliders section
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -83,16 +80,35 @@ fun DebugToolsScreen() {
             )
         }
 
-        // ⚙️ Persistent bottom controls
         Column {
             if (isLoading) {
-                Text("Loading... ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
-                LinearProgressIndicator(
-                    progress = { progress },
+                val stage by viewModel.loadingStage
+                val detail by viewModel.loadingDetail
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
-                )
+                ) {
+                    Text(
+                        text = "$stage ${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    if (detail.isNotBlank()) {
+                        Text(
+                            text = detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             Row(
@@ -100,7 +116,7 @@ fun DebugToolsScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = launchImagePicker,
+                    onClick = { triggerMockGeneration() },
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
@@ -119,7 +135,6 @@ fun DebugToolsScreen() {
         }
     }
 
-    //  First confirmation
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -141,7 +156,6 @@ fun DebugToolsScreen() {
         )
     }
 
-    //  Final confirmation
     if (showSecondConfirm) {
         AlertDialog(
             onDismissRequest = { showSecondConfirm = false },

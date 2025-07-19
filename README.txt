@@ -309,33 +309,9 @@ not really needed but sounds like a fun project.
  be put in the json possibly? stay tuned.
 
 
-
-
-
-You can add cleanup logic when deleting a recipe:
-
-fun deleteImageFromInternalStorage(context: Context, uriString: String?) {
-    uriString?.let {
-        val file = File(Uri.parse(it).path ?: return)
-        if (file.exists() && file.parent == context.filesDir.path) {
-            file.delete()
-        }
-    }
-}
-
-Then inside your delete flow:
-deleteImageFromInternalStorage(context, recipe.imageUri)
-recipeRepo.delete(recipe)
-
-deleteImageFromInternalStorage(context, recipe.imageUri)
-recipeRepo.delete(recipe)
-
-
 making sure the debug delete db delete entire db, checking all Daos for clearAll()
 
-
-
-    everything is going well even found a miswire in the hilt with shoppingListItem and ShoppingListEntryDao mis matched
+    everything is going well even found a mis-wire in the hilt with shoppingListItem and ShoppingListEntryDao mis matched
 
     so i created 2 entries for them.
 
@@ -349,8 +325,76 @@ making sure the debug delete db delete entire db, checking all Daos for clearAll
 
 just noticed i need to re-work category at some point, I had planned to have the ability for the user
 
-to add categorys so i have a temp situation where I load them into the db so i am removing the category.clearAll()
+to add category's so i have a temp situation where I load them into the db so i am removing the category.clearAll()
 
-    PantryRepository added imaged deletion  for delete and update
+worked deleting the db with the pictures in internal storage
 
-    RecipceRepository
+currently working on finding and preventing orphaned images,
+
+if i create a recipe and add a photo then save
+
+followed by editing the recipe and chaning the image and saving,
+
+upon deletion of that recipe I get an logCat ImageCleanUp false some times, which means that image
+
+is left behind and will clutter up internal storage in the long run on this app,
+
+I want a more hygienic internal storage. no file left behind semper file!
+
+now i am hunting down orphans. using ImageCleanUp in log I am checking if any files are orphaned
+
+well to define whats going on right now would be to say
+
+change recipe image -> save -> delete = orphaned image
+change recipe image -> save -> back -> select Recipe -> delete = no orphaned image
+
+///////////////////////////////////////////////////////////////////
+////////////// current work -> orphan hunter //////////////////////
+///////////////////////////////////////////////////////////////////
+
+orphan hunting is a little challenging, its only coming up in the recipe section also, when an image is
+
+changed I could just pop the user back to recipe selection screen as a fast temp work around so that I
+
+can move on to expanding import export which I suspect would be quick.  this does seem to point back
+
+to the recipe feature as being a strong candidate for a re work.
+
+the whole recipe section was the first frontier of this project, I do want to work around with recipes
+0
+more, after solving the image issue, but I need to finish the import export update first.
+
+best I have so far is that delete db from the debug screen fully wipes all images,
+
+as for pantryItems it appears perfectly hygienic as well
+
+recipes not so much, mainly when you switch images and don't snap back to recipe selection screen
+
+I cleaned up the flow so saving after an edit leaves the screen, good news you hold your place in the scroll
+
+and can re select the recipe without searching. for now before I re-do the recipe features
+
+/////////////////////////////
+/////// next ////////////////
+/////////////////////////////
+// import / export / debug //
+/////////////////////////////
+//////// debug detour- the images it creates are just one image re referenced, I want to check something
+a little more real world and varied, each recipe and pantryItem could have a unique image.
+
+worked on the debug generating mock images instead of referencing the same one over and over,
+
+I want to simulate the memory load on internal storage for different images.
+
+adding random generated images takes more time so i adjusted the loading bar as to not feel like I
+
+was waiting or frozen. it might e an idea to
+
+/////////////////////////////
+////// import / export
+
+/////////////////////////////
+////// next next ////////////
+/////////////////////////////
+//// recipes rework /////////
+/////////////////////////////
