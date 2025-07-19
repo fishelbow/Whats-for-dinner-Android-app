@@ -94,7 +94,7 @@ fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? {
     return try {
         val file = File(context.filesDir, filename)
         FileOutputStream(file).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
         }
         FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     } catch (e: Exception) {

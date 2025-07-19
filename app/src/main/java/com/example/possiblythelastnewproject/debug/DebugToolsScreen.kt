@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.debug
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,7 +11,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.possiblythelastnewproject.core.utils.copyUriToInternalStorage
+import com.example.possiblythelastnewproject.core.utils.imagePicker
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.Alignment
 
 @Composable
 fun DebugToolsScreen() {
@@ -22,8 +28,10 @@ fun DebugToolsScreen() {
     var recipeCount by remember { mutableFloatStateOf(0f) }
     var ingredientAmount by remember { mutableFloatStateOf(0f) }
 
+    var showImageSourceDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSecondConfirm by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val isLoading by viewModel.isLoading
     val progress by viewModel.progress
@@ -32,16 +40,55 @@ fun DebugToolsScreen() {
 
     val scrollState = rememberScrollState()
 
-    fun triggerMockGeneration() {
-        viewModel.beginLoading() // 🔥 trigger loading UI immediately
+    fun launchSyntheticGeneration() {
+        val generator: suspend (String) -> Uri = { label ->
+            withContext(Dispatchers.IO) {
+                generateMockImage(context, label)
+            }
+        }
+        viewModel.beginLoading()
         coroutineScope.launch {
             viewModel.loadTestData(
                 context = context,
                 pantryCount = pantryCount.toInt(),
                 recipeCount = recipeCount.toInt(),
-                ingredientCount = ingredientAmount.toInt()
+                ingredientCount = ingredientAmount.toInt(),
+                generateImage = generator
             )
         }
+    }
+
+    fun launchClonedGeneration(source: Uri?) {
+        if (source == null) return
+        val clonedSource = source
+        val generator: suspend (String) -> Uri = { _ ->
+            withContext(Dispatchers.IO) {
+                copyUriToInternalStorage(context, clonedSource)
+                    ?: generateMockImage(context, "fallback")
+            }
+        }
+        viewModel.beginLoading()
+        coroutineScope.launch {
+            viewModel.loadTestData(
+                context = context,
+                pantryCount = pantryCount.toInt(),
+                recipeCount = recipeCount.toInt(),
+                ingredientCount = ingredientAmount.toInt(),
+                generateImage = generator
+            )
+        }
+    }
+
+    val pickFromGallery = imagePicker { uri ->
+        selectedImageUri = uri
+        showImageSourceDialog = false
+        launchClonedGeneration(uri)
+    }
+
+    val captureFromCamera = imagePicker { uri ->
+        selectedImageUri = uri
+        showImageSourceDialog = false
+        launchClonedGeneration(uri)
     }
 
     Column(
@@ -56,13 +103,12 @@ fun DebugToolsScreen() {
                 .verticalScroll(scrollState)
         ) {
             SliderWithLabel(
-                label = "Avg Ingredients per Recipe",
+                label = "Ingredients per Recipe",
                 value = ingredientAmount,
                 onValueChange = { ingredientAmount = it },
                 valueRange = 1f..100f,
                 enabled = !isLoading
             )
-
             SliderWithLabel(
                 label = "Pantry Items",
                 value = pantryCount,
@@ -70,7 +116,6 @@ fun DebugToolsScreen() {
                 valueRange = 0f..100_000f,
                 enabled = !isLoading
             )
-
             SliderWithLabel(
                 label = "Recipes",
                 value = recipeCount,
@@ -84,30 +129,17 @@ fun DebugToolsScreen() {
             if (isLoading) {
                 val stage by viewModel.loadingStage
                 val detail by viewModel.loadingDetail
-
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 ) {
-                    Text(
-                        text = "$stage ${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
+                    Text("$stage ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
                     if (detail.isNotBlank()) {
-                        Text(
-                            text = detail,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
+                        Text(detail, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 2.dp))
                     }
-
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 }
             }
 
@@ -116,7 +148,7 @@ fun DebugToolsScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = { triggerMockGeneration() },
+                    onClick = { showImageSourceDialog = true },
                     modifier = Modifier.weight(1f),
                     enabled = !isLoading
                 ) {
@@ -133,6 +165,51 @@ fun DebugToolsScreen() {
                 }
             }
         }
+    }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Choose Image Source") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Select how mock images should be created:")
+
+                    Button(
+                        onClick = {
+                            showImageSourceDialog = false
+                            pickFromGallery()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(" Camera or File")
+                    }
+
+                    Button(
+                        onClick = {
+                            showImageSourceDialog = false
+                            launchSyntheticGeneration()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(" Generate Automatically")
+                    }
+                }
+            },
+            confirmButton = {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = { showImageSourceDialog = false },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 
     if (showDeleteDialog) {
@@ -188,12 +265,6 @@ fun SliderWithLabel(
     enabled: Boolean = true
 ) {
     Text("$label: ${value.toInt()}", style = MaterialTheme.typography.bodySmall)
-    Slider(
-        value = value,
-        onValueChange = onValueChange,
-        valueRange = valueRange,
-        steps = steps,
-        enabled = enabled
-    )
+    Slider(value = value, onValueChange = onValueChange, valueRange = valueRange, steps = steps, enabled = enabled)
     Spacer(modifier = Modifier.height(8.dp))
 }

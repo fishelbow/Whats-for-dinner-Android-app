@@ -388,10 +388,16 @@ I want to simulate the memory load on internal storage for different images.
 
 adding random generated images takes more time so i adjusted the loading bar as to not feel like I
 
-was waiting or frozen. it might e an idea to
+was waiting or frozen. it might be an idea to...
+
+just finshed up debug to allow selecting gallery photo or camera photo or generate mock images
+
+for the test data. all looks good on size, I now feel i have a good tool to set limits in the app.
 
 /////////////////////////////
 ////// import / export
+
+
 
 /////////////////////////////
 ////// next next ////////////

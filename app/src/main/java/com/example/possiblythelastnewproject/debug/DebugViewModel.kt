@@ -1,6 +1,7 @@
 package com.example.possiblythelastnewproject.debug
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -27,11 +28,13 @@ class DebugViewModel @Inject constructor(
     val progress = mutableStateOf(0f)
     val loadingStage = mutableStateOf("Idle")
     val loadingDetail = mutableStateOf("")
+
     fun loadTestData(
         context: Context,
         pantryCount: Int,
         recipeCount: Int,
-        ingredientCount: Int
+        ingredientCount: Int,
+        generateImage: suspend (String) -> Uri
     ) {
         viewModelScope.launch {
             beginLoading()
@@ -46,16 +49,10 @@ class DebugViewModel @Inject constructor(
                     pantryCount = pantryCount,
                     recipeCount = recipeCount,
                     ingredientCount = ingredientCount,
-                    onInit = {
-                        loadingStage.value = "Inserting mock data..."
-                    },
+                    onInit = { loadingStage.value = "Inserting mock data..." },
                     onProgress = { progress.value = it },
-                    onDetail = { msg -> loadingDetail.value = msg }, // 👈 This line is crucial
-                    generateImage = { label ->
-                        withContext(Dispatchers.IO) {
-                            generateMockImage(context, label)
-                        }
-                    }
+                    onDetail = { loadingDetail.value = it },
+                    generateImage = generateImage // ✅ externally provided
                 )
             }
 
@@ -68,18 +65,15 @@ class DebugViewModel @Inject constructor(
         loadingStage.value = "Wiping database..."
 
         withContext(Dispatchers.IO) {
-
             val internalFiles = listFilesInAppStorage(context)
-            Log.d("ImageCleanup", " Files in internal storage: $internalFiles")
+            Log.d("ImageCleanup", "Files in internal storage: $internalFiles")
+
             val imageDir = File(context.filesDir, "images")
             debugRepo.clearDbEntries()
             debugRepo.deleteAllAppImages(context)
 
-
             val remainingImages = imageDir.listFiles()?.size ?: 0
             Log.d("ImageCleanup", "Images remaining after wipe: $remainingImages")
-
-
         }
 
         finishLoading()
