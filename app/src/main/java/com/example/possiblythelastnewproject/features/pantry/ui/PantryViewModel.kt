@@ -56,7 +56,7 @@ class PantryViewModel @Inject constructor(
                 deleteImageFromStorage(oldImageUri, context)
             }
 
-            // 📝 Update DB
+            //  Update DB
             repository.update(
                 item,
                 oldImageUri = oldImageUri,
@@ -117,12 +117,12 @@ class PantryViewModel @Inject constructor(
             category = state.editCategory?.name ?: original.category
         )
 
-        // 🧼 Handle image replacement cleanup
+        //  Handle image replacement cleanup
         if (updatedItem.imageUri != original.imageUri) {
             original.imageUri?.let { deleteImageFromStorage(it, context) }
         }
 
-        // 📝 Update DB
+        //  Update DB
         repository.update(
             updatedItem,
             oldImageUri = original.imageUri ?: "",
@@ -209,5 +209,11 @@ class PantryViewModel @Inject constructor(
 
     fun updateAddImage(uri: Uri?) {
         _uiState.update { it.copy(addImageUri = uri?.toString()) }
+    }
+
+    private var pendingPantryImagePath: String? = null
+
+    fun setPendingPantryImagePath(path: String) {
+        pendingPantryImagePath = path
     }
 }

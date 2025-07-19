@@ -45,15 +45,36 @@ class DebugRepository @Inject constructor(
     }
 
     fun deleteAllAppImages(context: Context) {
-        val exempt = listOf("profileInstalled") // optionally preserve known files
+        val exempt = listOf("profileInstalled") // Preserve known files
+        val baseDir = context.filesDir
 
-        context.filesDir.listFiles()
-            ?.filter { it.isFile && it.name.startsWith("gallery_") && it.name !in exempt }
-            ?.forEach { file ->
+        val allFiles = baseDir.listFiles()
+        if (allFiles.isNullOrEmpty()) {
+            Log.i("ImageCleanup", "📁 No files found in ${baseDir.absolutePath}")
+            return
+        }
+
+        var deletedCount = 0
+        var keptCount = 0
+
+        allFiles.forEach { file ->
+            if (file.isFile && file.name !in exempt) {
                 val deleted = file.delete()
-                Log.d("ImageCleanup", "🗑️ Deleted ${file.name} → $deleted")
+                if (deleted) {
+                    deletedCount++
+                    Log.d("ImageCleanup", "🗑️ Deleted ${file.name}")
+                } else {
+                    Log.w("ImageCleanup", "⚠️ Failed to delete ${file.name}")
+                }
+            } else {
+                keptCount++
+                Log.d("ImageCleanup", "🛡️ Preserved ${file.name}")
             }
+        }
+
+        Log.i("ImageCleanup", "✅ Image cleanup finished: $deletedCount deleted, $keptCount preserved")
     }
+
 
 }
 

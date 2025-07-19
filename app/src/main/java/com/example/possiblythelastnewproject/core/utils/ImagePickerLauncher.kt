@@ -12,13 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 
 @Composable
 fun imagePicker(
@@ -36,8 +33,10 @@ fun imagePicker(
                 it,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
+            val uuid = UUID.randomUUID().toString()
+            val savedUri = copyUriToInternalStorage(context, it, uuid)
             coroutineScope.launch {
-                val savedUri = copyUriToInternalStorage(context, it)
+                val savedUri = copyUriToInternalStorage(context, it, uuid)
                 onImagePicked(savedUri)
             }
         }
@@ -90,7 +89,7 @@ fun imagePicker(
 }
 
 fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? {
-    val filename = "camera_${System.currentTimeMillis()}.jpg"
+    val filename = "gallery_${System.currentTimeMillis()}.jpg"
     return try {
         val file = File(context.filesDir, filename)
         FileOutputStream(file).use { out ->
@@ -103,7 +102,7 @@ fun saveBitmapToInternalStorage(context: Context, bitmap: Bitmap): Uri? {
     }
 }
 
-fun copyUriToInternalStorage(context: Context, sourceUri: Uri): Uri? {
+fun copyUriToInternalStorage(context: Context, sourceUri: Uri, uuid: String): Uri? {
     return try {
         val inputStream = context.contentResolver.openInputStream(sourceUri)
         val filename = "gallery_${System.currentTimeMillis()}.jpg"

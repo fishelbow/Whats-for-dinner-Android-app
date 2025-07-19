@@ -19,12 +19,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.possiblythelastnewproject.core.utils.copyUriToInternalStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcodeScanner
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientSearchBar
+import java.io.File
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,15 @@ fun PantryScreen(
     // Create two distinct image pickers by calling your universal function.
     // One is for adding a new ingredient and updates addImageBytes.
     val launchImagePickerForAdd = imagePicker { pickedUri ->
-        viewModel.updateAddImage(pickedUri)
+        val uuid = UUID.randomUUID().toString()
+        val savedPath = pickedUri?.let { copyUriToInternalStorage(context, it, uuid) }
+
+        // Preview optional — converts file path to Uri for display
+        val imageFile = uriToFile(savedPath)
+        viewModel.updateAddImage(savedPath)
+
+        // Save absolute path for DB
+        viewModel.setPendingPantryImagePath(savedPath.toString())
     }
     // The other is for editing an existing ingredient.
     // It calls a ViewModel function (or could update local state) for the edit image.
@@ -543,5 +554,17 @@ fun PantryScreen(
         )
     }
 
+
+
 }
 
+
+fun uriToFile(savedPath: Uri?): File? {
+    return savedPath?.let { uri ->
+        if (uri.scheme == "file") {
+            File(uri.path!!)
+        } else {
+            null // Not a direct file Uri
+        }
+    }
+}

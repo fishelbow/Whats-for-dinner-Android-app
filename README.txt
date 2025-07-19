@@ -417,6 +417,10 @@ backed up. report coming soon....
 
 alright able to import and export the db now just need to work out zipping up the images
 
+after some work i am now properly deleting the db images and am able to backup the db
+
+images with zip up next.
+
 /////////////////////////////
 ////// next next ////////////
 /////////////////////////////

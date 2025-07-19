@@ -4,24 +4,34 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 import androidx.core.net.toUri
+import java.io.IOException
 
 fun deleteImageFromStorage(uriStr: String, context: Context): Boolean {
-    return try {
+    return runCatching {
         val uri = uriStr.toUri()
 
-        // Extract a path relative to app storage
-        val file = if (uri.scheme == "file") {
-            File(uri.path!!) // Already local
-        } else {
-            val fileName = uri.lastPathSegment ?: return false
-            File(context.filesDir, fileName)
+        val file = when (uri.scheme) {
+            "file" -> File(uri.path ?: throw IOException("Missing path for file URI"))
+            else -> {
+                val fileName = uri.lastPathSegment ?: throw IOException("Missing file name from URI")
+                File(context.filesDir, fileName)
+            }
         }
 
-        val deleted = file.exists() && file.delete()
-        Log.d("ImageCleanup", "Resolved path: ${file.absolutePath}, deleted: $deleted")
+        if (!file.exists()) {
+            Log.w("ImageCleanup", "File does not exist → ${file.absolutePath}")
+            return false
+        }
+
+        val deleted = file.delete()
+        if (deleted) {
+            Log.d("ImageCleanup", "Deleted image → ${file.absolutePath}")
+        } else {
+            Log.w("ImageCleanup", "Failed to delete image → ${file.absolutePath}")
+        }
         deleted
-    } catch (e: Exception) {
-        Log.w("ImageCleanup", "Failed to delete image: ${e.message}")
+    }.getOrElse { e ->
+        Log.e("ImageCleanup", "Exception deleting image: ${e.message}", e)
         false
     }
 }

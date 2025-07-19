@@ -3,6 +3,8 @@ package com.example.possiblythelastnewproject.core.data.backup
 import com.example.possiblythelastnewproject.core.data.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.zip.ZipInputStream
 import javax.inject.Inject
 
 class BackupImporter @Inject constructor(
@@ -67,3 +69,26 @@ data class ImportResult(
     val selections: Int,
     val undoActions: Int
 )
+
+fun restoreImages(zipFile: File, targetDir: File): Result<List<String>> = runCatching {
+    val restoredFiles = mutableListOf<String>()
+
+    ZipInputStream(zipFile.inputStream()).use { zipIn ->
+        var entry = zipIn.nextEntry
+        while (entry != null) {
+            if (!entry.isDirectory) {
+                val fileName = entry.name
+                val outFile = File(targetDir, fileName)
+
+                outFile.outputStream().use { output ->
+                    zipIn.copyTo(output)
+                }
+                restoredFiles += fileName
+            }
+            zipIn.closeEntry()
+            entry = zipIn.nextEntry
+        }
+    }
+
+    restoredFiles
+}

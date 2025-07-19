@@ -49,7 +49,7 @@ fun compressImageToCache(
         }
 
         bitmap?.let {
-            val file = File.createTempFile("compressed_", ".jpg", context.cacheDir)
+            val file = File.createTempFile("gallery_", ".jpg", context.cacheDir)
             FileOutputStream(file).use { out ->
                 it.compress(Bitmap.CompressFormat.JPEG, quality, out)
             }
