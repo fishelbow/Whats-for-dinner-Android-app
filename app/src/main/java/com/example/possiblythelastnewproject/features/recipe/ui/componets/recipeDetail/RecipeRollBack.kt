@@ -2,6 +2,7 @@ package com.example.possiblythelastnewproject.features.recipe.ui.componets.recip
 
 import RecipeEditUiState
 import android.content.Context
+import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -25,8 +26,23 @@ fun performRecipeRollback(
             uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
             uiState.applyRecipe(it, freshRefs)
 
+            fun uriExists(uri: String?, context: Context): Boolean {
+                return try {
+                    uri?.toUri()?.let {
+                        context.contentResolver.openInputStream(it)?.close()
+                        true
+                    } ?: false
+                } catch (e: Exception) {
+                    false
+                }
+            }
+
             val image = it.recipe.imageUri.orEmpty()
-            setImagePath(image)
+            val safeImage = if (uriExists(image, context)) image else originalImageUri.orEmpty()
+
+            setImagePath(safeImage)
+
+
             resetUnsavedFlag()
 
             val restored = uiState.toRecipeModel(it.recipe)

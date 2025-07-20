@@ -96,7 +96,7 @@ fun RecipeGridScreen(
 fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
     val cardColor = Color(recipe.color)
     val textColor = if (cardColor.luminance() < 0.5f) Color.White else Color.Black
-
+    var fallbackBitmap by remember(recipe.id) { mutableStateOf<Bitmap?>(null) }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,14 +117,18 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
                 value = withContext(Dispatchers.IO) {
                     try {
                         val uri = recipe.imageUri?.toUri()
-                        uri?.let {
+                        val decoded = uri?.let {
                             context.contentResolver.openInputStream(it)?.use { stream ->
                                 BitmapFactory.decodeStream(stream)
                             }
                         }
+                        if (decoded != null) {
+                            fallbackBitmap = decoded // Save success for fallback use
+                        }
+                        decoded
                     } catch (e: Exception) {
-                        Log.w("RecipeTile", "Failed to decode image: ${e.message}")
-                        null
+                        Log.w("RecipeTile", "Decode failed: ${e.message}")
+                        fallbackBitmap // Use fallback if decode fails
                     }
                 }
             }

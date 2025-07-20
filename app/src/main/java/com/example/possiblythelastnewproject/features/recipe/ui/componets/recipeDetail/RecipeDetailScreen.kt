@@ -139,28 +139,34 @@ fun RecipeDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         coroutineScope.launch {
-                            val original = viewModel.getRecipeWithIngredients(recipeId)
-                            val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
-                            val hasChanges = original?.let {
-                                uiState.isChangedFrom(it, freshRefs, originalImageUri)
+                            val snapshot = recipeSnapshotState
+                            val refs = crossRefsState
+                            val hasChanges = snapshot?.let {
+                                uiState.isChangedFrom(it, refs, originalImageUri)
                             } ?: false
 
                             if (editingGuard.isEditing && hasChanges) {
                                 editingGuard.requestExit(
                                     rollback = {
-                                        original?.let {
-                                            uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
-                                            uiState.applyRecipe(it, freshRefs)
-                                            originalImageUri = it.recipe.imageUri.orEmpty()
-                                            lastSavedImagePath = originalImageUri
-                                            isUnsavedImageChange = false
-                                            val restored = uiState.toRecipeModel(it.recipe)
-                                            viewModel.restoreRecipeState(restored, uiState.ingredients)
+                                        snapshot?.let {
+                                            val restoredRecipe = uiState.rollbackFromSnapshot(
+                                                snapshot = it,
+                                                crossRefs = refs,
+                                                originalImageUri = originalImageUri,
+                                                context = context,
+                                                deleteFn = ::deleteImageFromStorage,
+                                                onImageReset = { uri ->
+                                                    originalImageUri = uri
+                                                    lastSavedImagePath = uri
+                                                },
+                                                resetUnsavedImageChange = {
+                                                    isUnsavedImageChange = false
+                                                }
+                                            )
+                                            viewModel.restoreRecipeState(restoredRecipe, uiState.ingredients)
                                         }
                                     },
-                                    thenExit = {
-                                        editingGuard.isEditing = false
-                                    }
+                                    thenExit = { editingGuard.isEditing = false }
                                 )
                             } else if (editingGuard.isEditing) {
                                 editingGuard.isEditing = false
@@ -283,28 +289,28 @@ fun RecipeDetailScreen(
                 onCancel = { hasChanges, requestExit, exitCleanly ->
                     if (hasChanges && editingGuard.isEditing) {
                         coroutineScope.launch {
-                            editingGuard.requestExit(
-                                rollback = {
-                                    coroutineScope.launch {
-                                        val latest = viewModel.getRecipeWithIngredients(recipeId)
-                                        val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+                            val snapshotRecipe = recipeSnapshotState
+                            val snapshotRefs = crossRefsState
 
-                                        latest?.let {
-                                            uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
-                                            uiState.applyRecipe(it, freshRefs)
-                                            originalImageUri = it.recipe.imageUri.orEmpty()
-                                            lastSavedImagePath = originalImageUri
-                                            isUnsavedImageChange = false
-
-                                            val restoredRecipe = uiState.toRecipeModel(it.recipe)
-                                            viewModel.restoreRecipeState(restoredRecipe, uiState.ingredients)
-                                        }
+                            snapshotRecipe?.let {
+                                val restoredRecipe = uiState.rollbackFromSnapshot(
+                                    snapshot = it,
+                                    crossRefs = snapshotRefs,
+                                    originalImageUri = originalImageUri,
+                                    context = context,
+                                    deleteFn = ::deleteImageFromStorage,
+                                    onImageReset = { uri ->
+                                        originalImageUri = uri
+                                        lastSavedImagePath = uri
+                                    },
+                                    resetUnsavedImageChange = {
+                                        isUnsavedImageChange = false
                                     }
-                                },
-                                thenExit = {
-                                    editingGuard.isEditing = false
-                                }
-                            )
+                                )
+                                viewModel.restoreRecipeState(restoredRecipe, uiState.ingredients)
+                                editingGuard.isEditing = false
+                            }
+
                         }
                     } else {
                         editingGuard.isEditing = false

@@ -21,6 +21,25 @@ data class RecipeEditUiState(
     var newIngredient: String = ""
 ) {
 
+    fun rollbackFromSnapshot(
+        snapshot: RecipeWithIngredients,
+        crossRefs: List<RecipePantryItemCrossRef>,
+        originalImageUri: String?,
+        context: Context,
+        deleteFn: (String, Context) -> Unit,
+        onImageReset: (String) -> Unit = {},
+        resetUnsavedImageChange: () -> Unit = {}
+    ): Recipe {
+        rollbackImageIfNeeded(originalImageUri, context, deleteFn)
+        applyRecipe(snapshot, crossRefs)
+
+        val restoredUri = snapshot.recipe.imageUri.orEmpty()
+        onImageReset(restoredUri)
+        resetUnsavedImageChange()
+
+        return toRecipeModel(snapshot.recipe)
+    }
+
     fun applyRecipe(recipe: RecipeWithIngredients, crossRefs: List<RecipePantryItemCrossRef>) {
         val newState = snapshotFrom(recipe, crossRefs)
         name = newState.name

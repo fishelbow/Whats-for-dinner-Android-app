@@ -17,10 +17,6 @@ import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import androidx.compose.ui.text.input.TextFieldValue
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,19 +29,9 @@ class RecipesViewModel @Inject constructor(
     val _uiState = MutableStateFlow(RecipeEditUiState())
     val uiState: StateFlow<RecipeEditUiState> = _uiState
 
-    private var originalIngredients: List<RecipeIngredientUI> = emptyList()
-
-
-    fun updateName(value: TextFieldValue) = updateUi { copy(name = value) }
-    fun updateTemp(value: TextFieldValue) = updateUi { copy(temp = value) }
-    fun updatePrepTime(value: TextFieldValue) = updateUi { copy(prepTime = value) }
-    fun updateCookTime(value: TextFieldValue) = updateUi { copy(cookTime = value) }
-    fun updateCategory(value: TextFieldValue) = updateUi { copy(category = value) }
-    fun updateInstructions(value: TextFieldValue) = updateUi { copy(instructions = value) }
     fun updateCardColor(color: Color) = updateUi { copy(cardColor = color) }
     fun updateImageUri(uri: String) = updateUi { copy(imageUri = uri) }
     fun updateIngredients(list: List<RecipeIngredientUI>) = updateUi { copy(ingredients = list) }
-    fun updateNewIngredient(value: String) = updateUi { copy(newIngredient = value) }
 
     inline fun updateUi(transform: RecipeEditUiState.() -> RecipeEditUiState) {
         _uiState.value = _uiState.value.transform()
@@ -127,24 +113,6 @@ class RecipesViewModel @Inject constructor(
         return recipeRepository.getRecipeWithIngredients(recipeId)
     }
 
-    fun observeIngredientsForRecipe(
-        recipeId: Long,
-        pantryItems: List<PantryItem>
-    ): Flow<List<RecipeIngredientUI>> =
-        ingredientRepository.observeCrossRefsForRecipe(recipeId).map { crossRefs ->
-            val pantryMap = pantryItems.associateBy { it.id }
-            crossRefs.map { ref ->
-                val pantry = pantryMap[ref.pantryItemId]
-                RecipeIngredientUI(
-                    name = pantry?.name ?: "Unknown",
-                    pantryItemId = ref.pantryItemId,
-                    amountNeeded = ref.amountNeeded,
-                    required = ref.required,
-                    hasScanCode = pantry?.scanCode?.isNotBlank() == true,
-                    includeInShoppingList = pantry?.addToShoppingList == true
-                )
-            }
-        }
 
     fun restoreRecipeState(
         restoredRecipe: Recipe,
@@ -166,46 +134,5 @@ class RecipesViewModel @Inject constructor(
         ingredientRepository.replaceIngredientsForRecipe(restoredRecipe.id, restoredRefs)
     }
 
-    fun discardAndExitIfEditing(
-        recipeId: Long,
-        context: Context,
-        editingGuard: EditingGuard,
-        uiState: RecipeEditUiState,
-        originalImageUri: String,
-        updateImagePath: (String) -> Unit,
-        resetUnsavedFlag: () -> Unit,
-        exit: () -> Unit
-    ) {
-        if (editingGuard.isEditing) {
-            CoroutineScope(Dispatchers.Main).launch {
-                editingGuard.requestExit(
-                    rollback = {
-                        CoroutineScope(Dispatchers.Main).launch {
-                            val latest = getRecipeWithIngredients(recipeId)
-                            val freshRefs = ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
 
-                            latest?.let {
-                                uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
-                                uiState.applyRecipe(it, freshRefs)
-
-                                val restoredPath = it.recipe.imageUri.orEmpty()
-                                updateImagePath(restoredPath)
-                                resetUnsavedFlag()
-
-                                val restoredRecipe = uiState.toRecipeModel(it.recipe)
-                                restoreRecipeState(restoredRecipe, uiState.ingredients)
-                            }
-                        }
-                    },
-                    thenExit = {
-                        editingGuard.isEditing = false
-                        exit()
-                    }
-                )
-            }
-        } else {
-            editingGuard.isEditing = false
-            exit()
-        }
-    }
 }

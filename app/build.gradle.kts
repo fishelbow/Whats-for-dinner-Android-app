@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.material3)
     implementation(libs.engage.core)
+    implementation(libs.androidx.benchmark.common)
     ksp(libs.hilt.android.compiler) //  Replaces kapt
 
 // Hilt + Jetpack ViewModel
