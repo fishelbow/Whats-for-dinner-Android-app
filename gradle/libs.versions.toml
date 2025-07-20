@@ -49,6 +49,7 @@ roomRuntime = "2.7.2"
 roomCommonJvm = "2.7.2"
 roomRuntimeAndroid = "2.7.2"
 kotlin = "2.1.0"
+engageCore = "1.5.8"
 
 [libraries]
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
@@ -118,6 +119,7 @@ androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtim
 androidx-room-common-jvm = { group = "androidx.room", name = "room-common-jvm", version.ref = "roomCommonJvm" }
 androidx-room-runtime-android = { group = "androidx.room", name = "room-runtime-android", version.ref = "roomRuntimeAndroid" }
 androidx-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "composeMaterial3" }
+engage-core = { group = "com.google.android.engage", name = "engage-core", version.ref = "engageCore" }
 
 
 [plugins]

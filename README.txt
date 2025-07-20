@@ -421,6 +421,63 @@ after some work i am now properly deleting the db images and am able to backup t
 
 images with zip up next.
 
+well actually we are still working on the images, moving them out of the db has created a lot of
+
+scenarios with orphaned images, I am identifying areas that need attention now. go to create a recipe
+
+select and image then decide to discard it bam an orphan! will be adding logic to clean these up.
+
+I am wondering if an overall orphanHunter is a good idea or not.
+
+I have also been working to make sure that images created are deleted when recipes or pantry items are
+
+created or modified and now need to include discarded.
+
+okay so far recipes creation and deletion is orphan free
+
+if you change the image of a recipe you will create an orphan for each switched image
+
+pantry creates 2 files and only deletes 1 atm
+
+if you create a pantryItem with image and save then change the image and save
+again followed by a delete you will create 1 orphan image.
+
+I know I also have an orphan state if i back out selecting an image due to the image saving right away
+
+before the dialog save is used.
+
+first up why is pantryItem saving 2 images lets crack this first before we worry about the other orphans
+
+pantryItem is now only saving one, stale uistate from savedPath been replaced with current pickedUri
+
+redefine current orphan points.
+
+
+discarding a recipe with a selected image does not create orphan
+
+both in create and edit screen switching an image creates and orphan for every switch
+
+pantry switching image seems fine though, and creates no orphans
+
+// okay after a night of chasing behaviour, i recall wanting to use coil,
+
+I am going to go back an break apart some monolithic modules in RecipeDetailScreen, RecipeCreationFrom
+
+and PantryScreen, as to better interact with the images and edit states. switching from byteArray to uri
+
+and internal storage, was not planned out.. I kinda just started converting lol. stay tuned
+
+I plan to start with poping dialogs out of recipedetailscreen first.
+
+okay dialogs have been moved out, going to make a utility for the color picker next
+
+
+
+
+
+
+
+
 /////////////////////////////
 ////// next next ////////////
 /////////////////////////////

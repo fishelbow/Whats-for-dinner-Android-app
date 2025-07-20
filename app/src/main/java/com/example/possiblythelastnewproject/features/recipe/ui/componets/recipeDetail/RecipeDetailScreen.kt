@@ -1,15 +1,11 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -33,147 +28,184 @@ import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChip
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.LazyFlowRow
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
+import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeDetailScreen(
-    recipeId: Long, navController: NavHostController, viewModel: RecipesViewModel = hiltViewModel()
+    recipeId: Long,
+    navController: NavHostController,
+    viewModel: RecipesViewModel = hiltViewModel(),
+    pantryViewModel: PantryViewModel = hiltViewModel()
 ) {
-    val pantryViewModel: PantryViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsState()
     val pantryItems by pantryViewModel.allItems.collectAsState()
-    val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
-    val editingGuard = LocalEditingGuard.current
-
-    var showDuplicateNameDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showNameRequiredDialog by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
-    val initialDataState = produceState<RecipeWithIngredients?>(null, recipeId) {
-        value = viewModel.getRecipeWithIngredients(recipeId)
-    }
+    val editingGuard = LocalEditingGuard.current
+    val scrollState = rememberScrollState()
 
-    val initialData = initialDataState.value
+    var originalImageUri by remember { mutableStateOf("") }
+    var lastSavedImagePath by remember { mutableStateOf<String?>(null) }
+    var isUnsavedImageChange by remember { mutableStateOf(false) }
 
-    if (initialData == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return@RecipeDetailScreen // avoids early return
-    }
-    var originalImageUri by remember { mutableStateOf<String?>(null) }
-
-
-    val uiState = viewModel.editUiState
-    val observedIngredients by viewModel.observeIngredientsForRecipe(
-        recipeId = initialData.recipe.id, pantryItems = pantryItems
-    ).collectAsState(initial = emptyList())
-
-
-    val isNameBlank = uiState.name.text.isBlank()
-    val hasChanges = remember(uiState, pantryItems) {
-        derivedStateOf {
-            viewModel.hasUnsavedChanges(
-                original = initialData
-            )
-        }
-    }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDuplicateNameDialog by remember { mutableStateOf(false) }
+    var showNameRequiredDialog by remember { mutableStateOf(false) }
 
     val initialized = remember { mutableStateOf(false) }
 
+    // 🧭 Load initial data
     LaunchedEffect(recipeId) {
-        val recipeWithIngredients = viewModel.getRecipeWithIngredients(recipeId)
-        if (recipeWithIngredients != null) {
-            viewModel.loadRecipeIntoUiState(recipeWithIngredients, pantryItems)
-            originalImageUri = recipeWithIngredients.recipe.imageUri
+        val recipe = viewModel.getRecipeWithIngredients(recipeId)
+        val crossRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+        recipe?.let {
+            uiState.applyRecipe(it, crossRefs)
+            originalImageUri = it.recipe.imageUri ?: ""
+            lastSavedImagePath = originalImageUri
             initialized.value = true
         }
     }
-    DisposableEffect(Unit) {
-        onDispose { editingGuard.isEditing = false }
+
+    // 🔄 Reactive snapshot + crossRefs
+    val crossRefsState by produceState(
+        initialValue = emptyList<RecipePantryItemCrossRef>(),
+        key1 = initialized.value
+    ) {
+        value = if (initialized.value) {
+            viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+        } else emptyList()
     }
 
-    suspend fun refreshUiFromDb() {
-        val latestPantryItems = pantryViewModel.allItems.value
-        viewModel.getRecipeWithIngredients(recipeId)?.let {
-            viewModel.loadRecipeIntoUiState(it, pantryItems = latestPantryItems)
-            editingGuard.isEditing = false
+    val recipeSnapshotState by produceState<RecipeWithIngredients?>(
+        initialValue = null,
+        key1 = initialized.value
+    ) {
+        value = if (initialized.value) {
+            viewModel.getRecipeWithIngredients(recipeId)
+        } else null
+    }
+
+    // 🧠 Change detection
+    val hasChangesState by remember(
+        uiState,
+        isUnsavedImageChange,
+        crossRefsState,
+        recipeSnapshotState,
+        originalImageUri
+    ) {
+        derivedStateOf {
+            val snapshot = recipeSnapshotState
+            val crossRefs = crossRefsState
+            val changed = snapshot?.let {
+                uiState.isChangedFrom(it, crossRefs, originalImageUri)
+            } ?: false
+            changed || isUnsavedImageChange
         }
     }
 
-    BackHandler(enabled = editingGuard.isEditing) {
-        if (viewModel.hasUnsavedChanges(
-                initialData
-            )
-        ) {
-            editingGuard.requestExit {
-                coroutineScope.launch { refreshUiFromDb() }
+    // 📸 Image Picker
+    val pickImage = imagePicker { selectedUri ->
+        editingGuard.isEditing = true
+        selectedUri?.toString()?.let { newPath ->
+            val currentStoredImage = uiState.imageUri.orEmpty()
+            if (currentStoredImage.isNotEmpty() && currentStoredImage != newPath) {
+                deleteImageFromStorage(currentStoredImage, context)
+                Log.d("ImageCleanup", "🧨 Deleted replaced image → $currentStoredImage")
             }
-        } else {
-            navController.navigateUp()
+            viewModel.updateImageUri(newPath)
+            lastSavedImagePath = newPath
+            if (newPath != originalImageUri) {
+                isUnsavedImageChange = true
+                Log.d("ImageChangeTracker", "📸 Image changed → unsaved=true")
+            }
         }
-    }
-
-    val pickImage = imagePicker { uri ->
-        viewModel.updateImageUri(uri.toString())
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Recipe Details") }, navigationIcon = {
-                IconButton(onClick = {
-                    if (editingGuard.isEditing && viewModel.hasUnsavedChanges(initialData)) {
-                        editingGuard.requestExit {
-                            coroutineScope.launch { refreshUiFromDb() }
-                        }
-                    } else if (editingGuard.isEditing) {
-                        editingGuard.isEditing = false
-                    } else {
-                        navController.navigateUp()
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = if (editingGuard.isEditing) "Cancel edit" else "Back"
-                    )
-                }
-            }, actions = {
-                if (!editingGuard.isEditing) {
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
-                    }
-                    TextButton(
+            TopAppBar(
+                title = { Text("Recipe Details") },
+                navigationIcon = {
+                    IconButton(
                         onClick = {
                             coroutineScope.launch {
-                                val latest = viewModel.getRecipeWithIngredients(recipeId)
-                                latest?.let {
-                                    viewModel.loadRecipeIntoUiState(it, pantryItems)
-                                    editingGuard.isEditing = true
+                                val original = viewModel.getRecipeWithIngredients(recipeId)
+                                val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+                                val hasChanges = original?.let {
+                                    uiState.isChangedFrom(it, freshRefs, originalImageUri)
+                                } ?: false
+
+                                if (editingGuard.isEditing && hasChanges) {
+                                    editingGuard.requestExit {
+                                        original?.let {
+                                            uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
+                                            uiState.applyRecipe(it, freshRefs)
+                                            originalImageUri = it.recipe.imageUri ?: ""
+                                            lastSavedImagePath = originalImageUri
+                                            isUnsavedImageChange = false
+                                        }
+                                        editingGuard.isEditing = false
+                                    }
+                                } else if (editingGuard.isEditing) {
+                                    editingGuard.isEditing = false
+                                } else {
+                                    navController.navigateUp()
                                 }
                             }
-                        },
-                        enabled = initialized.value
+                        }
                     ) {
-                        Text("Edit")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (!editingGuard.isEditing) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
+                        TextButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    val latest = viewModel.getRecipeWithIngredients(recipeId)
+                                    val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+                                    latest?.let {
+                                        val restoredImageUri = it.recipe.imageUri.orEmpty()
+                                        if (isUnsavedImageChange && uiState.imageUri != originalImageUri) {
+                                            uiState.imageUri?.let { uri ->
+                                                deleteImageFromStorage(uri, context)
+                                            }
+                                            viewModel.updateImageUri(originalImageUri)
+                                            Log.d("imageCleanup", "🧹 Discarded unsaved image → ${uiState.imageUri}")
+                                        }
+                                        isUnsavedImageChange = false
+                                        originalImageUri = restoredImageUri
+                                        lastSavedImagePath = restoredImageUri
+                                        uiState.applyRecipe(it, freshRefs)
+                                        editingGuard.isEditing = true
+                                    }
+                                }
+                            },
+                            enabled = initialized.value
+                        ) {
+                            Text("Edit")
+                        }
                     }
                 }
-            })
-        }) { innerPadding ->
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(innerPadding)
-                .padding(16.dp)
-                .animateContentSize(tween(300)),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // 📸 Image Picker Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,269 +229,99 @@ fun RecipeDetailScreen(
                 )
             }
 
-// Details Card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (!editingGuard.isEditing) {
-                        ReadOnlyField("Name", uiState.name.text)
-                        ReadOnlyField("Temperature", uiState.temp.text)
-                        ReadOnlyField("Prep Time", uiState.prepTime.text)
-                        ReadOnlyField("Cook Time", uiState.cookTime.text)
-                        ReadOnlyField("Category", uiState.category.text)
+            // 🧾 Editable Form
+            val hasChangesValue = hasChangesState
+            val originalRecipe = recipeSnapshotState?.recipe
 
-                        Text("Ingredients", style = MaterialTheme.typography.labelMedium)
-
-                        when {
-                            !initialized.value -> {
-                                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                }
-                            }
-
-                            observedIngredients.isEmpty() -> {
-                                Text(
-                                    text = "No ingredients yet.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            else -> {
-                                val pantryItemsById = pantryItems.associateBy { it.id }
-                                LazyFlowRow(
-                                    items = observedIngredients,
-                                    horizontalSpacing = 8.dp,
-                                    verticalSpacing = 8.dp,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .wrapContentHeight()
-                                        .padding(top = 4.dp)
-                                ) { item ->
-                                    val pantryItem = pantryItemsById[item.pantryItemId]
-                                    IngredientChip(
-                                        ingredient = item,
-                                        pantryItem = pantryItem,
-                                        isEditable = false
-                                    )
-                                }
-                            }
-                        }
-
-//  Always show these, regardless of ingredients
-                        HorizontalDivider()
-                        ReadOnlyField("Instructions", uiState.instructions.text)
-
-                        Text("Card Color", style = MaterialTheme.typography.labelMedium)
-                        Box(
-                            Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(uiState.cardColor)
-                                .border(1.dp, Color.Black, CircleShape)
-                        )
-
-
-                    } else {
-                        EditableField("Name", uiState.name) { viewModel.updateName(it) }
-                        EditableField("Temperature", uiState.temp) { viewModel.updateTemp(it) }
-                        EditableField(
-                            "Prep Time", uiState.prepTime
-                        ) { viewModel.updatePrepTime(it) }
-                        EditableField(
-                            "Cook Time", uiState.cookTime
-                        ) { viewModel.updateCookTime(it) }
-                        EditableField("Category", uiState.category) { viewModel.updateCategory(it) }
-
-                        IngredientChipEditor(
-                            ingredients = uiState.ingredients,
-                            onIngredientsChange = { viewModel.updateIngredients(it) },
-                            allPantryItems = pantryItems,
-                            onRequestCreatePantryItem = { pantryViewModel.insertAndReturn(it) },
-                            onToggleShoppingStatus = { updatedItem ->
-                                pantryViewModel.update(
-                                    updatedItem.copy(addToShoppingList = !updatedItem.addToShoppingList),
-                                    oldImageUri = updatedItem.imageUri ?: "",
-                                    context = context
-                                )
-                            }
-                        )
-                        HorizontalDivider()
-
-                        EditableField(
-                            label = "Instructions",
-                            state = uiState.instructions,
-                            singleLine = false,
-                            heightDp = 140,
-                            onValueChange = { viewModel.updateInstructions(it) })
-
-// Color Picker
-                        val colorOptions = listOf(
-                            0xFFF44336,
-                            0xFFE91E63,
-                            0xFF9C27B0,
-                            0xFF673AB7,
-                            0xFF3F51B5,
-                            0xFF2196F3,
-                            0xFF03A9F4,
-                            0xFF00BCD4,
-                            0xFF009688,
-                            0xFF4CAF50,
-                            0xFFFFC107,
-                            0xFFFF5722
-                        ).map { Color(it) }
-
-                        Text("Card Color", style = MaterialTheme.typography.labelMedium)
-                        colorOptions.chunked(6).forEach { row ->
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(
-                                    8.dp, Alignment.CenterHorizontally
-                                )
-                            ) {
-                                row.forEach { col ->
-                                    Box(
-                                        Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(col)
-                                            .border(
-                                                width = if (col == uiState.cardColor) 3.dp else 1.dp,
-                                                color = if (col == uiState.cardColor) MaterialTheme.colorScheme.primary
-                                                else Color.Gray,
-                                                shape = CircleShape
-                                            )
-                                            .clickable { viewModel.updateCardColor(col) })
-                                }
-                            }
-                        }
-
-                        HorizontalDivider()
-
-// Save / Cancel Buttons
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    if (uiState.name.text.isBlank()) {
-                                        showNameRequiredDialog = true
-                                        return@Button
-                                    }
-
-                                    val updated = initialData.recipe.copy(
-                                        name = uiState.name.text.trim(),
-                                        temp = uiState.temp.text.trim(),
-                                        prepTime = uiState.prepTime.text.trim(),
-                                        cookTime = uiState.cookTime.text.trim(),
-                                        category = uiState.category.text.trim(),
-                                        imageUri = uiState.imageUri ?: "",
-                                        instructions = uiState.instructions.text.trim(),
-                                        color = uiState.cardColor.toArgb()
-                                    )
-
-                                    coroutineScope.launch {
-                                        val isDuplicate = viewModel.recipeNameExists(
-                                            name = updated.name, excludeUuid = updated.uuid
-                                        )
-                                        if (isDuplicate) {
-                                            showDuplicateNameDialog = true
-                                            return@launch
-                                        }
-
-                                        viewModel.updateRecipeWithIngredientsUi(
-                                            updated,
-                                            uiState.ingredients,
-                                            originalImageUri = originalImageUri ?: initialData.recipe.imageUri,
-                                            context = context
-                                        )
-                                        originalImageUri = uiState.imageUri // ✅ Keep in sync after save
-                                        navController.popBackStack("recipes_main", inclusive = false)
-                                    }
-                                }, enabled = hasChanges.value, modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Save")
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    if (viewModel.hasUnsavedChanges(initialData)) {
-                                        editingGuard.requestExit {
-                                            coroutineScope.launch { refreshUiFromDb() }
-                                        }
-                                    } else {
-                                        editingGuard.isEditing = false
-                                    }
-                                }, modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Cancel")
-                            }
-                        }
+            RecipeDetailForm(
+                uiState = uiState,
+                isEditing = editingGuard.isEditing,
+                pantryItems = pantryItems,
+                onFieldChange = viewModel::updateUi, // New callback for field-level updates
+                onIngredientsChange = viewModel::updateIngredients,
+                onColorSelect = viewModel::updateCardColor,
+                onSave = {
+                    if (uiState.name.text.isBlank()) {
+                        showNameRequiredDialog = true
+                        return@RecipeDetailForm
                     }
-                }
-            }
-        }
 
-// Delete confirmation dialog
-        if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Recipe") },
-                text = { Text("Are you sure? This cannot be undone.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.delete(
-                            initialData.recipe,
+                    val updated = originalRecipe?.let { uiState.toRecipeModel(it) }
+                    if (updated == null) return@RecipeDetailForm
+
+                    coroutineScope.launch {
+                        val isDuplicate = viewModel.recipeNameExists(
+                            name = updated.name,
+                            excludeUuid = updated.uuid
+                        )
+                        if (isDuplicate) {
+                            showDuplicateNameDialog = true
+                            return@launch
+                        }
+
+                        viewModel.updateRecipeWithIngredientsUi(
+                            updatedRecipe = updated,
+                            updatedIngredients = uiState.ingredients,
+                            originalImageUri = originalImageUri,
                             context = context
                         )
-                        showDeleteDialog = false
-                        navController.navigateUp()
-                    }) {
-                        Text("Delete")
+
+                        originalImageUri = uiState.imageUri.orEmpty()
+                        lastSavedImagePath = uiState.imageUri
+                        isUnsavedImageChange = false
+                        navController.popBackStack("recipes_main", inclusive = false)
+
+                        editingGuard.isEditing = false
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel")
+                onCancel = {
+                    coroutineScope.launch {
+                        val latest = viewModel.getRecipeWithIngredients(recipeId)
+                        val freshRefs =
+                            viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+                        latest?.let {
+                            uiState.rollbackImageIfNeeded(
+                                originalImageUri,
+                                context,
+                                ::deleteImageFromStorage
+                            )
+                            uiState.applyRecipe(it, freshRefs)
+                            originalImageUri = it.recipe.imageUri ?: ""
+                            lastSavedImagePath = originalImageUri
+                            isUnsavedImageChange = false
+                        }
+                        editingGuard.isEditing = false
                     }
-                })
-        }
+                },
+                hasChanges = hasChangesState,
+                onRequestCreatePantryItem = { name ->
+                    pantryViewModel.insertAndReturn(name)
+                },
+                onToggleShoppingStatus = { item ->
+                    pantryViewModel.toggleShoppingStatus(item.id, context)
+                }
+            )
 
-// Duplicate name warning dialog
-        if (showDuplicateNameDialog) {
-            AlertDialog(
-                onDismissRequest = { showDuplicateNameDialog = false },
-                title = { Text("Duplicate Recipe Name") },
-                text = { Text("Another recipe already uses this name. Please choose a different one.") },
-                confirmButton = {
-                    TextButton(onClick = { showDuplicateNameDialog = false }) {
-                        Text("OK")
+            // 🗂 Dialogs
+            RecipeDialogs(
+                showDeleteDialog = showDeleteDialog,
+                onConfirmDelete = {
+                    coroutineScope.launch {
+                        val original = viewModel.getRecipeWithIngredients(recipeId)
+                        original?.let {
+                            viewModel.delete(it.recipe, context)
+                            editingGuard.isEditing = false
+                            showDeleteDialog = false
+                            navController.navigateUp()
+                        }
                     }
-                })
-        }
-
-
-        if (showNameRequiredDialog) {
-            AlertDialog(
-                onDismissRequest = { showNameRequiredDialog = false },
-                title = { Text("Missing Name") },
-                text = { Text("Please enter a name for the recipe.") },
-                confirmButton = {
-                    TextButton(onClick = { showNameRequiredDialog = false }) {
-                        Text("OK")
-                    }
-                })
+                },
+                onDismissDelete = { showDeleteDialog = false },
+                showDuplicateNameDialog = showDuplicateNameDialog,
+                onDismissDuplicate = { showDuplicateNameDialog = false },
+                showNameRequiredDialog = showNameRequiredDialog,
+                onDismissMissingName = { showNameRequiredDialog = false }
+            )
         }
     }
 }
-
-

@@ -27,7 +27,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.possiblythelastnewproject.core.ui.LocalEditingGuard
+import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
@@ -35,8 +39,7 @@ import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeImagePicker
 import kotlinx.coroutines.launch
 
-
-@SuppressLint("MutableCollectionMutableState", "CoroutineCreationDuringComposition")
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeCreationFormScreen(
@@ -44,11 +47,14 @@ fun RecipeCreationFormScreen(
     onCancel: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     val recipeViewModel: RecipesViewModel = hiltViewModel()
     val pantryViewModel: PantryViewModel = hiltViewModel()
     val pantryItems by pantryViewModel.allItems.collectAsState(emptyList())
     val editingGuard = LocalEditingGuard.current
-
+    val isEditing by remember { derivedStateOf { editingGuard.isEditing } }
     var name by remember { mutableStateOf("") }
     var temp by remember { mutableStateOf("") }
     var prepTime by remember { mutableStateOf("") }
@@ -56,17 +62,13 @@ fun RecipeCreationFormScreen(
     var category by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
     var cardColor by remember { mutableStateOf(Color(0xFFF44336)) }
-    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val pickedImageUris = remember { mutableStateListOf<String>() }
     var ingredientList by remember { mutableStateOf(mutableListOf<RecipeIngredientUI>()) }
 
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
-    val launchImagePicker = imagePicker { selectedUri ->
-        imageUri = selectedUri
-    }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
     var showDuplicateDialog by remember { mutableStateOf(false) }
-
+    var lastSavedImagePath by remember { mutableStateOf<String?>(null) }
     val colorOptions = listOf(
         0xFFF44336, 0xFFE91E63, 0xFF9C27B0, 0xFF673AB7,
         0xFF3F51B5, 0xFF2196F3, 0xFF03A9F4, 0xFF00BCD4,
@@ -76,45 +78,95 @@ fun RecipeCreationFormScreen(
     fun hasUnsavedChanges(): Boolean {
         return name.isNotBlank() || temp.isNotBlank() || prepTime.isNotBlank() ||
                 cookTime.isNotBlank() || category.isNotBlank() || instructions.isNotBlank() ||
-                imageBytes?.isNotEmpty() == true || ingredientList.isNotEmpty()
+                imageUri != null || ingredientList.isNotEmpty()
     }
 
-    // Sync editing state with EditingGuard
+    LaunchedEffect(Unit) {
+        editingGuard.isEditing = false
+    }
+
+    // 🔐 Sync edit state
     LaunchedEffect(
         name, temp, prepTime, cookTime, category,
-        instructions, imageBytes, ingredientList
+        instructions, imageUri, ingredientList
     ) {
         editingGuard.isEditing = hasUnsavedChanges()
     }
-    DisposableEffect(Unit) {
-        onDispose {
-            editingGuard.isEditing = false
-        }
-    }
-    BackHandler(enabled = editingGuard.isEditing) {
-        if (hasUnsavedChanges()) {
-            editingGuard.requestExit {
-                editingGuard.isEditing = false
-                onCancel()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                editingGuard.isEditing = hasUnsavedChanges()
             }
-        } else {
-            onCancel()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    // 🧼 Shared cancellation logic with image deletion
+    fun handleCancel() {
+        focusManager.clearFocus()
+
+        pickedImageUris.forEach { uriStr ->
+            deleteImageFromStorage(uriStr, context)
+        }
+        pickedImageUris.clear()
+        imageUri = null
+
+        editingGuard.isEditing = false
+        onCancel()
+    }
+
+    val backHandlerKey = remember { mutableStateOf(0) }
+
+    LaunchedEffect(isEditing) {
+        // trigger recomposition of BackHandler when guard changes
+        backHandlerKey.value++
+    }
+
+    key(backHandlerKey.value) {
+        BackHandler(enabled = isEditing) {
+            if (hasUnsavedChanges()) {
+                editingGuard.requestExit { handleCancel() }
+            } else {
+                handleCancel()
+            }
+        }
+    }
+
+    val launchImagePicker = imagePicker { selectedUri ->
+        editingGuard.isEditing = true
+        selectedUri?.let {
+            val newPath = it.toString()
+
+            // 🧹 Clean up old image before overwrite
+            lastSavedImagePath?.let { previous ->
+                if (previous != newPath) {
+                    deleteImageFromStorage(previous, context)
+                }
+            }
+
+            pickedImageUris += newPath
+            lastSavedImagePath = newPath
+            imageUri = it // This should happen last
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("New Recipe") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        focusManager.clearFocus()
                         if (hasUnsavedChanges()) {
-                            editingGuard.requestExit {
-                                editingGuard.isEditing = false
-                                onCancel()
-                            }
+                            editingGuard.requestExit { handleCancel() }
                         } else {
-                            onCancel()
+                            handleCancel()
                         }
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -133,7 +185,7 @@ fun RecipeCreationFormScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             RecipeImagePicker(imageUri) { launchImagePicker() }
-            val scope = rememberCoroutineScope()
+
             RecipeFormCard(
                 name = name,
                 onNameChange = { name = it },
@@ -175,7 +227,7 @@ fun RecipeCreationFormScreen(
                             cookTime = cookTime.trim(),
                             category = category.trim(),
                             instructions = instructions.trim(),
-                            imageUri = imageUri?.toString() ?: "", // safe default fallback
+                            imageUri = imageUri?.toString() ?: "",
                             color = cardColor.toArgb()
                         )
 
@@ -185,14 +237,10 @@ fun RecipeCreationFormScreen(
                     }
                 },
                 onCancel = {
-                    focusManager.clearFocus()
                     if (hasUnsavedChanges()) {
-                        editingGuard.requestExit {
-                            editingGuard.isEditing = false
-                            onCancel()
-                        }
+                        editingGuard.requestExit { handleCancel() }
                     } else {
-                        onCancel()
+                        handleCancel()
                     }
                 },
                 pantryItems = pantryItems,
@@ -207,29 +255,27 @@ fun RecipeCreationFormScreen(
             )
         }
     }
+
+    // 📦 Dialogs
     if (showDuplicateDialog) {
         AlertDialog(
             onDismissRequest = { showDuplicateDialog = false },
             title = { Text("Duplicate Recipe Name") },
             text = { Text("A recipe with this name already exists. Please choose a different name.") },
             confirmButton = {
-                TextButton(onClick = { showDuplicateDialog = false }) {
-                    Text("OK")
-                }
+                TextButton(onClick = { showDuplicateDialog = false }) { Text("OK") }
             }
         )
     }
+
     if (showNameRequiredDialog) {
         AlertDialog(
             onDismissRequest = { showNameRequiredDialog = false },
             title = { Text("Missing Name") },
             text = { Text("Please enter a name for the recipe before saving.") },
             confirmButton = {
-                TextButton(onClick = { showNameRequiredDialog = false }) {
-                    Text("OK")
-                }
+                TextButton(onClick = { showNameRequiredDialog = false }) { Text("OK") }
             }
         )
     }
 }
-

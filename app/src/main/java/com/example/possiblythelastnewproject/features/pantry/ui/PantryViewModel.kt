@@ -33,6 +33,18 @@ class PantryViewModel @Inject constructor(
 
 ) : ViewModel() {
 
+    fun toggleShoppingStatus(itemId: Long, context: Context) {
+        viewModelScope.launch {
+            val item = pantryItems.value.firstOrNull { it.id == itemId } ?: return@launch
+            val updated = item.copy(addToShoppingList = !item.addToShoppingList)
+            repository.update(
+                updated,
+                oldImageUri = item.imageUri ?: "",
+                context = context
+            )
+        }
+    }
+
     init {
         viewModelScope.launch {
             repository.populateDefaultCategoriesIfEmpty()
@@ -69,7 +81,7 @@ class PantryViewModel @Inject constructor(
             .getAllPantryItems()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-        // Public alias for composables
+        // Public alias for composable
         val allItems: StateFlow<List<PantryItem>> = pantryItems
 
         // Internal UI state
@@ -117,11 +129,6 @@ class PantryViewModel @Inject constructor(
             category = state.editCategory?.name ?: original.category
         )
 
-        //  Handle image replacement cleanup
-        if (updatedItem.imageUri != original.imageUri) {
-            original.imageUri?.let { deleteImageFromStorage(it, context) }
-        }
-
         //  Update DB
         repository.update(
             updatedItem,
@@ -154,10 +161,10 @@ class PantryViewModel @Inject constructor(
 
     fun confirmDelete(context: Context) = viewModelScope.launch {
         uiState.value.itemToDelete?.let { item ->
-            repository.delete(
-                item,
-                context = context
-            )
+
+            repository.delete(item, context = context)
+            val files = context.filesDir.listFiles()
+            Log.d("ImageCleanup", "Remaining images: ${files?.map { it.name }}")
         }
         _uiState.update { it.copy(itemToDelete = null, editingItem = null) }
     }
@@ -203,9 +210,9 @@ class PantryViewModel @Inject constructor(
         }
     }
 
-        fun getAllPantryItems(): Flow<List<PantryItem>> {
-            return pantryItemDao.getAllPantryItems()
-        }
+    fun clearAddImageUri() {
+        _uiState.update { it.copy(addImageUri = null) }
+    }
 
     fun updateAddImage(uri: Uri?) {
         _uiState.update { it.copy(addImageUri = uri?.toString()) }

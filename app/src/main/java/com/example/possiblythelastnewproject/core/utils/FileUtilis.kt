@@ -1,37 +1,71 @@
 package com.example.possiblythelastnewproject.core.utils
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import java.io.File
 import androidx.core.net.toUri
-import java.io.IOException
 
 fun deleteImageFromStorage(uriStr: String, context: Context): Boolean {
+    val tag = "ImageCleanup"
+
+    if (uriStr.isBlank()) {
+        Log.w(tag, "⚠️ Skipping deletion — blank URI string")
+        return false
+    }
+
+    Log.d(tag, "🧹 Deletion initiated → $uriStr")
+
     return runCatching {
         val uri = uriStr.toUri()
+        Log.d(tag, "🔗 Parsed URI → $uri | Scheme: ${uri.scheme}")
 
-        val file = when (uri.scheme) {
-            "file" -> File(uri.path ?: throw IOException("Missing path for file URI"))
+        when (uri.scheme) {
+            "file" -> {
+                val file = uri.path?.let { File(it) }
+                if (file == null || !file.exists()) {
+                    Log.w(tag, "🚫 File not found → ${file?.absolutePath}")
+                    return false
+                }
+                val deleted = file.delete()
+                if (deleted) {
+                    Log.d(tag, "✅ Deleted image → ${file.name}")
+                } else {
+                    Log.w(tag, "❌ File deletion failed → ${file.name}")
+                }
+                deleted
+            }
+
+            "content" -> {
+                val deletedRows = context.contentResolver.delete(uri, null, null)
+                Log.d(tag, "🧨 contentResolver.delete result → $deletedRows row(s) affected")
+                deletedRows > 0
+            }
+
             else -> {
-                val fileName = uri.lastPathSegment ?: throw IOException("Missing file name from URI")
-                File(context.filesDir, fileName)
+                val fileName = uri.lastPathSegment ?: run {
+                    Log.w(tag, "🚫 Missing lastPathSegment → $uri")
+                    return false
+                }
+                val file = File(context.filesDir, fileName)
+                Log.d(tag, "📁 Resolved fallback file path → ${file.absolutePath}")
+
+                if (!file.exists()) {
+                    Log.w(tag, "🚫 File not found → ${file.absolutePath}")
+                    return false
+                }
+
+                val deleted = file.delete()
+                if (deleted) {
+                    Log.d(tag, "✅ Deleted image → ${file.name}")
+                } else {
+                    Log.w(tag, "❌ File deletion failed → ${file.name}")
+                }
+                deleted
             }
         }
-
-        if (!file.exists()) {
-            Log.w("ImageCleanup", "File does not exist → ${file.absolutePath}")
-            return false
-        }
-
-        val deleted = file.delete()
-        if (deleted) {
-            Log.d("ImageCleanup", "Deleted image → ${file.absolutePath}")
-        } else {
-            Log.w("ImageCleanup", "Failed to delete image → ${file.absolutePath}")
-        }
-        deleted
     }.getOrElse { e ->
-        Log.e("ImageCleanup", "Exception deleting image: ${e.message}", e)
+        Log.e(tag, "🔥 Exception during deletion → ${e.message}", e)
         false
     }
 }

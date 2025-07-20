@@ -55,23 +55,10 @@ class PantryRepository @Inject constructor(
         pantryItemDao.deletePantryItem(item)
     }
 
-    suspend fun findByScanCode(code: String): PantryItem? =
-        pantryItemDao.getByScanCode(code)
-
     /** Returns true only if no recipe cross-refs exist */
     private suspend fun canDelete(itemId: Long): Boolean =
         pantryItemDao.countRecipesUsing(itemId) == 0
 
-    /** Deletes if and only if there are no recipe cross-refs */
-    suspend fun deleteIfUnused(item: PantryItem, context: Context): Boolean {
-        return if (canDelete(item.id)) {
-            item.imageUri?.let { deleteImageFromStorage(it, context) }
-            pantryItemDao.deletePantryItem(item)
-            true
-        } else {
-            false
-        }
-    }
 
     /**
      * A live Flow of every RecipePantryItemCrossRef in the DB.
@@ -80,14 +67,6 @@ class PantryRepository @Inject constructor(
     fun observeAllCrossRefs(): Flow<List<RecipePantryItemCrossRef>> =
         recipePantryItemRepo.observeAllCrossRefs()
 
-    /**
-     * A live Flow of all pantryItemIds that are in use (as a Set<Long>).
-     * Handy for disabling “Delete” buttons in your UI.
-     */
-    fun observeInUsePantryItemIds(): Flow<Set<Long>> =
-        observeAllCrossRefs().map { list ->
-            list.map { it.pantryItemId }.toSet()
-        }
 
     suspend fun clearAll() {
         pantryItemDao.clearAll()

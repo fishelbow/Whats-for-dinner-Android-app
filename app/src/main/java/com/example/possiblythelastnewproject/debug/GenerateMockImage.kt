@@ -16,7 +16,7 @@ fun generateMockImage(context: Context, label: String): Uri {
         .replace(Regex("[^A-Za-z0-9_]"), "")
         .take(60)
 
-    val filename = "gallery_${safeName}_${System.currentTimeMillis()}.jpg"
+    val filename = "Mock_${safeName}_${System.currentTimeMillis()}.jpg"
     val file = File(context.filesDir, filename)
 
     val bitmap = createMockBitmap(label)

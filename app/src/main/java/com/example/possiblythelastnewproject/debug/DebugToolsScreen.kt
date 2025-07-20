@@ -12,12 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.possiblythelastnewproject.core.utils.copyUriToInternalStorage
+import com.example.possiblythelastnewproject.core.utils.compressUriToInternalStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.UUID
 
 @Composable
@@ -70,10 +69,10 @@ fun DebugToolsScreen() {
 
         val generator: suspend (String) -> Uri = { label ->
             withContext(Dispatchers.IO) {
-                val uuid = UUID.randomUUID().toString()
+              //  val uuid = UUID.randomUUID().toString()
 
                 // Now copy returns a Uri (not a String path)
-                val copiedUri = copyUriToInternalStorage(context, source, uuid)
+                val copiedUri = compressUriToInternalStorage(context, source)
 
                 copiedUri ?: generateMockImage(context, "fallback") // ✅ No File(...) construction needed
             }

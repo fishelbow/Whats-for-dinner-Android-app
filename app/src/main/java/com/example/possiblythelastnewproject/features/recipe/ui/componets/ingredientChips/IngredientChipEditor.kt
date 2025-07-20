@@ -3,19 +3,11 @@ package com.example.possiblythelastnewproject.features.recipe.ui.componets.ingre
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.NewReleases
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
-import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import kotlinx.coroutines.launch
 
@@ -28,38 +20,22 @@ fun IngredientChipEditor(
     onToggleShoppingStatus: (PantryItem) -> Unit
 ) {
     var showDuplicateDialog by remember { mutableStateOf(false) }
-
-
     var showAddDialog by remember { mutableStateOf(false) }
     var showNewPantryItemDialog by remember { mutableStateOf<String?>(null) }
+
     val scope = rememberCoroutineScope()
     val pantryItemMap = remember(allPantryItems) {
-        allPantryItems.associateBy { it.id }
+        allPantryItems.associateBy { it.id }.toMutableMap()
     }
-    if (showNewPantryItemDialog != null) {
-        AlertDialog(
-            onDismissRequest = { showNewPantryItemDialog = null },
-            title = { Text("Pantry Item Created") },
-            text = { Text("“${showNewPantryItemDialog}” was added to your pantry with quantity 0.") },
-            confirmButton = {
-                TextButton(onClick = { showNewPantryItemDialog = null }) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-    val viewModel: RecipesViewModel = hiltViewModel()
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Ingredients",
-            style = MaterialTheme.typography.titleMedium
-        )
+        Text("Ingredients", style = MaterialTheme.typography.titleMedium)
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 200.dp) // Optional: constrain height
-                .verticalScroll(rememberScrollState()) // Optional: allow scrolling
+                .heightIn(max = 200.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             LazyFlowRow(
                 items = ingredients,
@@ -75,9 +51,9 @@ fun IngredientChipEditor(
                     onToggleShoppingStatus = { updated ->
                         onIngredientsChange(
                             ingredients.map {
-                                if (it.pantryItemId == updated.id) {
+                                if (it.pantryItemId == updated.id)
                                     it.copy(includeInShoppingList = !it.includeInShoppingList)
-                                } else it
+                                else it
                             }
                         )
                         onToggleShoppingStatus(updated)
@@ -105,55 +81,61 @@ fun IngredientChipEditor(
                 text = { Text("You’ve already added that item.") }
             )
         }
-    }
 
-    if (showAddDialog) {
-        AddIngredientDialog(
-            allPantryItems = allPantryItems,
-            existingIngredientNames = ingredients.map { it.name },
-            onAdd = { name, amount ->
-                scope.launch {
-                    val trimmedName = name.trim()
-
-                    // Check if the pantry item already exists
-                    val match = allPantryItems.firstOrNull {
-                        it.name.equals(trimmedName, ignoreCase = true)
-                    }
-
-                    // Create new pantry item if needed and show dialog
-                    val pantryItem = match ?: onRequestCreatePantryItem(trimmedName).also {
-                        showNewPantryItemDialog = it.name
-                    }
-
-                    // Check if the ingredient is already in the recipe
-                    val alreadyExists = ingredients.any {
-                        it.name.equals(pantryItem.name, ignoreCase = true)
-                    }
-
-                    if (alreadyExists) {
-                        showDuplicateDialog = true
-                    } else {
-                        onIngredientsChange(
-                            ingredients + RecipeIngredientUI(
-                                name = pantryItem.name,
-                                pantryItemId = pantryItem.id,
-                                amountNeeded = amount,
-                                includeInShoppingList = true,
-                                includeInPantry = true,
-                                hasScanCode = pantryItem.scanCode?.isNotBlank() == true
-                            )
-                        )
-                        viewModel.updateNewIngredient("") // ✅ Clear after add
+        showNewPantryItemDialog?.let { name ->
+            AlertDialog(
+                onDismissRequest = { showNewPantryItemDialog = null },
+                title = { Text("Pantry Item Created") },
+                text = { Text("“$name” was added to your pantry with quantity 0.") },
+                confirmButton = {
+                    TextButton(onClick = { showNewPantryItemDialog = null }) {
+                        Text("OK")
                     }
                 }
-            },
-            onDismiss = {
-                showAddDialog = false
-                viewModel.updateNewIngredient("") // ✅ Clear on dismiss
-            },
-            viewModel = viewModel // ✅ Pass it in
-        )
+            )
+        }
+
+        if (showAddDialog) {
+            AddIngredientDialog(
+                allPantryItems = allPantryItems,
+                existingIngredientNames = ingredients.map { it.name },
+                onAdd = { name, amount ->
+                    scope.launch {
+                        val trimmedName = name.trim()
+
+                        val match = pantryItemMap.values.firstOrNull {
+                            it.name.equals(trimmedName, ignoreCase = true)
+                        }
+
+                        val pantryItem = match ?: onRequestCreatePantryItem(trimmedName).also {
+                            showNewPantryItemDialog = it.name
+                            pantryItemMap[it.id] = it // ✅ Inject into local map
+                        }
+
+                        val alreadyExists = ingredients.any {
+                            it.name.equals(pantryItem.name, ignoreCase = true)
+                        }
+
+                        if (alreadyExists) {
+                            showDuplicateDialog = true
+                        } else {
+                            onIngredientsChange(
+                                ingredients + RecipeIngredientUI(
+                                    name = pantryItem.name,
+                                    pantryItemId = pantryItem.id,
+                                    amountNeeded = amount,
+                                    includeInShoppingList = true,
+                                    includeInPantry = true,
+                                    hasScanCode = pantryItem.scanCode?.isNotBlank() == true
+                                )
+                            )
+                        }
+
+                        showAddDialog = false
+                    }
+                },
+                onDismiss = { showAddDialog = false }
+            )
+        }
     }
-
-
 }

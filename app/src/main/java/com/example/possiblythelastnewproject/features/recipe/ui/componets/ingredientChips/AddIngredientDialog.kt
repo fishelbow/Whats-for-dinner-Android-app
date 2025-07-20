@@ -17,13 +17,11 @@ fun AddIngredientDialog(
     allPantryItems: List<PantryItem>,
     existingIngredientNames: List<String>,
     onAdd: (String, String) -> Unit,
-    onDismiss: () -> Unit,
-    viewModel: RecipesViewModel // 👈 add this
+    onDismiss: () -> Unit
 ) {
-    var nameQuery by remember { mutableStateOf(viewModel.editUiState.newIngredient) }
+    var nameQuery by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("1") }
     var expanded by remember { mutableStateOf(false) }
-
     var showDuplicateDialog by remember { mutableStateOf(false) }
 
     val suggestions = remember(nameQuery, allPantryItems) {
@@ -46,7 +44,6 @@ fun AddIngredientDialog(
                         value = nameQuery,
                         onValueChange = {
                             nameQuery = it
-                            viewModel.updateNewIngredient(it) // 👈 sync with ViewModel
                             expanded = it.isNotBlank() && suggestions.isNotEmpty()
                         },
                         label = { Text("Ingredient name") },
@@ -94,13 +91,14 @@ fun AddIngredientDialog(
             TextButton(
                 onClick = {
                     val trimmedName = nameQuery.trim()
-                    val isDuplicate = existingIngredientNames.any { it.equals(trimmedName, ignoreCase = true) }
+                    val isDuplicate = existingIngredientNames.any {
+                        it.equals(trimmedName, ignoreCase = true)
+                    }
 
                     if (isDuplicate) {
                         showDuplicateDialog = true
                     } else {
                         onAdd(trimmedName, amount.trim())
-                        viewModel.updateNewIngredient("") // ✅ Clear after add
                         onDismiss()
                     }
                 },
@@ -110,10 +108,7 @@ fun AddIngredientDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = {
-                viewModel.updateNewIngredient("") // ✅ Clear on cancel
-                onDismiss()
-            }) {
+            TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
         }
@@ -122,7 +117,6 @@ fun AddIngredientDialog(
     if (showDuplicateDialog) {
         AlertDialog(
             onDismissRequest = { showDuplicateDialog = false },
-
             title = { Text("Duplicate Ingredient") },
             text = { Text("This ingredient has already been added.") },
             confirmButton = {
