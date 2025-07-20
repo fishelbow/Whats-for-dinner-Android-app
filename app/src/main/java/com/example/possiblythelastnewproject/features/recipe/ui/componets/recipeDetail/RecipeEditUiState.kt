@@ -21,37 +21,18 @@ data class RecipeEditUiState(
     var newIngredient: String = ""
 ) {
 
-    fun applyRecipe(
-        recipe: RecipeWithIngredients,
-        crossRefs: List<RecipePantryItemCrossRef>
-    ) {
-        val r = recipe.recipe
-        name = TextFieldValue(r.name)
-        temp = TextFieldValue(r.temp)
-        prepTime = TextFieldValue(r.prepTime)
-        cookTime = TextFieldValue(r.cookTime)
-        category = TextFieldValue(r.category)
-        instructions = TextFieldValue(r.instructions)
-        cardColor = Color(r.color)
-        imageUri = r.imageUri
+    fun applyRecipe(recipe: RecipeWithIngredients, crossRefs: List<RecipePantryItemCrossRef>) {
+        val newState = snapshotFrom(recipe, crossRefs)
+        name = newState.name
+        temp = newState.temp
+        prepTime = newState.prepTime
+        cookTime = newState.cookTime
+        category = newState.category
+        instructions = newState.instructions
+        cardColor = newState.cardColor
+        imageUri = newState.imageUri
+        ingredients = newState.ingredients
         newIngredient = ""
-
-        val refMap = crossRefs.associateBy { it.pantryItemId }
-
-        ingredients = recipe.ingredients.mapNotNull { pantry ->
-            val ref = refMap[pantry.id]
-            ref?.let {
-                RecipeIngredientUI(
-                    name = pantry.name,
-                    pantryItemId = pantry.id,
-                    includeInShoppingList = pantry.addToShoppingList,
-                    includeInPantry = true,
-                    hasScanCode = pantry.scanCode?.isNotBlank() == true,
-                    amountNeeded = it.amountNeeded,
-                    required = it.required
-                )
-            }
-        }
     }
 
     fun isChangedFrom(

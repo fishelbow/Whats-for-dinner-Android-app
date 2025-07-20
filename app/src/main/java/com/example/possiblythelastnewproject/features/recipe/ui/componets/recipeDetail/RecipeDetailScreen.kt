@@ -1,6 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
 
-import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.possiblythelastnewproject.core.ui.LocalEditingGuard
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
@@ -32,6 +31,8 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeDialogs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,10 +56,9 @@ fun RecipeDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
-
     val initialized = remember { mutableStateOf(false) }
 
-    // 🧭 Load initial data
+    // 🧭 Initial load
     LaunchedEffect(recipeId) {
         val recipe = viewModel.getRecipeWithIngredients(recipeId)
         val crossRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
@@ -70,33 +70,21 @@ fun RecipeDetailScreen(
         }
     }
 
-    // 🔄 Reactive snapshot + crossRefs
-    val crossRefsState by produceState(
-        initialValue = emptyList<RecipePantryItemCrossRef>(),
-        key1 = initialized.value
-    ) {
+    // 🔄 Reactive snapshot
+    val crossRefsState by produceState(initialValue = emptyList<RecipePantryItemCrossRef>(), initialized.value) {
         value = if (initialized.value) {
             viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
         } else emptyList()
     }
 
-    val recipeSnapshotState by produceState<RecipeWithIngredients?>(
-        initialValue = null,
-        key1 = initialized.value
-    ) {
+    val recipeSnapshotState by produceState<RecipeWithIngredients?>(initialValue = null, initialized.value) {
         value = if (initialized.value) {
             viewModel.getRecipeWithIngredients(recipeId)
         } else null
     }
 
     // 🧠 Change detection
-    val hasChangesState by remember(
-        uiState,
-        isUnsavedImageChange,
-        crossRefsState,
-        recipeSnapshotState,
-        originalImageUri
-    ) {
+    val hasChangesState by remember(uiState, isUnsavedImageChange, crossRefsState, recipeSnapshotState, originalImageUri) {
         derivedStateOf {
             val snapshot = recipeSnapshotState
             val crossRefs = crossRefsState
@@ -107,57 +95,80 @@ fun RecipeDetailScreen(
         }
     }
 
-    // 📸 Image Picker
+    // 📸 Image picker
     val pickImage = imagePicker { selectedUri ->
         editingGuard.isEditing = true
         selectedUri?.toString()?.let { newPath ->
             val currentStoredImage = uiState.imageUri.orEmpty()
             if (currentStoredImage.isNotEmpty() && currentStoredImage != newPath) {
                 deleteImageFromStorage(currentStoredImage, context)
-                Log.d("ImageCleanup", "🧨 Deleted replaced image → $currentStoredImage")
             }
             viewModel.updateImageUri(newPath)
             lastSavedImagePath = newPath
             if (newPath != originalImageUri) {
                 isUnsavedImageChange = true
-                Log.d("ImageChangeTracker", "📸 Image changed → unsaved=true")
             }
         }
     }
 
+    // 🔙 Back navigation
+    BackHandler(enabled = editingGuard.isEditing) {
+        if (hasChangesState) {
+            editingGuard.requestExit(
+                rollback = performRecipeRollback(
+                    recipeId,
+                    context,
+                    viewModel,
+                    uiState,
+                    originalImageUri,
+                    setImagePath = { originalImageUri = it; lastSavedImagePath = it },
+                    resetUnsavedFlag = { isUnsavedImageChange = false }
+                ),
+                thenExit = { editingGuard.isEditing = false }
+            )
+        } else {
+            editingGuard.isEditing = false
+        }
+    }
+
+    // 🧩 UI Scaffold
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Recipe Details") },
                 navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                val original = viewModel.getRecipeWithIngredients(recipeId)
-                                val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
-                                val hasChanges = original?.let {
-                                    uiState.isChangedFrom(it, freshRefs, originalImageUri)
-                                } ?: false
+                    IconButton(onClick = {
+                        coroutineScope.launch {
+                            val original = viewModel.getRecipeWithIngredients(recipeId)
+                            val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+                            val hasChanges = original?.let {
+                                uiState.isChangedFrom(it, freshRefs, originalImageUri)
+                            } ?: false
 
-                                if (editingGuard.isEditing && hasChanges) {
-                                    editingGuard.requestExit {
+                            if (editingGuard.isEditing && hasChanges) {
+                                editingGuard.requestExit(
+                                    rollback = {
                                         original?.let {
                                             uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
                                             uiState.applyRecipe(it, freshRefs)
-                                            originalImageUri = it.recipe.imageUri ?: ""
+                                            originalImageUri = it.recipe.imageUri.orEmpty()
                                             lastSavedImagePath = originalImageUri
                                             isUnsavedImageChange = false
+                                            val restored = uiState.toRecipeModel(it.recipe)
+                                            viewModel.restoreRecipeState(restored, uiState.ingredients)
                                         }
+                                    },
+                                    thenExit = {
                                         editingGuard.isEditing = false
                                     }
-                                } else if (editingGuard.isEditing) {
-                                    editingGuard.isEditing = false
-                                } else {
-                                    navController.navigateUp()
-                                }
+                                )
+                            } else if (editingGuard.isEditing) {
+                                editingGuard.isEditing = false
+                            } else {
+                                navController.navigateUp()
                             }
                         }
-                    ) {
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -178,7 +189,6 @@ fun RecipeDetailScreen(
                                                 deleteImageFromStorage(uri, context)
                                             }
                                             viewModel.updateImageUri(originalImageUri)
-                                            Log.d("imageCleanup", "🧹 Discarded unsaved image → ${uiState.imageUri}")
                                         }
                                         isUnsavedImageChange = false
                                         originalImageUri = restoredImageUri
@@ -205,7 +215,7 @@ fun RecipeDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 📸 Image Picker Box
+            // 📸 Image preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -229,7 +239,7 @@ fun RecipeDetailScreen(
                 )
             }
 
-            // 🧾 Editable Form
+            // 🧾 Form
             val hasChangesValue = hasChangesState
             val originalRecipe = recipeSnapshotState?.recipe
 
@@ -237,7 +247,7 @@ fun RecipeDetailScreen(
                 uiState = uiState,
                 isEditing = editingGuard.isEditing,
                 pantryItems = pantryItems,
-                onFieldChange = viewModel::updateUi, // New callback for field-level updates
+                onFieldChange = viewModel::updateUi,
                 onIngredientsChange = viewModel::updateIngredients,
                 onColorSelect = viewModel::updateCardColor,
                 onSave = {
@@ -245,10 +255,9 @@ fun RecipeDetailScreen(
                         showNameRequiredDialog = true
                         return@RecipeDetailForm
                     }
-
-                    val updated = originalRecipe?.let { uiState.toRecipeModel(it) }
-                    if (updated == null) return@RecipeDetailForm
-
+                    val updated = originalRecipe?.let {
+                        uiState.toRecipeModel(it)
+                    } ?: return@RecipeDetailForm
                     coroutineScope.launch {
                         val isDuplicate = viewModel.recipeNameExists(
                             name = updated.name,
@@ -258,70 +267,76 @@ fun RecipeDetailScreen(
                             showDuplicateNameDialog = true
                             return@launch
                         }
-
                         viewModel.updateRecipeWithIngredientsUi(
                             updatedRecipe = updated,
                             updatedIngredients = uiState.ingredients,
                             originalImageUri = originalImageUri,
                             context = context
                         )
-
                         originalImageUri = uiState.imageUri.orEmpty()
                         lastSavedImagePath = uiState.imageUri
                         isUnsavedImageChange = false
-                        navController.popBackStack("recipes_main", inclusive = false)
+                        editingGuard.isEditing = false
+                        navController.popBackStack()
+                    }
+                },
+                onCancel = { hasChanges, requestExit, exitCleanly ->
+                    if (hasChanges && editingGuard.isEditing) {
+                        coroutineScope.launch {
+                            editingGuard.requestExit(
+                                rollback = {
+                                    coroutineScope.launch {
+                                        val latest = viewModel.getRecipeWithIngredients(recipeId)
+                                        val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
 
-                        editingGuard.isEditing = false
-                    }
-                },
-                onCancel = {
-                    coroutineScope.launch {
-                        val latest = viewModel.getRecipeWithIngredients(recipeId)
-                        val freshRefs =
-                            viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
-                        latest?.let {
-                            uiState.rollbackImageIfNeeded(
-                                originalImageUri,
-                                context,
-                                ::deleteImageFromStorage
+                                        latest?.let {
+                                            uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
+                                            uiState.applyRecipe(it, freshRefs)
+                                            originalImageUri = it.recipe.imageUri.orEmpty()
+                                            lastSavedImagePath = originalImageUri
+                                            isUnsavedImageChange = false
+
+                                            val restoredRecipe = uiState.toRecipeModel(it.recipe)
+                                            viewModel.restoreRecipeState(restoredRecipe, uiState.ingredients)
+                                        }
+                                    }
+                                },
+                                thenExit = {
+                                    editingGuard.isEditing = false
+                                }
                             )
-                            uiState.applyRecipe(it, freshRefs)
-                            originalImageUri = it.recipe.imageUri ?: ""
-                            lastSavedImagePath = originalImageUri
-                            isUnsavedImageChange = false
                         }
+                    } else {
                         editingGuard.isEditing = false
                     }
                 },
-                hasChanges = hasChangesState,
-                onRequestCreatePantryItem = { name ->
-                    pantryViewModel.insertAndReturn(name)
-                },
+                hasChanges = hasChangesValue,
+                onRequestCreatePantryItem = { name -> pantryViewModel.insertAndReturn(name) },
                 onToggleShoppingStatus = { item ->
                     pantryViewModel.toggleShoppingStatus(item.id, context)
                 }
             )
-
-            // 🗂 Dialogs
-            RecipeDialogs(
-                showDeleteDialog = showDeleteDialog,
-                onConfirmDelete = {
-                    coroutineScope.launch {
-                        val original = viewModel.getRecipeWithIngredients(recipeId)
-                        original?.let {
-                            viewModel.delete(it.recipe, context)
-                            editingGuard.isEditing = false
-                            showDeleteDialog = false
-                            navController.navigateUp()
-                        }
-                    }
-                },
-                onDismissDelete = { showDeleteDialog = false },
-                showDuplicateNameDialog = showDuplicateNameDialog,
-                onDismissDuplicate = { showDuplicateNameDialog = false },
-                showNameRequiredDialog = showNameRequiredDialog,
-                onDismissMissingName = { showNameRequiredDialog = false }
-            )
         }
+
+        // 🧹 Dialogs
+        RecipeDialogs(
+            showDeleteDialog = showDeleteDialog,
+            onConfirmDelete = {
+                coroutineScope.launch {
+                    val original = viewModel.getRecipeWithIngredients(recipeId)
+                    original?.let {
+                        viewModel.delete(it.recipe, context)
+                        editingGuard.isEditing = false
+                        showDeleteDialog = false
+                        navController.navigateUp()
+                    }
+                }
+            },
+            onDismissDelete = { showDeleteDialog = false },
+            showDuplicateNameDialog = showDuplicateNameDialog,
+            onDismissDuplicate = { showDuplicateNameDialog = false },
+            showNameRequiredDialog = showNameRequiredDialog,
+            onDismissMissingName = { showNameRequiredDialog = false }
+        )
     }
 }

@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.core.ui
+package com.example.possiblythelastnewproject.core.ui.navigation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,6 +37,8 @@ import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
 import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
 import com.example.possiblythelastnewproject.features.scan.ui.componets.CreateFromScanDialog
@@ -61,6 +63,7 @@ sealed class TabItem(val title: String, val icon: ImageVector) {
 @Composable
 fun MainScreen() {
     val editingGuard = remember { EditingGuard() }
+    val coroutineScope = rememberCoroutineScope()
     val tabs = listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning)
     var currentPage by remember { mutableIntStateOf(0) }
     val navMap = tabs.associateWith { rememberNavController() }
@@ -73,17 +76,28 @@ fun MainScreen() {
                         Tab(
                             selected = currentPage == index,
                             onClick = {
-                                if (!editingGuard.isEditing) {
-                                    currentPage = index
-                                } else {
-                                    editingGuard.requestExit {
-                                        currentPage = index
+                                val currentNavController = navMap[tabs[currentPage]]
+                                val currentTab = tabs[currentPage]
+
+                                val rollback: () -> Unit = if (editingGuard.isEditing && currentTab is TabItem.Recipes) {
+                                    {
+                                        // ❗ Add your real rollback logic here, or delegate to RecipesViewModel helper
                                     }
+                                } else {
+                                    {} // no rollback needed
                                 }
+
+                                handleTabSwitch(
+                                    index = index,
+                                    currentPageSetter = { currentPage = it },
+                                    editingGuard = editingGuard,
+                                    coroutineScope = coroutineScope,
+                                    rollback = rollback
+                                )
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.title) },
                             text = { Text(tab.title) },
-                            enabled = true // Keep enabled so it looks clickable, but logic is guarded
+                            enabled = true
                         )
                     }
                 }

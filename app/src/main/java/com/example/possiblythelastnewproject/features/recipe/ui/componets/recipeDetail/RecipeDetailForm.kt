@@ -17,7 +17,9 @@ import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingred
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.LazyFlowRow
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
-import kotlin.reflect.KFunction1
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.EditableField
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.ReadOnlyField
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeColorPicker
 
 @Composable
 fun RecipeDetailForm(
@@ -30,7 +32,7 @@ fun RecipeDetailForm(
     onRequestCreatePantryItem: suspend (String) -> PantryItem,
     onToggleShoppingStatus: (PantryItem) -> Unit,
     onSave: () -> Unit,
-    onCancel: () -> Unit,
+    onCancel: (hasChanges: Boolean, requestExit: () -> Unit, exitCleanly: () -> Unit) -> Unit,
     hasChanges: Boolean
 ) {
     Card(
@@ -146,7 +148,13 @@ fun RecipeDetailForm(
                         Text("Save")
                     }
                     OutlinedButton(
-                        onClick = onCancel,
+                        onClick = {
+                            if (hasChanges) {
+                                onCancel(true, { /* handled by parent */ }, {})
+                            } else {
+                                onCancel(false, {}, {})
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")

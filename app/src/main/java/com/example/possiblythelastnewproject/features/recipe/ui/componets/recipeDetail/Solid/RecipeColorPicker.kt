@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

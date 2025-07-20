@@ -1,8 +1,7 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField

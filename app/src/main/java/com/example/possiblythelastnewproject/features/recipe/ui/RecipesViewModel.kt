@@ -18,6 +18,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.text.input.TextFieldValue
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -142,4 +145,67 @@ class RecipesViewModel @Inject constructor(
                 )
             }
         }
+
+    fun restoreRecipeState(
+        restoredRecipe: Recipe,
+        restoredIngredients: List<RecipeIngredientUI>
+    ) = viewModelScope.launch {
+        recipeRepository.insert(restoredRecipe)
+
+        val restoredRefs = restoredIngredients
+            .filter { it.pantryItemId != null }
+            .map {
+                RecipePantryItemCrossRef(
+                    recipeId = restoredRecipe.id,
+                    pantryItemId = it.pantryItemId!!,
+                    required = it.required,
+                    amountNeeded = it.amountNeeded
+                )
+            }
+
+        ingredientRepository.replaceIngredientsForRecipe(restoredRecipe.id, restoredRefs)
+    }
+
+    fun discardAndExitIfEditing(
+        recipeId: Long,
+        context: Context,
+        editingGuard: EditingGuard,
+        uiState: RecipeEditUiState,
+        originalImageUri: String,
+        updateImagePath: (String) -> Unit,
+        resetUnsavedFlag: () -> Unit,
+        exit: () -> Unit
+    ) {
+        if (editingGuard.isEditing) {
+            CoroutineScope(Dispatchers.Main).launch {
+                editingGuard.requestExit(
+                    rollback = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            val latest = getRecipeWithIngredients(recipeId)
+                            val freshRefs = ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+
+                            latest?.let {
+                                uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
+                                uiState.applyRecipe(it, freshRefs)
+
+                                val restoredPath = it.recipe.imageUri.orEmpty()
+                                updateImagePath(restoredPath)
+                                resetUnsavedFlag()
+
+                                val restoredRecipe = uiState.toRecipeModel(it.recipe)
+                                restoreRecipeState(restoredRecipe, uiState.ingredients)
+                            }
+                        }
+                    },
+                    thenExit = {
+                        editingGuard.isEditing = false
+                        exit()
+                    }
+                )
+            }
+        } else {
+            editingGuard.isEditing = false
+            exit()
+        }
+    }
 }
