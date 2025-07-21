@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid
 
 import RecipeEditUiState
 import androidx.compose.animation.animateContentSize
@@ -17,9 +17,6 @@ import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingred
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.IngredientChipEditor
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.ingredientChips.LazyFlowRow
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.EditableField
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.ReadOnlyField
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeColorPicker
 
 @Composable
 fun RecipeDetailForm(

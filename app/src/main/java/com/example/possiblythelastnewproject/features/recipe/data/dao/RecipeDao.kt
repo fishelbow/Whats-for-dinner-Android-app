@@ -54,5 +54,7 @@ interface RecipeDao {
     @Query("SELECT imageUri FROM Recipe WHERE imageUri IS NOT NULL")
     suspend fun getAllRecipeImageUris(): List<String>
 
-
+    @Transaction
+    @Query("SELECT * FROM Recipe ORDER BY recipe_name")
+    suspend fun getAllRecipesWithIngredientsOnce(): List<RecipeWithIngredients>
 }

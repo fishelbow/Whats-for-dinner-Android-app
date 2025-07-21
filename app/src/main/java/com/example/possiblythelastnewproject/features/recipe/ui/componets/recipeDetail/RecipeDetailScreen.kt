@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeDetailForm
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeDialogs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,17 +179,22 @@ fun RecipeDetailScreen(
                         showNameRequiredDialog = true
                         return@RecipeDetailForm
                     }
-                    val updated = originalRecipe?.let { uiState.toRecipeModel(it) } ?: return@RecipeDetailForm
+                    val committedState = uiState.commitImage()
+                    val updated = originalRecipe?.let { committedState.toRecipeModel(it) }
                     coroutineScope.launch {
-                        if (viewModel.recipeNameExists(updated.name, updated.uuid)) {
-                            showDuplicateNameDialog = true
-                            return@launch
+                        if (updated != null) {
+                            if (viewModel.recipeNameExists(updated.name, updated.uuid)) {
+                                showDuplicateNameDialog = true
+                                return@launch
+                            }
                         }
-                        viewModel.updateRecipeWithIngredientsUi(
-                            updatedRecipe = updated,
-                            updatedIngredients = uiState.ingredients,
-                            context = context
-                        )
+                        if (updated != null) {
+                            viewModel.updateRecipeWithIngredientsUi(
+                                updatedRecipe = updated,
+                                updatedIngredients = uiState.ingredients,
+                                context = context
+                            )
+                        }
                         viewModel.commitImageUri()
                         editingGuard.isEditing = false
                         navController.popBackStack()

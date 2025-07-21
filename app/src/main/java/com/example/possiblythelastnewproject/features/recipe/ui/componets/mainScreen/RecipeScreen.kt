@@ -2,8 +2,10 @@ package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainS
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +33,9 @@ import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.core.net.toUri
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.possiblythelastnewproject.R
 
 @Composable
 fun RecipeScreenWithSearch(
@@ -96,7 +102,7 @@ fun RecipeGridScreen(
 fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
     val cardColor = Color(recipe.color)
     val textColor = if (cardColor.luminance() < 0.5f) Color.White else Color.Black
-    var fallbackBitmap by remember(recipe.id) { mutableStateOf<Bitmap?>(null) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -112,52 +118,48 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            val context = LocalContext.current
-            val bitmap by produceState<Bitmap?>(null, recipe.imageUri) {
-                value = withContext(Dispatchers.IO) {
-                    try {
-                        val uri = recipe.imageUri?.toUri()
-                        val decoded = uri?.let {
-                            context.contentResolver.openInputStream(it)?.use { stream ->
-                                BitmapFactory.decodeStream(stream)
-                            }
-                        }
-                        if (decoded != null) {
-                            fallbackBitmap = decoded // Save success for fallback use
-                        }
-                        decoded
-                    } catch (e: Exception) {
-                        Log.w("RecipeTile", "Decode failed: ${e.message}")
-                        fallbackBitmap // Use fallback if decode fails
-                    }
-                }
-            }
+            val imageModifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
 
-            bitmap?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+            val context = LocalContext.current
+
+            recipe.imageUri?.let { uriString ->
+                val uri = uriString.toUri()
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
                         .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                )
-            }
+                        .background(Color.LightGray) // Your placeholder and fallback color
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(uri)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Recipe image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = recipe.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = recipe.category,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cardColor
-                )
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = recipe.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = recipe.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cardColor
+                    )
+                }
             }
         }
     }
