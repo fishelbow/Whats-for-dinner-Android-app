@@ -24,6 +24,7 @@ fun performRecipeRollback(
 
             if (!pending.isNullOrBlank() && pending != committed) {
                 deleteImageFromStorage(pending, context)
+                viewModel.rollbackImageUri()
             }
 
             val restoredState = RecipeEditUiState.snapshotFrom(it, crossRefs)
