@@ -9,116 +9,87 @@ import com.example.possiblythelastnewproject.features.recipe.data.entities.Recip
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 
 data class RecipeEditUiState(
-    var name: TextFieldValue = TextFieldValue(""),
-    var temp: TextFieldValue = TextFieldValue(""),
-    var prepTime: TextFieldValue = TextFieldValue(""),
-    var cookTime: TextFieldValue = TextFieldValue(""),
-    var category: TextFieldValue = TextFieldValue(""),
-    var instructions: TextFieldValue = TextFieldValue(""),
-    var cardColor: Color = Color.White,
-    var imageUri: String? = null,
-    var ingredients: List<RecipeIngredientUI> = emptyList(),
-    var newIngredient: String = ""
+    val name: TextFieldValue = TextFieldValue(""),
+    val temp: TextFieldValue = TextFieldValue(""),
+    val prepTime: TextFieldValue = TextFieldValue(""),
+    val cookTime: TextFieldValue = TextFieldValue(""),
+    val category: TextFieldValue = TextFieldValue(""),
+    val instructions: TextFieldValue = TextFieldValue(""),
+    val cardColor: Color = Color.White,
+    val imageUri: String? = null,
+    val pendingImageUri: String? = null,
+    val ingredients: List<RecipeIngredientUI> = emptyList(),
+    val newIngredient: String = ""
 ) {
+    val currentDisplayUri: String?
+        get() = pendingImageUri ?: imageUri
 
-    fun rollbackFromSnapshot(
-        snapshot: RecipeWithIngredients,
-        crossRefs: List<RecipePantryItemCrossRef>,
-        originalImageUri: String?,
-        context: Context,
-        deleteFn: (String, Context) -> Unit,
-        onImageReset: (String) -> Unit = {},
-        resetUnsavedImageChange: () -> Unit = {}
-    ): Recipe {
-        rollbackImageIfNeeded(originalImageUri, context, deleteFn)
-        applyRecipe(snapshot, crossRefs)
+    val hasPendingImageChange: Boolean
+        get() = !pendingImageUri.isNullOrBlank() && pendingImageUri != imageUri
 
-        val restoredUri = snapshot.recipe.imageUri.orEmpty()
-        onImageReset(restoredUri)
-        resetUnsavedImageChange()
-
-        return toRecipeModel(snapshot.recipe)
-    }
-
-    fun applyRecipe(recipe: RecipeWithIngredients, crossRefs: List<RecipePantryItemCrossRef>) {
-        val newState = snapshotFrom(recipe, crossRefs)
-        name = newState.name
-        temp = newState.temp
-        prepTime = newState.prepTime
-        cookTime = newState.cookTime
-        category = newState.category
-        instructions = newState.instructions
-        cardColor = newState.cardColor
-        imageUri = newState.imageUri
-        ingredients = newState.ingredients
-        newIngredient = ""
-    }
-
-    fun isChangedFrom(
+    fun hasAnyChangesComparedTo(
         original: RecipeWithIngredients,
-        crossRefs: List<RecipePantryItemCrossRef>,
-        originalImageUri: String? = null
+        crossRefs: List<RecipePantryItemCrossRef>
     ): Boolean {
-        val snapshot = snapshotFrom(original, crossRefs, overrideImage = originalImageUri)
-        return this != snapshot
+        val snapshot = snapshotFrom(original, crossRefs, overrideImage = imageUri)
+        return this != snapshot || hasPendingImageChange
     }
 
-    private fun snapshotFrom(
-        original: RecipeWithIngredients,
-        crossRefs: List<RecipePantryItemCrossRef>,
-        overrideImage: String? = null
-    ): RecipeEditUiState {
-        val refMap = crossRefs.associateBy { it.pantryItemId }
+    fun commitImage(): RecipeEditUiState =
+        copy(imageUri = pendingImageUri ?: imageUri, pendingImageUri = null)
 
-        val enrichedIngredients = original.ingredients.mapNotNull { pantry ->
-            val ref = refMap[pantry.id]
-            ref?.let {
-                RecipeIngredientUI(
-                    name = pantry.name,
-                    pantryItemId = pantry.id,
-                    includeInShoppingList = pantry.addToShoppingList,
-                    includeInPantry = true,
-                    hasScanCode = pantry.scanCode?.isNotBlank() == true,
-                    amountNeeded = it.amountNeeded,
-                    required = it.required
-                )
-            }
-        }
+    fun rollbackImage(): RecipeEditUiState =
+        copy(pendingImageUri = null)
 
-        return RecipeEditUiState(
-            name = TextFieldValue(original.recipe.name),
-            temp = TextFieldValue(original.recipe.temp),
-            prepTime = TextFieldValue(original.recipe.prepTime),
-            cookTime = TextFieldValue(original.recipe.cookTime),
-            category = TextFieldValue(original.recipe.category),
-            instructions = TextFieldValue(original.recipe.instructions),
-            cardColor = Color(original.recipe.color),
-            imageUri = overrideImage ?: original.recipe.imageUri,
-            ingredients = enrichedIngredients,
-            newIngredient = ""
-        )
-    }
+    fun withPendingImage(uri: String): RecipeEditUiState =
+        copy(pendingImageUri = uri)
 
-    fun rollbackImageIfNeeded(originalUri: String?, context: Context, deleteFn: (String, Context) -> Unit) {
-        if (imageUri != originalUri) {
-            imageUri?.let {
-                deleteFn(it, context)
-                Log.d("ImageCleanup", "🧼 Rolled back → $it")
-            }
-            imageUri = originalUri
-        }
-    }
-
-    fun toRecipeModel(original: Recipe): Recipe {
-        return original.copy(
-            name = name.text.trim(),
-            temp = temp.text.trim(),
-            prepTime = prepTime.text.trim(),
-            cookTime = cookTime.text.trim(),
-            category = category.text.trim(),
+    fun toRecipeModel(original: Recipe): Recipe =
+        original.copy(
+            name         = name.text.trim(),
+            temp         = temp.text.trim(),
+            prepTime     = prepTime.text.trim(),
+            cookTime     = cookTime.text.trim(),
+            category     = category.text.trim(),
             instructions = instructions.text.trim(),
-            imageUri = imageUri ?: "",
-            color = cardColor.toArgb()
+            imageUri     = imageUri.orEmpty(),
+            color        = cardColor.toArgb()
         )
+
+    companion object {
+        fun snapshotFrom(
+            original: RecipeWithIngredients,
+            crossRefs: List<RecipePantryItemCrossRef>,
+            overrideImage: String? = null
+        ): RecipeEditUiState {
+            val refMap = crossRefs.associateBy { it.pantryItemId }
+            val enrichedIngredients = original.ingredients.mapNotNull { pantry ->
+                refMap[pantry.id]?.let { ref ->
+                    RecipeIngredientUI(
+                        name                  = pantry.name,
+                        pantryItemId          = pantry.id,
+                        includeInShoppingList = pantry.addToShoppingList,
+                        includeInPantry       = true,
+                        hasScanCode           = pantry.scanCode?.isNotBlank() == true,
+                        amountNeeded          = ref.amountNeeded,
+                        required              = ref.required
+                    )
+                }
+            }
+
+            return RecipeEditUiState(
+                name            = TextFieldValue(original.recipe.name),
+                temp            = TextFieldValue(original.recipe.temp),
+                prepTime        = TextFieldValue(original.recipe.prepTime),
+                cookTime        = TextFieldValue(original.recipe.cookTime),
+                category        = TextFieldValue(original.recipe.category),
+                instructions    = TextFieldValue(original.recipe.instructions),
+                cardColor       = Color(original.recipe.color),
+                imageUri        = overrideImage ?: original.recipe.imageUri,
+                pendingImageUri = null,
+                ingredients     = enrichedIngredients,
+                newIngredient   = ""
+            )
+        }
     }
 }

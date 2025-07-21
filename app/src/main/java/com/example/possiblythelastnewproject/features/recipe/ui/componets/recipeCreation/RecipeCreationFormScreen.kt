@@ -237,7 +237,10 @@ fun RecipeCreationFormScreen(
                             color = cardColor.toArgb()
                         )
 
-                        recipeViewModel.saveRecipeWithIngredientsUi(recipe, ingredientList)
+                        recipeViewModel.saveRecipeWithIngredientsUi(
+                            recipe, ingredientList,
+                            context = context
+                        )
                         editingGuard.isEditing = false
                         onRecipeCreated(recipe)
                     }

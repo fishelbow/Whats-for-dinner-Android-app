@@ -27,16 +27,21 @@ class RecipesViewModel @Inject constructor(
 ) : ViewModel() {
 
     val _uiState = MutableStateFlow(RecipeEditUiState())
-    val uiState: StateFlow<RecipeEditUiState> = _uiState
+    val uiState: StateFlow<RecipeEditUiState> = _uiState.asStateFlow()
 
+    // 🌈 Field updates
     fun updateCardColor(color: Color) = updateUi { copy(cardColor = color) }
-    fun updateImageUri(uri: String) = updateUi { copy(imageUri = uri) }
     fun updateIngredients(list: List<RecipeIngredientUI>) = updateUi { copy(ingredients = list) }
+    fun updatePendingImageUri(uri: String) = updateUi { withPendingImage(uri) }
+
+    fun commitImageUri() = updateUi { commitImage() }
+    fun rollbackImageUri() = updateUi { rollbackImage() }
 
     inline fun updateUi(transform: RecipeEditUiState.() -> RecipeEditUiState) {
-        _uiState.value = _uiState.value.transform()
+        _uiState.update { it.transform() }
     }
 
+    // 📦 Observed recipe lists
     val allRecipes: StateFlow<List<Recipe>> =
         recipeRepository.getAllRecipes()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -45,94 +50,111 @@ class RecipesViewModel @Inject constructor(
         recipeRepository.getRecipesWithIngredients()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // 🕵️ Name collision check
     suspend fun recipeNameExists(name: String, excludeUuid: String? = null): Boolean {
+        val trimmed = name.trim()
         return if (excludeUuid != null) {
-            recipeDao.existsByNameExcludingUuid(name.trim(), excludeUuid)
+            recipeDao.existsByNameExcludingUuid(trimmed, excludeUuid)
         } else {
-            recipeDao.existsByName(name.trim())
+            recipeDao.existsByName(trimmed)
         }
     }
 
+    // 🧭 Load recipe snapshot into immutable UI-state
+    fun loadRecipe(recipeId: Long) = viewModelScope.launch {
+        val snapshot = recipeRepository.getRecipeWithIngredients(recipeId) ?: return@launch
+        val crossRefs = ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+        _uiState.value = RecipeEditUiState.snapshotFrom(snapshot, crossRefs)
+    }
+
+    // 💾 Save new recipe
     fun saveRecipeWithIngredientsUi(
         recipe: Recipe,
-        ingredients: List<RecipeIngredientUI>
+        ingredients: List<RecipeIngredientUI>,
+        context: Context
     ) = viewModelScope.launch {
+        if (_uiState.value.hasPendingImageChange) {
+            _uiState.value.pendingImageUri?.let {
+                commitImageUri()
+            }
+        }
+
         val recipeId = recipeRepository.insert(recipe.copy(id = 0L))
         val crossRefs = ingredients
             .filter { it.pantryItemId != null }
             .map {
                 RecipePantryItemCrossRef(
-                    recipeId = recipeId,
+                    recipeId     = recipeId,
                     pantryItemId = it.pantryItemId!!,
-                    required = it.required,
+                    required     = it.required,
                     amountNeeded = it.amountNeeded
                 )
             }
         crossRefs.forEach { ingredientRepository.insertCrossRef(it) }
     }
 
+    // 💾 Update recipe
     fun updateRecipeWithIngredientsUi(
         updatedRecipe: Recipe,
         updatedIngredients: List<RecipeIngredientUI>,
-        originalImageUri: String?,
         context: Context
     ) = viewModelScope.launch {
-        if (updatedRecipe.imageUri != originalImageUri) {
-            val wasDeleted = originalImageUri?.let { deleteImageFromStorage(it, context) } ?: false
-            if (wasDeleted && _uiState.value.imageUri == originalImageUri) {
-                updateImageUri("")
-            }
+        val state = _uiState.value
+        if (state.hasPendingImageChange) {
+            state.pendingImageUri?.let { deleteImageFromStorage(it, context) }
+            commitImageUri()
         }
 
         recipeRepository.insert(updatedRecipe)
 
-        val newRefs = updatedIngredients
+        val refs = updatedIngredients
             .filter { it.pantryItemId != null }
             .map {
                 RecipePantryItemCrossRef(
-                    recipeId = updatedRecipe.id,
+                    recipeId     = updatedRecipe.id,
                     pantryItemId = it.pantryItemId!!,
-                    required = it.required,
+                    required     = it.required,
                     amountNeeded = it.amountNeeded
                 )
             }
 
-        ingredientRepository.replaceIngredientsForRecipe(updatedRecipe.id, newRefs)
+        ingredientRepository.replaceIngredientsForRecipe(updatedRecipe.id, refs)
     }
 
-    fun delete(recipe: Recipe, context: Context) = viewModelScope.launch {
+    // 🗑 Delete recipe
+    fun deleteRecipe(recipe: Recipe, context: Context) = viewModelScope.launch {
         recipeRepository.delete(recipe, context)
         ingredientRepository.deleteCrossRefsForRecipe(recipe.id)
 
-        if (_uiState.value.imageUri == recipe.imageUri) {
-            updateImageUri("")
+        updateUi {
+            if (imageUri == recipe.imageUri) copy(imageUri = null, pendingImageUri = null)
+            else this
         }
     }
 
-    suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? {
-        return recipeRepository.getRecipeWithIngredients(recipeId)
-    }
-
-
+    // 🔄 Restore snapshot after rollback
     fun restoreRecipeState(
         restoredRecipe: Recipe,
         restoredIngredients: List<RecipeIngredientUI>
     ) = viewModelScope.launch {
         recipeRepository.insert(restoredRecipe)
 
-        val restoredRefs = restoredIngredients
+        val refs = restoredIngredients
             .filter { it.pantryItemId != null }
             .map {
                 RecipePantryItemCrossRef(
-                    recipeId = restoredRecipe.id,
+                    recipeId     = restoredRecipe.id,
                     pantryItemId = it.pantryItemId!!,
-                    required = it.required,
+                    required     = it.required,
                     amountNeeded = it.amountNeeded
                 )
             }
 
-        ingredientRepository.replaceIngredientsForRecipe(restoredRecipe.id, restoredRefs)
+        ingredientRepository.replaceIngredientsForRecipe(restoredRecipe.id, refs)
     }
 
-
+    // 🎯 Snapshot getter
+    suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? {
+        return recipeRepository.getRecipeWithIngredients(recipeId)
+    }
 }

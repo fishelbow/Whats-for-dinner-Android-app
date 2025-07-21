@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.content.pm.PackageManager
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +23,39 @@ import java.io.FileOutputStream
 
 // need to handle image rotation also
 
+fun rotateBitmapIfRequired(context: Context, bitmap: Bitmap, sourceUri: Uri): Bitmap {
+    return try {
+        val input = context.contentResolver.openInputStream(sourceUri)
+        val exif = input?.use { ExifInterface(it) }
+        val orientation = exif?.getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL
+        )
 
+        val angle = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+
+        val matrix = Matrix().apply {
+            if (angle != 0f) postRotate(angle)
+
+            // Optional: scale down large images for better preview cropping
+            val maxPreviewDim = 1024
+            val scaleX = if (bitmap.width > maxPreviewDim) maxPreviewDim.toFloat() / bitmap.width else 1f
+            val scaleY = if (bitmap.height > maxPreviewDim) maxPreviewDim.toFloat() / bitmap.height else 1f
+            val scale = minOf(scaleX, scaleY)
+            if (scale < 1f) postScale(scale, scale)
+        }
+
+        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    } catch (e: Exception) {
+        Log.e("ImageCleanup", "⚠️ Rotation/Scaling failed → ${e.message}")
+        bitmap
+    }
+}
 
 @Composable
 fun imagePicker(
@@ -126,11 +160,13 @@ fun compressUriToInternalStorage(context: Context, sourceUri: Uri): Uri? {
                 return null
             }
 
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            Log.d(tag, "🎨 Bitmap decoded → width: ${bitmap.width}, height: ${bitmap.height}")
+            val rawBitmap = BitmapFactory.decodeStream(inputStream)
+            val rotatedBitmap = rotateBitmapIfRequired(context, rawBitmap, sourceUri)
+
+            Log.d(tag, "🎨 Bitmap rotated → width: ${rotatedBitmap.width}, height: ${rotatedBitmap.height}")
 
             FileOutputStream(file).use { out ->
-                val success = bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                val success = rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
                 Log.d(tag, "🧼 Bitmap compression success → $success")
             }
         }

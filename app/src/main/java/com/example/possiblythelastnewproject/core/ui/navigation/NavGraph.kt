@@ -76,7 +76,6 @@ fun MainScreen() {
                         Tab(
                             selected = currentPage == index,
                             onClick = {
-                                val currentNavController = navMap[tabs[currentPage]]
                                 val currentTab = tabs[currentPage]
 
                                 val rollback: () -> Unit = if (editingGuard.isEditing && currentTab is TabItem.Recipes) {

@@ -35,4 +35,17 @@ class EditingGuard {
         onRollbackConfirmed = null
         onDiscardConfirmed = null
     }
+
+    fun guardedExit(
+        hasChanges: Boolean,
+        rollback: () -> Unit,
+        thenExit: () -> Unit,
+        cleanExit: () -> Unit
+    ) {
+        if (isEditing && hasChanges) {
+            requestExit(rollback, thenExit)
+        } else {
+            cleanExit()
+        }
+    }
 }

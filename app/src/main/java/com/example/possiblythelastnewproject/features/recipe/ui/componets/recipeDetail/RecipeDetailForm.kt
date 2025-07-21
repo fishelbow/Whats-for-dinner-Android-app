@@ -32,7 +32,7 @@ fun RecipeDetailForm(
     onRequestCreatePantryItem: suspend (String) -> PantryItem,
     onToggleShoppingStatus: (PantryItem) -> Unit,
     onSave: () -> Unit,
-    onCancel: (hasChanges: Boolean, requestExit: () -> Unit, exitCleanly: () -> Unit) -> Unit,
+    onCancel: () -> Unit,
     hasChanges: Boolean
 ) {
     Card(
@@ -148,13 +148,7 @@ fun RecipeDetailForm(
                         Text("Save")
                     }
                     OutlinedButton(
-                        onClick = {
-                            if (hasChanges) {
-                                onCancel(true, { /* handled by parent */ }, {})
-                            } else {
-                                onCancel(false, {}, {})
-                            }
-                        },
+                        onClick = onCancel,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")

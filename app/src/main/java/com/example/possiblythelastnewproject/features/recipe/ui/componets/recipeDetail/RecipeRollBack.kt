@@ -12,41 +12,23 @@ import kotlinx.coroutines.launch
 fun performRecipeRollback(
     recipeId: Long,
     context: Context,
-    viewModel: RecipesViewModel,
-    uiState: RecipeEditUiState,
-    originalImageUri: String,
-    setImagePath: (String) -> Unit,
-    resetUnsavedFlag: () -> Unit
+    viewModel: RecipesViewModel
 ): () -> Unit = {
     CoroutineScope(Dispatchers.Main).launch {
-        val latest = viewModel.getRecipeWithIngredients(recipeId)
-        val freshRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
+        val snapshot = viewModel.getRecipeWithIngredients(recipeId)
+        val crossRefs = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
 
-        latest?.let {
-            uiState.rollbackImageIfNeeded(originalImageUri, context, ::deleteImageFromStorage)
-            uiState.applyRecipe(it, freshRefs)
+        snapshot?.let {
+            val pending = viewModel.uiState.value.pendingImageUri
+            val committed = viewModel.uiState.value.imageUri
 
-            fun uriExists(uri: String?, context: Context): Boolean {
-                return try {
-                    uri?.toUri()?.let {
-                        context.contentResolver.openInputStream(it)?.close()
-                        true
-                    } ?: false
-                } catch (e: Exception) {
-                    false
-                }
+            if (!pending.isNullOrBlank() && pending != committed) {
+                deleteImageFromStorage(pending, context)
             }
 
-            val image = it.recipe.imageUri.orEmpty()
-            val safeImage = if (uriExists(image, context)) image else originalImageUri.orEmpty()
-
-            setImagePath(safeImage)
-
-
-            resetUnsavedFlag()
-
-            val restored = uiState.toRecipeModel(it.recipe)
-            viewModel.restoreRecipeState(restored, uiState.ingredients)
+            val restoredState = RecipeEditUiState.snapshotFrom(it, crossRefs)
+            viewModel.updateUi { restoredState }
+            viewModel.restoreRecipeState(restoredState.toRecipeModel(it.recipe), restoredState.ingredients)
         }
     }
 }
