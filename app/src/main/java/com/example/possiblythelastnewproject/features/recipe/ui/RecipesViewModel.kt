@@ -71,6 +71,24 @@ class RecipesViewModel @Inject constructor(
             recipeDao.existsByName(trimmed)
     }
 
+    fun discardImageIfNeeded(context: Context): Boolean {
+        val pending = _uiState.value.pendingImageUri
+        val confirmed = _uiState.value.imageUri
+
+        if (!pending.isNullOrBlank() && pending != confirmed) {
+            val result = deleteImageFromStorage(pending, context)
+            updateUi { rollbackImage() }
+            return result
+        }
+        return false
+    }
+
+    fun guardedExit(context: Context, navAction: () -> Unit) {
+        discardImageIfNeeded(context)
+        updateUi { rollbackImage() }
+        navAction()
+    }
+
     // 💾 Save New Recipe
     fun saveRecipeWithIngredientsUi(
         recipe: Recipe,

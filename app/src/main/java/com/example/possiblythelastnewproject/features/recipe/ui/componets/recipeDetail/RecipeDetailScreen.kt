@@ -52,6 +52,8 @@ fun RecipeDetailScreen(
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
 
+
+
     // 🧭 Initial load
     LaunchedEffect(recipeId) {
         viewModel.loadRecipe(recipeId)
@@ -67,6 +69,14 @@ fun RecipeDetailScreen(
         value = viewModel.getRecipeWithIngredients(recipeId)
     }
 
+    LaunchedEffect(key1 = uiState.pendingImageUri) {
+        if (uiState.hasPendingImageChange) {
+            editingGuard.isEditing = true
+            // If you use isGuardVisible, set it too:
+            // editingGuard.isGuardVisible = true
+        }
+    }
+
     // 🧠 Change detection
     val hasChanges by remember(uiState, crossRefs, recipeSnapshot) {
         derivedStateOf {
@@ -78,32 +88,31 @@ fun RecipeDetailScreen(
 
     // 📸 Image picker
     val pickImage = imagePicker { uri ->
-        editingGuard.isEditing = true
-        uri?.toString()?.let { viewModel.updatePendingImageUri(it) }
+        uri?.toString()?.let {
+            viewModel.updatePendingImageUri(it)
+            editingGuard.isEditing = true // 👈 ensure BackHandler re-triggers
+        }
+    }
+    LaunchedEffect(uiState.pendingImageUri) {
+        if (uiState.hasPendingImageChange && editingGuard.isEditing) {
+            // You could set guard visibility here too if it's separate
+        }
     }
 
     // 🔙 Back navigation
-    val backHandlerKey = remember { mutableStateOf(0) }
-
-    LaunchedEffect(editingGuard.isEditing) {
-        backHandlerKey.value++
-    }
-
-    key(backHandlerKey.value) {
-        BackHandler(enabled = editingGuard.isEditing) {
-            editingGuard.guardedExit(
-                hasChanges = hasChanges,
-                rollback = performRecipeRollback(recipeId, context, viewModel),
-                thenExit = {
-                    editingGuard.isEditing = false
-                    navController.popBackStack()
-                },
-                cleanExit = {
-                    editingGuard.isEditing = false
-                    navController.popBackStack()
-                }
-            )
-        }
+    BackHandler(enabled = editingGuard.isEditing) {
+        editingGuard.guardedExit(
+            hasChanges = hasChanges,
+            rollback = performRecipeRollback(recipeId, context, viewModel),
+            thenExit = {
+                editingGuard.isEditing = false
+                navController.popBackStack()
+            },
+            cleanExit = {
+                editingGuard.isEditing = false
+                navController.popBackStack()
+            }
+        )
     }
 
     Scaffold(

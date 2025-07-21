@@ -18,7 +18,19 @@ data class RecipeEditUiState(
     val pendingImageUri: String? = null,
     val ingredients: List<RecipeIngredientUI> = emptyList(),
     val newIngredient: String = ""
+
+
 ) {
+
+    val isInEditMode: Boolean
+        get() = !pendingImageUri.isNullOrBlank()
+
+    val shouldShowGuard: Boolean
+        get() = isInEditMode && pendingImageUri != imageUri
+
+    val shouldDiscardImage: Boolean
+        get() = hasPendingImageChange
+
     val currentDisplayUri: String?
         get() = pendingImageUri ?: imageUri
 

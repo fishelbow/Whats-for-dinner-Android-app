@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavHostController
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
 
 sealed class TabItem(val title: String, val icon: ImageVector) {
@@ -39,17 +40,24 @@ fun handleTabSwitch(
     index: Int,
     currentPageSetter: (Int) -> Unit,
     editingGuard: EditingGuard,
-    rollback: () -> Unit
+    rollback: () -> Unit,
+    navMap: Map<TabItem, NavHostController>,
+    currentTab: TabItem
 ) {
     editingGuard.guardedExit(
         hasChanges = true,
-        rollback = rollback,
+        rollback = {
+            rollback()
+            // 🧹 Clear stale detail screen before switching tabs
+            navMap[currentTab]?.popBackStack("recipes_main", inclusive = false)
+        },
         thenExit = {
             editingGuard.isEditing = false
             currentPageSetter(index)
         },
         cleanExit = {
             editingGuard.isEditing = false
+            navMap[currentTab]?.popBackStack("recipes_main", inclusive = false)
             currentPageSetter(index)
         }
     )

@@ -54,16 +54,17 @@ fun MainScreen() {
                 TabSwitcher(
                     tabs = tabs,
                     currentPage = currentPage,
-                    onTabClicked = { index, _ ->
+                    onTabClicked = { index, tab ->
                         handleTabSwitch(
                             index = index,
                             currentPageSetter = { currentPage = it },
                             editingGuard = editingGuard,
-                            rollback = rollback
+                            rollback = rollback,
+                            navMap = navMap,
+                            currentTab = tabs[currentPage] // 👈 pass current tab before switching
                         )
                     }
                 )
-
                 when (tabs[currentPage]) {
                     TabItem.Recipes -> RecipesNavHost(
                         navController = navMap[TabItem.Recipes]!!,
