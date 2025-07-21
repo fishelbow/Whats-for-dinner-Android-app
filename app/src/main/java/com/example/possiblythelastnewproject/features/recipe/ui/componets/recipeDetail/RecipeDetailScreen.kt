@@ -89,21 +89,26 @@ fun RecipeDetailScreen(
         }
     }
 
+    val backHandlerKey = "back_${recipeId}_${editingGuard.isEditing}_${System.currentTimeMillis()}"
+
     // 🔙 Back navigation
-    BackHandler(enabled = uiState.hasPendingImageChange) {
-        editingGuard.guardedExit(
-            hasChanges = uiState.hasPendingImageChange,
-            rollback = performRecipeRollback(recipeId, context, viewModel),
-            thenExit = {
-                editingGuard.isEditing = false
-                navController.popBackStack()
-            },
-            cleanExit = {
-                editingGuard.isEditing = false
-                navController.popBackStack()
-            }
-        )
+    key(backHandlerKey) {
+        BackHandler(enabled = editingGuard.isEditing) {
+            editingGuard.guardedExit(
+                hasChanges = editingGuard.isEditing,
+                rollback = { performRecipeRollback(recipeId, context, viewModel).invoke() },
+                thenExit = {
+                    editingGuard.isEditing = false
+                    navController.popBackStack()
+                },
+                cleanExit = {
+                    editingGuard.isEditing = false
+                    navController.popBackStack()
+                }
+            )
+        }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(
