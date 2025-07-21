@@ -83,19 +83,27 @@ fun RecipeDetailScreen(
     }
 
     // 🔙 Back navigation
-    BackHandler(enabled = editingGuard.isEditing) {
-        editingGuard.guardedExit(
-            hasChanges = hasChanges,
-            rollback = performRecipeRollback(recipeId, context, viewModel),
-            thenExit = {
-                editingGuard.isEditing = false
-                navController.popBackStack()
-            },
-            cleanExit = {
-                editingGuard.isEditing = false
-                navController.popBackStack()
-            }
-        )
+    val backHandlerKey = remember { mutableStateOf(0) }
+
+    LaunchedEffect(editingGuard.isEditing) {
+        backHandlerKey.value++
+    }
+
+    key(backHandlerKey.value) {
+        BackHandler(enabled = editingGuard.isEditing) {
+            editingGuard.guardedExit(
+                hasChanges = hasChanges,
+                rollback = performRecipeRollback(recipeId, context, viewModel),
+                thenExit = {
+                    editingGuard.isEditing = false
+                    navController.popBackStack()
+                },
+                cleanExit = {
+                    editingGuard.isEditing = false
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 
     Scaffold(
