@@ -1,31 +1,11 @@
 package com.example.possiblythelastnewproject.core.ui.navigation
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Kitchen
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -38,6 +18,7 @@ import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuardDialog
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
 import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
@@ -48,22 +29,21 @@ import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.
 import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.ShoppingMainScreen
 import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
 
-// 1) Tab model
-sealed class TabItem(val title: String, val icon: ImageVector) {
-    data object Recipes : TabItem("Recipes", Icons.AutoMirrored.Filled.List)
-    data object Pantry : TabItem("Pantry", Icons.Filled.Kitchen)
-    data object Shopping : TabItem("Shopping", Icons.Filled.Checklist)
-    data object Scanning : TabItem("Scanning", Icons.Filled.CameraAlt)
-}
 
 // ────────────────────────────────────────────────
-// 2) MainScreen – without horizontal swiping
+// 1) MainScreen – without horizontal swiping
 // ────────────────────────────────────────────────
-// Replace with a valid API version if necessary
+
 @Composable
 fun MainScreen() {
     val editingGuard = remember { EditingGuard() }
-    val coroutineScope = rememberCoroutineScope()
+    val discardDraftCleanup = remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val rollback: () -> Unit = {
+        println("🔄 Rollback triggered from tab switch")
+        discardDraftCleanup.value?.invoke()
+    }
+
     val tabs = listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning)
     var currentPage by remember { mutableIntStateOf(0) }
     val navMap = tabs.associateWith { rememberNavController() }
@@ -71,89 +51,45 @@ fun MainScreen() {
     CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
         Scaffold { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                TabRow(selectedTabIndex = currentPage) {
-                    tabs.forEachIndexed { index, tab ->
-                        Tab(
-                            selected = currentPage == index,
-                            onClick = {
-                                val currentTab = tabs[currentPage]
-
-                                val rollback: () -> Unit = if (editingGuard.isEditing && currentTab is TabItem.Recipes) {
-                                    {
-                                        // ❗ Add your real rollback logic here, or delegate to RecipesViewModel helper
-                                    }
-                                } else {
-                                    {} // no rollback needed
-                                }
-
-                                handleTabSwitch(
-                                    index = index,
-                                    currentPageSetter = { currentPage = it },
-                                    editingGuard = editingGuard,
-                                    coroutineScope = coroutineScope,
-                                    rollback = rollback
-                                )
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.title) },
-                            text = { Text(tab.title) },
-                            enabled = true
+                TabSwitcher(
+                    tabs = tabs,
+                    currentPage = currentPage,
+                    onTabClicked = { index, _ ->
+                        handleTabSwitch(
+                            index = index,
+                            currentPageSetter = { currentPage = it },
+                            editingGuard = editingGuard,
+                            rollback = rollback
                         )
                     }
-                }
+                )
 
                 when (tabs[currentPage]) {
-                    TabItem.Recipes -> RecipesNavHost(navMap[TabItem.Recipes]!!)
+                    TabItem.Recipes -> RecipesNavHost(
+                        navController = navMap[TabItem.Recipes]!!,
+                        registerDiscardCleanup = { discardDraftCleanup.value = it }
+                    )
                     TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
                     TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
                     TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
                 }
+
+                EditingGuardDialog(guard = editingGuard)
             }
         }
     }
-
-            if (editingGuard.showDiscardDialog) {
-                AlertDialog(
-                    onDismissRequest = { editingGuard.cancelExit() },
-                    title = {
-                        Text("Discard changes?", style = MaterialTheme.typography.headlineSmall)
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("You have unsaved changes. What would you like to do?")
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                Text(
-                                    "Changes will be lost if you discard.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(onClick = { editingGuard.confirmExit() }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Discard Changes")
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(onClick = { editingGuard.cancelExit() }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Keep Editing")
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
-        }
+}
 
 // ────────────────────────────────────────────────
 // 3) NavHost definitions for your individual tabs.
 // These can be moved to separate files if desired.
 // ────────────────────────────────────────────────
+
 @Composable
-fun RecipesNavHost(navController: NavHostController) {
+fun RecipesNavHost(
+    navController: NavHostController,
+    registerDiscardCleanup: (()->Unit) -> Unit
+) {
     NavHost(navController, startDestination = "recipes_main") {
         composable("recipes_main") {
             RecipeScreenWithSearch(
@@ -168,12 +104,9 @@ fun RecipesNavHost(navController: NavHostController) {
 
         composable("add_recipe") {
             RecipeCreationFormScreen(
-                onRecipeCreated = {
-                    navController.navigateUp()
-                },
-                onCancel = {
-                    navController.navigateUp()
-                }
+                onRecipeCreated = { navController.navigateUp() },
+                onCancel = { navController.navigateUp() },
+                onDiscardRequested = registerDiscardCleanup // ✅ hand cleanup to MainScreen
             )
         }
 
@@ -185,8 +118,7 @@ fun RecipesNavHost(navController: NavHostController) {
                     viewModel = hiltViewModel(),
                     navController = navController
                 )
-            }
-                ?: navController.navigateUp()
+            } ?: navController.navigateUp()
         }
     }
 }

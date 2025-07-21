@@ -36,7 +36,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun RecipeCreationFormScreen(
     onRecipeCreated: (Recipe) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onDiscardRequested: ((() -> Unit) -> Unit) // ✅ Make it nullable
 ) {
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
@@ -104,14 +105,38 @@ fun RecipeCreationFormScreen(
     fun handleCancel() {
         focusManager.clearFocus()
 
-        pickedImageUris.forEach { uriStr ->
-            deleteImageFromStorage(uriStr, context)
+        // 🧹 Cleanup any picked images
+        if (pickedImageUris.isNotEmpty()) {
+            println("🧹 Beginning image cleanup")
+            pickedImageUris.forEach { uriStr ->
+                deleteImageFromStorage(uriStr, context)
+                println("🧹 Deleted draft image: $uriStr")
+            }
         }
+
         pickedImageUris.clear()
         imageUri = null
+        lastSavedImagePath = null
 
+        // 🔒 Reset editing state
         editingGuard.isEditing = false
+
+        // 🚪 Continue with normal cancel flow (e.g. navigate back)
         onCancel()
+    }
+
+    LaunchedEffect(Unit) {
+        onDiscardRequested {
+            // This lambda will be stored in MainScreen and triggered on tab switch
+            focusManager.clearFocus()
+            pickedImageUris.forEach { uriStr ->
+                deleteImageFromStorage(uriStr, context)
+                println("🧹 Deleted draft image: $uriStr")
+            }
+            pickedImageUris.clear()
+            imageUri = null
+            lastSavedImagePath = null
+        }
     }
 
     val backHandlerKey = remember { mutableStateOf(0) }
@@ -126,7 +151,7 @@ fun RecipeCreationFormScreen(
             if (hasUnsavedChanges()) {
                 editingGuard.requestExit(
                     rollback = {
-                        // optional rollback logic, e.g. reset image or field state
+                        // no roll back logic as its the creation form no prior save exists
                     },
                     thenExit = {
                         handleCancel()

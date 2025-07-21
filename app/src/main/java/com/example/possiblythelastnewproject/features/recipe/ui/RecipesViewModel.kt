@@ -156,4 +156,6 @@ class RecipesViewModel @Inject constructor(
     suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? {
         return recipeRepository.getRecipeWithIngredients(recipeId)
     }
+
+
 }
