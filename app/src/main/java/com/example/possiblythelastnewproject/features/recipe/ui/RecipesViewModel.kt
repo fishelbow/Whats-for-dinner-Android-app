@@ -2,6 +2,9 @@ package com.example.possiblythelastnewproject.features.recipe.ui
 
 import RecipeEditUiState
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,6 +43,8 @@ class RecipesViewModel @Inject constructor(
     fun updatePendingImageUri(uri: String) = updateUi { withPendingImage(uri) }
     fun commitImageUri() = updateUi { commitImage() }
     fun rollbackImageUri() = updateUi { rollbackImage() }
+
+    var activeRecipeId by mutableStateOf<Long?>(null)
 
     // 📦 Recipe Flows
     val allRecipes: StateFlow<List<Recipe>> =

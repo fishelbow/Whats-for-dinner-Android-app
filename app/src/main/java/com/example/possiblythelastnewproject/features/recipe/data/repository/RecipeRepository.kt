@@ -14,10 +14,6 @@ class RecipeRepository @Inject constructor(
     private val recipeDao: RecipeDao
 ) {
 
-    suspend fun getRecipesWithIngredientsOnce(): List<RecipeWithIngredients> {
-        return recipeDao.getAllRecipesWithIngredientsOnce()
-    }
-
     suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? =
         recipeDao.getRecipeWithIngredients(recipeId)
 

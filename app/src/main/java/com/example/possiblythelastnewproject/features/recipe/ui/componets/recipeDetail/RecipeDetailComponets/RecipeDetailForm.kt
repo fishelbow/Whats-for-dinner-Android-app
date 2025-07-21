@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets
 
 import RecipeEditUiState
 import androidx.compose.animation.animateContentSize

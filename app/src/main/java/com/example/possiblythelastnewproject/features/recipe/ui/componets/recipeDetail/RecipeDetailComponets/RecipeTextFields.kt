@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height

@@ -31,8 +31,8 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeDetailForm
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.Solid.RecipeDialogs
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets.RecipeDetailForm
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets.RecipeDialogs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +56,7 @@ fun RecipeDetailScreen(
     LaunchedEffect(recipeId) {
         viewModel.loadRecipe(recipeId)
         editingGuard.isEditing = false
+        viewModel.activeRecipeId = recipeId
     }
 
     // 🔄 Reactive snapshot
