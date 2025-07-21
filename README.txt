@@ -471,15 +471,31 @@ I plan to start with poping dialogs out of recipedetailscreen first.
 
 okay dialogs have been moved out, going to make a utility for the color picker next
 
-
-
-
-
-
-
+..........
+............
 
 /////////////////////////////
-////// next next ////////////
+////// curent    ////////////
 /////////////////////////////
 //// recipes rework /////////
 /////////////////////////////
+
+decided to modularize recipe detail screen in an attempt to nail down the images getting orphaned
+
+the feature is quite orthogonal atm. The recipe creation form is working really well with image
+
+creation and deletion. I moved a lot of stuff out of the nav graph, and moved some to the tabSwitcher
+
+and edit guard is now more localized.
+
+I have nailed down the tab switch, cancel and back navigation for discard changes in recipe creation
+
+now to circle back to recipe detail and document what is not working.
+
+
+
+
+
+
+
+

@@ -87,8 +87,14 @@ fun RecipeDetailScreen(
         editingGuard.guardedExit(
             hasChanges = hasChanges,
             rollback = performRecipeRollback(recipeId, context, viewModel),
-            thenExit = { editingGuard.isEditing = false },
-            cleanExit = { editingGuard.isEditing = false }
+            thenExit = {
+                editingGuard.isEditing = false
+                navController.popBackStack()
+            },
+            cleanExit = {
+                editingGuard.isEditing = false
+                navController.popBackStack()
+            }
         )
     }
 
