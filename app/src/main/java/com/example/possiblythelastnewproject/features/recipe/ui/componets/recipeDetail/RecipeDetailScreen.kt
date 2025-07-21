@@ -48,11 +48,10 @@ fun RecipeDetailScreen(
     val editingGuard = LocalEditingGuard.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showNameRequiredDialog by remember { mutableStateOf(false) }
-
-
 
     // 🧭 Initial load
     LaunchedEffect(recipeId) {
@@ -61,48 +60,39 @@ fun RecipeDetailScreen(
         viewModel.activeRecipeId = recipeId
     }
 
-    // 🔄 Reactive snapshot
+    // 🧠 Derived change detection
     val crossRefs by produceState(initialValue = emptyList<RecipePantryItemCrossRef>(), recipeId) {
         value = viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
     }
     val recipeSnapshot by produceState<RecipeWithIngredients?>(initialValue = null, recipeId) {
         value = viewModel.getRecipeWithIngredients(recipeId)
     }
-
-    LaunchedEffect(key1 = uiState.pendingImageUri) {
-        if (uiState.hasPendingImageChange) {
-            editingGuard.isEditing = true
-            // If you use isGuardVisible, set it too:
-            // editingGuard.isGuardVisible = true
+    val hasChanges by remember(uiState, crossRefs, recipeSnapshot) {
+        derivedStateOf {
+            recipeSnapshot?.let { uiState.hasAnyChangesComparedTo(it, crossRefs) } ?: false
         }
     }
 
-    // 🧠 Change detection
-    val hasChanges by remember(uiState, crossRefs, recipeSnapshot) {
-        derivedStateOf {
-            recipeSnapshot?.let {
-                uiState.hasAnyChangesComparedTo(it, crossRefs)
-            } ?: false
-        }
+    // 🛡️ Sync guard lifecycle to image state
+    LaunchedEffect(uiState.pendingImageUri) {
+        val pending = uiState.pendingImageUri
+        val committed = uiState.imageUri
+        val hasPendingChange = !pending.isNullOrBlank() && pending != committed
+        editingGuard.isEditing = hasPendingChange
     }
 
     // 📸 Image picker
     val pickImage = imagePicker { uri ->
         uri?.toString()?.let {
             viewModel.updatePendingImageUri(it)
-            editingGuard.isEditing = true // 👈 ensure BackHandler re-triggers
-        }
-    }
-    LaunchedEffect(uiState.pendingImageUri) {
-        if (uiState.hasPendingImageChange && editingGuard.isEditing) {
-            // You could set guard visibility here too if it's separate
+            editingGuard.isEditing = true
         }
     }
 
     // 🔙 Back navigation
-    BackHandler(enabled = editingGuard.isEditing) {
+    BackHandler(enabled = uiState.hasPendingImageChange) {
         editingGuard.guardedExit(
-            hasChanges = hasChanges,
+            hasChanges = uiState.hasPendingImageChange,
             rollback = performRecipeRollback(recipeId, context, viewModel),
             thenExit = {
                 editingGuard.isEditing = false
@@ -114,7 +104,6 @@ fun RecipeDetailScreen(
             }
         )
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
