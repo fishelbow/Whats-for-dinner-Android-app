@@ -493,7 +493,11 @@ I have nailed down the tab switch, cancel and back navigation for discard change
 now to circle back to recipe detail and document what is not working.
 
 
+currently working in recipe details going to take a couple days off will be thinking things over
 
+try to implement an orphan hunter was not successful learned maybe need to understand how uris relate
+
+to database and which are linked and which are orphaned...
 
 
 

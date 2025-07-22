@@ -57,4 +57,13 @@ interface RecipeDao {
     @Transaction
     @Query("SELECT * FROM Recipe ORDER BY recipe_name")
     suspend fun getAllRecipesWithIngredientsOnce(): List<RecipeWithIngredients>
+
+    // for the orphan hunter
+
+
+    @Query("SELECT imageUri FROM Recipe")
+    suspend fun getAllImageUris(): List<String?>
+
+
+
 }
