@@ -40,5 +40,7 @@ class RecipeRepository @Inject constructor(
 
     suspend fun clearAll() {
         recipeDao.clearAll()
-    }
+
+      }
+
 }

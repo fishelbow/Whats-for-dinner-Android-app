@@ -1,6 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.ui
 
-import RecipeEditUiState
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeEditUiState
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.*
@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
-import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
@@ -29,11 +28,11 @@ class RecipesViewModel @Inject constructor(
 ) : ViewModel() {
 
     // 🧠 UI Edit State
-    val _uiState = MutableStateFlow(RecipeEditUiState())
-    val uiState: StateFlow<RecipeEditUiState> = _uiState.asStateFlow()
+    val State = MutableStateFlow(RecipeEditUiState())
+    val uiState: StateFlow<RecipeEditUiState> = State.asStateFlow()
 
     inline fun updateUi(transform: RecipeEditUiState.() -> RecipeEditUiState) {
-        _uiState.update { it.transform() }
+        State.update { it.transform() }
     }
 
     // 🖍 Field Updaters
@@ -42,7 +41,7 @@ class RecipesViewModel @Inject constructor(
 
     fun commitImageUri() = updateUi { commitImage() }
     fun rollbackImageUri() {
-        val restored = _uiState.value.lastStableImageUri ?: return
+        val restored = State.value.lastStableImageUri ?: return
 
         updateUi {
             copy(
@@ -67,7 +66,7 @@ class RecipesViewModel @Inject constructor(
     fun loadRecipe(recipeId: Long) = viewModelScope.launch {
         val snapshot = recipeRepository.getRecipeWithIngredients(recipeId) ?: return@launch
         val crossRefs = ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
-        _uiState.value = RecipeEditUiState.snapshotFrom(snapshot, crossRefs)
+        State.value = RecipeEditUiState.snapshotFrom(snapshot, crossRefs)
     }
 
     // 🕵️ Name Collision
@@ -81,7 +80,7 @@ class RecipesViewModel @Inject constructor(
 
     // 🧼 Image Cleanup
     fun discardImagesIfNeeded(context: Context): Boolean {
-        val state = _uiState.value
+        val state = State.value
 
         // 🛡️ Always protect currently displayed image
         val protected = buildSet {
@@ -111,7 +110,7 @@ class RecipesViewModel @Inject constructor(
         ingredients: List<RecipeIngredientUI>,
         context: Context
     ) = viewModelScope.launch {
-        val state = _uiState.value
+        val state = State.value
         state.pendingImageUris
             .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
             .forEach { deleteImageFromStorage(it, context) }
@@ -136,7 +135,7 @@ class RecipesViewModel @Inject constructor(
         updatedIngredients: List<RecipeIngredientUI>,
         context: Context
     ) = viewModelScope.launch {
-        val state = _uiState.value
+        val state = State.value
 
         state.pendingImageUris
             .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
@@ -160,7 +159,7 @@ class RecipesViewModel @Inject constructor(
 
     // 🗑 Delete Recipe
     fun deleteRecipe(recipe: Recipe, context: Context) = viewModelScope.launch {
-        _uiState.value.pendingImageUris.forEach { deleteImageFromStorage(it, context) }
+        State.value.pendingImageUris.forEach { deleteImageFromStorage(it, context) }
 
         recipeRepository.delete(recipe, context)
         ingredientRepository.deleteCrossRefsForRecipe(recipe.id)
@@ -223,7 +222,7 @@ class RecipesViewModel @Inject constructor(
         val validFilenames = buildSet {
             allRecipes.mapNotNull { it.imageUri?.substringAfterLast("/") }.forEach { add(it) }
             uiState.imageUri?.substringAfterLast("/")?.let { add(it) }
-            uiState.pendingImageUris.mapNotNull { it.substringAfterLast("/") }.forEach { add(it) }
+            uiState.pendingImageUris.map { it.substringAfterLast("/") }.forEach { add(it) }
         }
 
         val orphaned = allStoredImages.filterNot { file ->

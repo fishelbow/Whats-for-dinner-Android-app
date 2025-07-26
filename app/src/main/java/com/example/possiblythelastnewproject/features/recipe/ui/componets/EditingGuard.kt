@@ -20,14 +20,6 @@ class EditingGuard {
     private var onDiscardConfirmed: (() -> Unit)? = null
     private var onRollbackConfirmed: (() -> Unit)? = null
 
-    fun markEditing(active: Boolean = true) {
-        isEditing = active
-    }
-
-    fun resetEditing() {
-        isEditing = false
-    }
-
     fun requestExit(
         rollback: () -> Unit,
         thenExit: () -> Unit

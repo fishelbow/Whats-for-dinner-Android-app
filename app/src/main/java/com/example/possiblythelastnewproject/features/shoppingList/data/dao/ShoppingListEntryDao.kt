@@ -1,7 +1,6 @@
 package com.example.possiblythelastnewproject.features.shoppingList.data.dao
 
 import androidx.room.*
-import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingList
 import com.example.possiblythelastnewproject.features.shoppingList.data.entities.ShoppingListItem
 import kotlinx.coroutines.flow.Flow
 

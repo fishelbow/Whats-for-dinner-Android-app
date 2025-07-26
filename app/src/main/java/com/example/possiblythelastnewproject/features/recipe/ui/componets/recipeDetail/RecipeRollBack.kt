@@ -8,7 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
-import RecipeEditUiState
 
 fun performRecipeRollback(
     recipeId: Long,
@@ -20,10 +19,8 @@ fun performRecipeRollback(
         val crossRefs: List<RecipePantryItemCrossRef> =
             viewModel.ingredientRepository.getCrossRefsForRecipeOnce(recipeId)
 
-        snapshot?.let {
+        snapshot?.let { it ->
             val state = viewModel.uiState.value
-            val display = state.currentDisplayUri
-
             // Delete all pending URIs except committed one
             state.pendingImageUris
                 .filter { it != state.imageUri }

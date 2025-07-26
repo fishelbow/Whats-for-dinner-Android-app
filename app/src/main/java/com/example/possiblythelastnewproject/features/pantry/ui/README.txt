@@ -1,1 +1,0 @@
-split up the pantry  screen into a navigation graph and break apart by componets ty

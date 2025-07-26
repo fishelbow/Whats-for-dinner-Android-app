@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.recipeDetailComponets
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text

@@ -1,25 +1,16 @@
 package com.example.possiblythelastnewproject.core.ui.navigation
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryScreen
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeCreationFormScreen
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuardDialog
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
 import com.example.possiblythelastnewproject.features.scan.ui.ScanViewModel
 import com.example.possiblythelastnewproject.features.scan.ui.ScanningTab
 import com.example.possiblythelastnewproject.features.scan.ui.componets.CreateFromScanDialog
@@ -30,60 +21,9 @@ import com.example.possiblythelastnewproject.features.shoppingList.ui.componets.
 import com.example.possiblythelastnewproject.features.shoppingList.ui.model.ShoppingListViewModel
 
 
-// ────────────────────────────────────────────────
-// 1) MainScreen – without horizontal swiping
-// ────────────────────────────────────────────────
-
-@Composable
-fun MainScreen() {
-    val editingGuard = remember { EditingGuard() }
-    val discardDraftCleanup = remember { mutableStateOf<(() -> Unit)?>(null) }
-
-    val rollback: () -> Unit = {
-        println("🔄 Rollback triggered from tab switch")
-        discardDraftCleanup.value?.invoke()
-    }
-
-    val tabs = listOf(TabItem.Recipes, TabItem.Pantry, TabItem.Shopping, TabItem.Scanning)
-    var currentPage by remember { mutableIntStateOf(0) }
-    val navMap = tabs.associateWith { rememberNavController() }
-
-    val tabClickHandler = createTabClickHandler(
-        currentTab = tabs[currentPage],
-        editingGuard = editingGuard,
-        rollback = rollback,
-        navMap = navMap,
-        setCurrentPage = { currentPage = it }
-    )
-
-    CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
-        Scaffold { padding ->
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-
-                TabSwitcher(
-                    tabs = tabs,
-                    currentPage = currentPage,
-                    onTabClicked = tabClickHandler,
-                    tabsEnabled = !editingGuard.isEditing
-                )
-                when (tabs[currentPage]) {
-                    TabItem.Recipes -> RecipesNavHost(
-                        navController = navMap[TabItem.Recipes]!!,
-                        registerDiscardCleanup = { discardDraftCleanup.value = it }
-                    )
-                    TabItem.Pantry -> PantryNavHost(navMap[TabItem.Pantry]!!)
-                    TabItem.Shopping -> ShoppingNavHost(navMap[TabItem.Shopping]!!)
-                    TabItem.Scanning -> ScanningNavHost(navMap[TabItem.Scanning]!!)
-                }
-
-                EditingGuardDialog(guard = editingGuard)
-            }
-        }
-    }
-}
 
 // ────────────────────────────────────────────────
-// 3) NavHost definitions for your individual tabs.
+// @) NavHost definitions for your individual tabs.
 // These can be moved to separate files if desired.
 // ────────────────────────────────────────────────
 

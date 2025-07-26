@@ -35,8 +35,6 @@ public class DataExtractor {
     private long lastConfirmedScanTime = 0;
     private static final long CONFIRMED_SCAN_COOLDOWN_MS = 500;
 
-    private int toneType = ToneGenerator.TONE_PROP_BEEP;
-
     public DataExtractor() {
         barcodeScanner = BarcodeScanning.getClient(new BarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
@@ -44,10 +42,6 @@ public class DataExtractor {
 
         textRecognizer = TextRecognition.getClient(new TextRecognizerOptions.Builder().build());
         toneGenerator = new ToneGenerator(AudioManager.STREAM_ALARM, 150); //TODO MOVE THIS BACK TO 150 also provide some way to adjust this in app
-    }
-
-    public void setToneType(int toneType) {
-        this.toneType = toneType;
     }
 
     @OptIn(markerClass = ExperimentalGetImage.class)
@@ -155,6 +149,7 @@ public class DataExtractor {
 
     private void playTone() {
         Log.i(TAG, "Playing tone...");
+        int toneType = ToneGenerator.TONE_PROP_BEEP;
         toneGenerator.startTone(toneType, 150); //TODO MOVE THIS BACK TO 150 also provide some way to adjust this in app
     }
 }

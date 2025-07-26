@@ -139,14 +139,13 @@ fun RecipeCreationFormScreen(
         }
     }
 
-    val backHandlerKey = remember { mutableStateOf(0) }
+    val backHandlerKey = remember { mutableIntStateOf(0) }
 
     LaunchedEffect(isEditing) {
         // trigger recomposition of BackHandler when guard changes
-        backHandlerKey.value++
+        backHandlerKey.intValue++
     }
-
-    key(backHandlerKey.value) {
+    key(backHandlerKey.intValue) {
         BackHandler(enabled = isEditing) {
             if (hasUnsavedChanges()) {
                 editingGuard.requestExit(

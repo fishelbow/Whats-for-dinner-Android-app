@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.possiblythelastnewproject.core.utils.MediaOrphanHunter
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
@@ -74,12 +76,13 @@ fun PantryScreen(
         }
     }
 
+/*
     LaunchedEffect(pantryItems) {
         if (pantryItems.isNotEmpty()) {
             viewModel.auditAndCleanOrphans(context)
         }
     }
-
+*/
     // Main screen scaffold
     Scaffold(
         topBar = {

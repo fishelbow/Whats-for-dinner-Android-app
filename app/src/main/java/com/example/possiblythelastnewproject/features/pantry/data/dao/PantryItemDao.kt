@@ -51,9 +51,6 @@ interface PantryItemDao {
     @Query("SELECT imageUri FROM PantryItem WHERE imageUri IS NOT NULL")
     suspend fun getAllPantryImageUris(): List<String>
 
-    @Query("SELECT imageUri FROM pantryitem")
-    suspend fun getAllImageUris(): List<String?>
-
 
 
 }

@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import com.example.possiblythelastnewproject.core.ui.navigation.MainScreen
 import com.example.possiblythelastnewproject.core.ui.theme.PossiblyTheLastNewProjectTheme
 import dagger.hilt.android.AndroidEntryPoint
 

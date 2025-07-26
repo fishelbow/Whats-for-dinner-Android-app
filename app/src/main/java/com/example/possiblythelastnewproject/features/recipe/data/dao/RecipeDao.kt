@@ -1,10 +1,8 @@
 package com.example.possiblythelastnewproject.features.recipe.data.dao
 
 import androidx.room.*
-import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
-import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -58,12 +56,7 @@ interface RecipeDao {
     @Query("SELECT * FROM Recipe ORDER BY recipe_name")
     suspend fun getAllRecipesWithIngredientsOnce(): List<RecipeWithIngredients>
 
-    // for the orphan hunter
-
-
-    @Query("SELECT imageUri FROM Recipe")
-    suspend fun getAllImageUris(): List<String?>
-
-
+    @Query("SELECT * FROM Recipe")
+    fun observeAllRecipes(): Flow<List<Recipe>>
 
 }

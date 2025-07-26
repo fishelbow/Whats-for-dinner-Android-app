@@ -28,18 +28,12 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.possiblythelastnewproject.core.data.backup.DbBackupViewModel
-import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.debug.DebugToolsScreen
-import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
-import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
-import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
 import com.example.possiblythelastnewproject.features.scan.ui.componets.DbImportExportDialog
-import com.google.android.datatransport.BuildConfig
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun ScanningTab(

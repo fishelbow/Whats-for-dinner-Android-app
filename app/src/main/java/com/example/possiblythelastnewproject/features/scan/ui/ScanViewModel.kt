@@ -1,6 +1,5 @@
 package com.example.possiblythelastnewproject.features.scan.ui
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
@@ -23,7 +22,7 @@ class ScanViewModel @Inject constructor(
     private var pendingItemExtras: Triple<Int, ByteArray?, String>? = null
 
 
-    private val _uiState = MutableStateFlow<ScanUiState>(ScanUiState())
+    private val _uiState = MutableStateFlow(ScanUiState())
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
 
     val allCategories: StateFlow<List<Category>> = repository
@@ -68,11 +67,6 @@ class ScanViewModel @Inject constructor(
                 }
             }
         }
-    }
-    fun addItem(item: PantryItem) = viewModelScope.launch {
-        repository.insert(item)
-        _uiState.update { it.copy(itemAdded = true) }
-        clearScanResult()
     }
 
     fun updateItem(item: PantryItem) = viewModelScope.launch {

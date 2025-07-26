@@ -1,6 +1,6 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.recipeDetailComponets
 
-import RecipeEditUiState
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeEditUiState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background

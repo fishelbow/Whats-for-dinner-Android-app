@@ -31,8 +31,8 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import com.example.possiblythelastnewproject.features.recipe.data.entities.RecipePantryItemCrossRef
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.LocalEditingGuard
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets.RecipeDetailForm
-import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets.RecipeDialogs
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.recipeDetailComponets.RecipeDetailForm
+import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.recipeDetailComponets.RecipeDialogs
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
+import com.example.possiblythelastnewproject.core.utils.MediaOrphanHunter
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 
@@ -14,7 +15,8 @@ data class PantryUiState(
     val editImageUri: String? = null,
     val itemToDelete: PantryItem? = null,
     val selectedCategory: Category? = null,
-    val editCategory: Category? = null
+    val editCategory: Category? = null,
+    val lastCleanupReport: MediaOrphanHunter.CleanupReport? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

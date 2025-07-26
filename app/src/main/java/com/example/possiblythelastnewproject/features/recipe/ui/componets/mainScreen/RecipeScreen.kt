@@ -1,10 +1,5 @@
 package com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,24 +13,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.possiblythelastnewproject.R
 
 @Composable
 fun RecipeScreenWithSearch(
@@ -101,7 +90,6 @@ fun RecipeGridScreen(
 @Composable
 fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
     val cardColor = Color(recipe.color)
-    val textColor = if (cardColor.luminance() < 0.5f) Color.White else Color.Black
 
     Card(
         modifier = Modifier
@@ -118,10 +106,6 @@ fun RecipeTile(recipe: Recipe, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            val imageModifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
 
             val context = LocalContext.current
 

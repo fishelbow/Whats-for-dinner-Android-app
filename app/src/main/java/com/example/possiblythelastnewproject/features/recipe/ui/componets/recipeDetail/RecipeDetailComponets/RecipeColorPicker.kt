@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailComponets
+package com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.recipeDetailComponets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

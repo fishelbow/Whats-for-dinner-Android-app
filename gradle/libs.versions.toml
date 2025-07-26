@@ -6,17 +6,18 @@ coilCompose = "2.2.2"
 composeBom = "2025.06.01"
 core = "1.6.1"
 flowLayout = "1.3.3"
-foundation = "<version>"
+foundation = "1.8.3"
 guava = "31.1-android"
-hiltAndroid = "2.51.1"
-hiltAndroidCompiler = "2.51.1"
+hiltAndroid = "2.56.2"
+hiltAndroidCompiler = "2.56.2"
 hiltCompiler = "1.2.0"
 hiltNavigationCompose = "1.2.0"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-kotlinMetadataJvm = "2.1.21"
+kotlinMetadataJvm = "2.1.0"
+kotlin = "2.1.0"
 kotlinReflect = "2.1.0"
 kotlinxCoroutinesAndroid = "1.8.1"
 kotlinxSerializationJsonVersion = "1.7.3"
@@ -48,7 +49,6 @@ materialIconsExtended = "1.7.8"
 roomRuntime = "2.7.2"
 roomCommonJvm = "2.7.2"
 roomRuntimeAndroid = "2.7.2"
-kotlin = "2.1.0"
 engageCore = "1.5.8"
 benchmarkCommon = "1.3.4"
 
@@ -129,5 +129,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-hilt-android = { id = "dagger.hilt.android.plugin", version = "2.51.1" }
+hilt-android = { id = "dagger.hilt.android.plugin", version = "2.56.2" }
 ksp = { id = "com.google.devtools.ksp", version = "2.1.0-1.0.29" } #  NEW

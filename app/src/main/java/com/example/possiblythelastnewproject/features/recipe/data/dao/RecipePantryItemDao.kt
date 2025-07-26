@@ -52,5 +52,4 @@ interface RecipePantryItemDao {
 
     @Query("DELETE FROM RecipePantryItemCrossRef")
     suspend fun clearAll()
-
-    }
+}
