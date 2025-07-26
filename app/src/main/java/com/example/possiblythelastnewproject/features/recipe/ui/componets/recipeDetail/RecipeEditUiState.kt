@@ -20,8 +20,12 @@ data class RecipeEditUiState(
     val ingredients: List<RecipeIngredientUI> = emptyList(),
     val newIngredient: String = "",
     val lastStableImageUri: String? = imageUri,
-    val originalImageUri: String? = null
-) {
+    val originalImageUri: String? = null,
+    val preservedImageUri: String? = null,
+    val isEditing: Boolean = false,
+
+
+    ) {
 
     val currentDisplayUri: String?
         get() = pendingImageUris.getOrNull(currentImageIndex) ?: imageUri
@@ -64,8 +68,6 @@ data class RecipeEditUiState(
             original: RecipeWithIngredients,
             crossRefs: List<RecipePantryItemCrossRef>,
             overrideImage: String? = null,
-            imageUri: String? = overrideImage ?: original.recipe.imageUri,
-            originalImageUri: String? = original.recipe.imageUri,
         ): RecipeEditUiState {
             val refMap = crossRefs.associateBy { it.pantryItemId }
             val enrichedIngredients = original.ingredients.mapNotNull { pantry ->

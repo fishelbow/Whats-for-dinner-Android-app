@@ -41,8 +41,17 @@ class RecipesViewModel @Inject constructor(
     fun updateIngredients(list: List<RecipeIngredientUI>) = updateUi { copy(ingredients = list) }
 
     fun commitImageUri() = updateUi { commitImage() }
-    fun rollbackImageUri() = updateUi { rollbackImages() }
+    fun rollbackImageUri() {
+        val restored = _uiState.value.lastStableImageUri ?: return
 
+        updateUi {
+            copy(
+                pendingImageUris = listOf(restored),
+                currentImageIndex = 0,
+                preservedImageUri = restored // 👈 Marks this image for cleanup protection
+            )
+        }
+    }
     var activeRecipeId by mutableStateOf<Long?>(null)
 
     // 📦 Recipe Flows
@@ -73,12 +82,27 @@ class RecipesViewModel @Inject constructor(
     // 🧼 Image Cleanup
     fun discardImagesIfNeeded(context: Context): Boolean {
         val state = _uiState.value
-        val deleted = state.pendingImageUris
-            .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
-            .map { deleteImageFromStorage(it, context) }
 
-        updateUi { rollbackImages() }
-        return deleted.any { it }
+        // 🛡️ Always protect currently displayed image
+        val protected = buildSet {
+            state.imageUri?.let { add(it) }
+            state.pendingImageUris.getOrNull(state.currentImageIndex)?.let { add(it) }
+            state.preservedImageUri?.let { add(it) } // ✅ Protect explicitly restored URI
+        }
+
+        val deletable = state.pendingImageUris
+            .filter { uri -> !protected.contains(uri) }
+
+        deletable.forEach {
+            if (protected.contains(it)) {
+                Log.w("ImageCleanup", "⚠️ Skipping delete of protected image: $it")
+            } else {
+                deleteImageFromStorage(it, context)
+            }
+        }
+
+        updateUi { rollbackImages().copy(preservedImageUri = null) }
+        return deletable.isNotEmpty()
     }
 
     // 💾 Save New Recipe
@@ -174,8 +198,9 @@ class RecipesViewModel @Inject constructor(
 
     // 🖼 Image Switching + Cleanup
     fun replaceImageUri(uri: String, context: Context) {
-        val state = _uiState.value
+        commitImageUri() // 💾 ensure imageUri is finalized
 
+        val state = uiState.value
         val deletable = state.pendingImageUris
             .filterNot { it == uri || it == state.imageUri }
 

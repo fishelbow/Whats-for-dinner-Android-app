@@ -59,10 +59,12 @@ fun MainScreen() {
     CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
         Scaffold { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
                 TabSwitcher(
                     tabs = tabs,
                     currentPage = currentPage,
-                    onTabClicked = tabClickHandler
+                    onTabClicked = tabClickHandler,
+                    tabsEnabled = !editingGuard.isEditing
                 )
                 when (tabs[currentPage]) {
                     TabItem.Recipes -> RecipesNavHost(
