@@ -2,12 +2,12 @@ package com.example.possiblythelastnewproject.features.recipe.ui
 
 import RecipeEditUiState
 import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.util.Log
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
@@ -16,7 +16,6 @@ import com.example.possiblythelastnewproject.features.recipe.data.entities.Recip
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
-import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -40,9 +39,9 @@ class RecipesViewModel @Inject constructor(
     // 🖍 Field Updaters
     fun updateCardColor(color: Color) = updateUi { copy(cardColor = color) }
     fun updateIngredients(list: List<RecipeIngredientUI>) = updateUi { copy(ingredients = list) }
-    fun updatePendingImageUri(uri: String) = updateUi { withPendingImage(uri) }
+
     fun commitImageUri() = updateUi { commitImage() }
-    fun rollbackImageUri() = updateUi { rollbackImage() }
+    fun rollbackImageUri() = updateUi { rollbackImages() }
 
     var activeRecipeId by mutableStateOf<Long?>(null)
 
@@ -71,22 +70,15 @@ class RecipesViewModel @Inject constructor(
             recipeDao.existsByName(trimmed)
     }
 
-    fun discardImageIfNeeded(context: Context): Boolean {
-        val pending = _uiState.value.pendingImageUri
-        val confirmed = _uiState.value.imageUri
+    // 🧼 Image Cleanup
+    fun discardImagesIfNeeded(context: Context): Boolean {
+        val state = _uiState.value
+        val deleted = state.pendingImageUris
+            .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
+            .map { deleteImageFromStorage(it, context) }
 
-        if (!pending.isNullOrBlank() && pending != confirmed) {
-            val result = deleteImageFromStorage(pending, context)
-            updateUi { rollbackImage() }
-            return result
-        }
-        return false
-    }
-
-    fun guardedExit(context: Context, navAction: () -> Unit) {
-        discardImageIfNeeded(context)
-        updateUi { rollbackImage() }
-        navAction()
+        updateUi { rollbackImages() }
+        return deleted.any { it }
     }
 
     // 💾 Save New Recipe
@@ -95,22 +87,23 @@ class RecipesViewModel @Inject constructor(
         ingredients: List<RecipeIngredientUI>,
         context: Context
     ) = viewModelScope.launch {
-        if (_uiState.value.hasPendingImageChange) {
-            commitImageUri()
-        }
+        val state = _uiState.value
+        state.pendingImageUris
+            .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
+            .forEach { deleteImageFromStorage(it, context) }
+
+        commitImageUri()
 
         val recipeId = recipeRepository.insert(recipe.copy(id = 0L))
         val crossRefs = ingredients.filter { it.pantryItemId != null }.map {
             RecipePantryItemCrossRef(
-                recipeId     = recipeId,
+                recipeId = recipeId,
                 pantryItemId = it.pantryItemId!!,
-                required     = it.required,
+                required = it.required,
                 amountNeeded = it.amountNeeded
             )
         }
-
         crossRefs.forEach { ingredientRepository.insertCrossRef(it) }
-        // 🧼 Room should auto-emit; no manual refresh required
     }
 
     // 💾 Update Existing Recipe
@@ -121,18 +114,19 @@ class RecipesViewModel @Inject constructor(
     ) = viewModelScope.launch {
         val state = _uiState.value
 
-        if (state.hasPendingImageChange) {
-            state.pendingImageUri?.let { deleteImageFromStorage(it, context) }
-            commitImageUri()
-        }
+        state.pendingImageUris
+            .filterIndexed { i, uri -> i != state.currentImageIndex && uri != state.imageUri }
+            .forEach { deleteImageFromStorage(it, context) }
+
+        commitImageUri()
 
         recipeRepository.insert(updatedRecipe)
 
         val refs = updatedIngredients.filter { it.pantryItemId != null }.map {
             RecipePantryItemCrossRef(
-                recipeId     = updatedRecipe.id,
+                recipeId = updatedRecipe.id,
                 pantryItemId = it.pantryItemId!!,
-                required     = it.required,
+                required = it.required,
                 amountNeeded = it.amountNeeded
             )
         }
@@ -142,12 +136,15 @@ class RecipesViewModel @Inject constructor(
 
     // 🗑 Delete Recipe
     fun deleteRecipe(recipe: Recipe, context: Context) = viewModelScope.launch {
+        _uiState.value.pendingImageUris.forEach { deleteImageFromStorage(it, context) }
+
         recipeRepository.delete(recipe, context)
         ingredientRepository.deleteCrossRefsForRecipe(recipe.id)
 
         updateUi {
-            if (imageUri == recipe.imageUri) copy(imageUri = null, pendingImageUri = null)
-            else this
+            if (imageUri == recipe.imageUri) {
+                copy(imageUri = null, pendingImageUris = emptyList(), currentImageIndex = -1)
+            } else this
         }
     }
 
@@ -160,9 +157,9 @@ class RecipesViewModel @Inject constructor(
 
         val refs = restoredIngredients.filter { it.pantryItemId != null }.map {
             RecipePantryItemCrossRef(
-                recipeId     = restoredRecipe.id,
+                recipeId = restoredRecipe.id,
                 pantryItemId = it.pantryItemId!!,
-                required     = it.required,
+                required = it.required,
                 amountNeeded = it.amountNeeded
             )
         }
@@ -173,6 +170,48 @@ class RecipesViewModel @Inject constructor(
     // 🎯 Snapshot Getter
     suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? {
         return recipeRepository.getRecipeWithIngredients(recipeId)
+    }
+
+    // 🖼 Image Switching + Cleanup
+    fun replaceImageUri(uri: String, context: Context) {
+        val state = _uiState.value
+
+        val deletable = state.pendingImageUris
+            .filterNot { it == uri || it == state.imageUri }
+
+        deletable.forEach { deleteImageFromStorage(it, context) }
+
+        updateUi { copy(pendingImageUris = listOf(uri), currentImageIndex = 0) }
+    }
+
+    fun removeOrphanedImages(
+        context: Context,
+        allRecipes: List<Recipe>,
+        uiState: RecipeEditUiState
+    ): List<String> {
+        val filesDir = context.filesDir
+        val allStoredImages = filesDir.listFiles()
+            ?.filter { it.name.endsWith(".jpg") || it.name.endsWith(".png") }
+            ?: emptyList()
+
+        // ✅ This is where your validFilenames set goes:
+        val validFilenames = buildSet {
+            allRecipes.mapNotNull { it.imageUri?.substringAfterLast("/") }.forEach { add(it) }
+            uiState.imageUri?.substringAfterLast("/")?.let { add(it) }
+            uiState.pendingImageUris.mapNotNull { it.substringAfterLast("/") }.forEach { add(it) }
+        }
+
+        val orphaned = allStoredImages.filterNot { file ->
+            validFilenames.contains(file.name)
+        }
+
+        orphaned.forEach {
+            val deleted = deleteImageFromStorage(it.absolutePath, context)
+            if (deleted) Log.d("StorageCleanup", "🧹 Deleted: ${it.name}")
+            else Log.w("StorageCleanup", "❌ Failed to delete: ${it.name}")
+        }
+
+        return orphaned.map { it.absolutePath }
     }
 
 

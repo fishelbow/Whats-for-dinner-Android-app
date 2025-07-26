@@ -15,27 +15,41 @@ data class RecipeEditUiState(
     val instructions: TextFieldValue = TextFieldValue(""),
     val cardColor: Color = Color.White,
     val imageUri: String? = null,
-    val pendingImageUri: String? = null,
+    val pendingImageUris: List<String> = emptyList(),
+    val currentImageIndex: Int = -1,
     val ingredients: List<RecipeIngredientUI> = emptyList(),
-    val newIngredient: String = ""
-
-
+    val newIngredient: String = "",
+    val lastStableImageUri: String? = imageUri,
+    val originalImageUri: String? = null
 ) {
 
-    val isInEditMode: Boolean
-        get() = !pendingImageUri.isNullOrBlank()
-
-    val shouldShowGuard: Boolean
-        get() = isInEditMode && pendingImageUri != imageUri
-
-    val shouldDiscardImage: Boolean
-        get() = hasPendingImageChange
-
     val currentDisplayUri: String?
-        get() = pendingImageUri ?: imageUri
+        get() = pendingImageUris.getOrNull(currentImageIndex) ?: imageUri
 
     val hasPendingImageChange: Boolean
-        get() = !pendingImageUri.isNullOrBlank() && pendingImageUri != imageUri
+        get() = pendingImageUris.isNotEmpty() && currentDisplayUri != imageUri
+
+    fun commitImage(): RecipeEditUiState =
+        copy(imageUri = currentDisplayUri, pendingImageUris = emptyList(), currentImageIndex = -1)
+
+    fun rollbackImages(): RecipeEditUiState =
+        copy(
+            imageUri = lastStableImageUri,
+            pendingImageUris = emptyList(),
+            currentImageIndex = -1
+        )
+
+    fun toRecipeModel(original: Recipe): Recipe =
+        original.copy(
+            name = name.text.trim(),
+            temp = temp.text.trim(),
+            prepTime = prepTime.text.trim(),
+            cookTime = cookTime.text.trim(),
+            category = category.text.trim(),
+            instructions = instructions.text.trim(),
+            imageUri = imageUri.orEmpty(),
+            color = cardColor.toArgb()
+        )
 
     fun hasAnyChangesComparedTo(
         original: RecipeWithIngredients,
@@ -45,60 +59,42 @@ data class RecipeEditUiState(
         return this != snapshot || hasPendingImageChange
     }
 
-    fun commitImage(): RecipeEditUiState =
-        copy(imageUri = pendingImageUri ?: imageUri, pendingImageUri = null)
-
-    fun rollbackImage(): RecipeEditUiState =
-        copy(pendingImageUri = null)
-
-    fun withPendingImage(uri: String): RecipeEditUiState =
-        copy(pendingImageUri = uri)
-
-    fun toRecipeModel(original: Recipe): Recipe =
-        original.copy(
-            name         = name.text.trim(),
-            temp         = temp.text.trim(),
-            prepTime     = prepTime.text.trim(),
-            cookTime     = cookTime.text.trim(),
-            category     = category.text.trim(),
-            instructions = instructions.text.trim(),
-            imageUri     = imageUri.orEmpty(),
-            color        = cardColor.toArgb()
-        )
-
     companion object {
         fun snapshotFrom(
             original: RecipeWithIngredients,
             crossRefs: List<RecipePantryItemCrossRef>,
-            overrideImage: String? = null
+            overrideImage: String? = null,
+            imageUri: String? = overrideImage ?: original.recipe.imageUri,
+            originalImageUri: String? = original.recipe.imageUri,
         ): RecipeEditUiState {
             val refMap = crossRefs.associateBy { it.pantryItemId }
             val enrichedIngredients = original.ingredients.mapNotNull { pantry ->
                 refMap[pantry.id]?.let { ref ->
                     RecipeIngredientUI(
-                        name                  = pantry.name,
-                        pantryItemId          = pantry.id,
+                        name = pantry.name,
+                        pantryItemId = pantry.id,
                         includeInShoppingList = pantry.addToShoppingList,
-                        includeInPantry       = true,
-                        hasScanCode           = pantry.scanCode?.isNotBlank() == true,
-                        amountNeeded          = ref.amountNeeded,
-                        required              = ref.required
+                        includeInPantry = true,
+                        hasScanCode = pantry.scanCode?.isNotBlank() == true,
+                        amountNeeded = ref.amountNeeded,
+                        required = ref.required
                     )
                 }
             }
 
             return RecipeEditUiState(
-                name            = TextFieldValue(original.recipe.name),
-                temp            = TextFieldValue(original.recipe.temp),
-                prepTime        = TextFieldValue(original.recipe.prepTime),
-                cookTime        = TextFieldValue(original.recipe.cookTime),
-                category        = TextFieldValue(original.recipe.category),
-                instructions    = TextFieldValue(original.recipe.instructions),
-                cardColor       = Color(original.recipe.color),
-                imageUri        = overrideImage ?: original.recipe.imageUri,
-                pendingImageUri = null,
-                ingredients     = enrichedIngredients,
-                newIngredient   = ""
+                name = TextFieldValue(original.recipe.name),
+                temp = TextFieldValue(original.recipe.temp),
+                prepTime = TextFieldValue(original.recipe.prepTime),
+                cookTime = TextFieldValue(original.recipe.cookTime),
+                category = TextFieldValue(original.recipe.category),
+                instructions = TextFieldValue(original.recipe.instructions),
+                cardColor = Color(original.recipe.color),
+                imageUri = overrideImage ?: original.recipe.imageUri,
+                pendingImageUris = emptyList(),
+                currentImageIndex = -1,
+                ingredients = enrichedIngredients,
+                newIngredient = ""
             )
         }
     }

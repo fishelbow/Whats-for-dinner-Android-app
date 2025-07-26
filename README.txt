@@ -499,6 +499,27 @@ try to implement an orphan hunter was not successful learned maybe need to under
 
 to database and which are linked and which are orphaned...
 
+well back after a couple days off not much progress made today
+
+try'd couple things with orphan hunter no luck.
+
+I do recall before I left that the recipe creation screen was nailed down
+
+the detail screen got the edit guard working great and a lot of the filed deletion is on par
+
+I think the issue still lies with switching multiple images and saving or discarding is the last
+
+recipe memory leak. it is discouraging and a mystery why orphan hunter wont be my one stop fix,
+
+but i press on to make an air tight system that wont need to rely on a clean up. I think I still
+
+want the orphan hunter however in the long run as there may be things I cant for see. or possibly
+
+a better cleanup system in general?
+
+When I return I plan to map out again with log cat what is creating an orphan and what is
+
+not I may even add an on screen toast or file log for on device testing.
 
 
 

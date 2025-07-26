@@ -6,11 +6,12 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.EditingGuard
 
+// 🧭 Tab definitions
 sealed class TabItem(val title: String, val icon: ImageVector) {
     data object Recipes : TabItem("Recipes", Icons.AutoMirrored.Filled.List)
     data object Pantry : TabItem("Pantry", Icons.Filled.Kitchen)
@@ -18,6 +19,7 @@ sealed class TabItem(val title: String, val icon: ImageVector) {
     data object Scanning : TabItem("Scanning", Icons.Filled.CameraAlt)
 }
 
+// 🎯 Composable tab row
 @Composable
 fun TabSwitcher(
     tabs: List<TabItem>,
@@ -36,29 +38,28 @@ fun TabSwitcher(
     }
 }
 
-fun handleTabSwitch(
-    index: Int,
-    currentPageSetter: (Int) -> Unit,
+// 🧠 Unified tab switch logic
+fun createTabClickHandler(
+    currentTab: TabItem,
     editingGuard: EditingGuard,
     rollback: () -> Unit,
     navMap: Map<TabItem, NavHostController>,
-    currentTab: TabItem
-) {
+    setCurrentPage: (Int) -> Unit
+): (Int, TabItem) -> Unit = { targetIndex, _ ->
     editingGuard.guardedExit(
         hasChanges = true,
         rollback = {
             rollback()
-            // 🧹 Clear stale detail screen before switching tabs
             navMap[currentTab]?.popBackStack("recipes_main", inclusive = false)
         },
         thenExit = {
             editingGuard.isEditing = false
-            currentPageSetter(index)
+            setCurrentPage(targetIndex)
         },
         cleanExit = {
             editingGuard.isEditing = false
             navMap[currentTab]?.popBackStack("recipes_main", inclusive = false)
-            currentPageSetter(index)
+            setCurrentPage(targetIndex)
         }
     )
 }

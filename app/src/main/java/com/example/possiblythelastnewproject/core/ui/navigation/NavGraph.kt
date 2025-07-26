@@ -48,22 +48,21 @@ fun MainScreen() {
     var currentPage by remember { mutableIntStateOf(0) }
     val navMap = tabs.associateWith { rememberNavController() }
 
+    val tabClickHandler = createTabClickHandler(
+        currentTab = tabs[currentPage],
+        editingGuard = editingGuard,
+        rollback = rollback,
+        navMap = navMap,
+        setCurrentPage = { currentPage = it }
+    )
+
     CompositionLocalProvider(LocalEditingGuard provides editingGuard) {
         Scaffold { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 TabSwitcher(
                     tabs = tabs,
                     currentPage = currentPage,
-                    onTabClicked = { index, tab ->
-                        handleTabSwitch(
-                            index = index,
-                            currentPageSetter = { currentPage = it },
-                            editingGuard = editingGuard,
-                            rollback = rollback,
-                            navMap = navMap,
-                            currentTab = tabs[currentPage] // 👈 pass current tab before switching
-                        )
-                    }
+                    onTabClicked = tabClickHandler
                 )
                 when (tabs[currentPage]) {
                     TabItem.Recipes -> RecipesNavHost(
