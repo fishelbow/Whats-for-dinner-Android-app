@@ -162,11 +162,20 @@ class PantryViewModel @Inject constructor(
     fun confirmDelete(context: Context) = viewModelScope.launch {
         uiState.value.itemToDelete?.let { item ->
 
+            // 🧹 Clean up uncommitted edit image if it exists
+            val editDraftUri = uiState.value.editImageUri
+            if (editDraftUri != null && editDraftUri != item.imageUri) {
+                deleteImageFromStorage(editDraftUri, context)
+            }
+
+            // 💥 Delete pantry item (and confirmed image)
             repository.delete(item, context = context)
+
             val files = context.filesDir.listFiles()
             Log.d("ImageCleanup", "Remaining images: ${files?.map { it.name }}")
         }
-        _uiState.update { it.copy(itemToDelete = null, editingItem = null) }
+
+        _uiState.update { it.copy(itemToDelete = null, editingItem = null, editImageUri = null) }
     }
 
     fun insertAndReturn(name: String): PantryItem = runBlocking {
@@ -222,5 +231,29 @@ class PantryViewModel @Inject constructor(
 
     fun setPendingPantryImagePath(path: String) {
         pendingPantryImagePath = path
+    }
+
+    fun swapAddImage(context: Context, newUri: Uri?) {
+        val previous = _uiState.value.addImageUri
+        if (previous != null && previous != newUri?.toString()) {
+            deleteImageFromStorage(previous, context)
+        }
+        _uiState.update { it.copy(addImageUri = newUri?.toString()) }
+    }
+
+    fun swapEditImage(context: Context, newUri: Uri?) {
+        val previous = _uiState.value.editImageUri
+        if (previous != null && previous != newUri?.toString()) {
+            deleteImageFromStorage(previous, context)
+        }
+        _uiState.update { it.copy(editImageUri = newUri?.toString()) }
+    }
+
+    fun auditAndCleanOrphans(context: Context) {
+        val referencedUris = pantryItems.value
+            .mapNotNull { it.imageUri }
+            .toSet()
+
+        PantryImageCleaner.cleanUnreferencedImages(context, referencedUris)
     }
 }

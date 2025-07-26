@@ -1,7 +1,5 @@
 package com.example.possiblythelastnewproject.features.pantry.ui
 
-import android.content.Context
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,14 +18,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.possiblythelastnewproject.core.utils.compressUriToInternalStorage
+import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.core.utils.truncateWithEllipsis
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.domain.InlineBarcodeScanner
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
 import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientSearchBar
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +45,6 @@ fun PantryScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var newIngredient by remember { mutableStateOf("") }
 
-
     var showScanDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showBlankNameDialog by remember { mutableStateOf(false) }
@@ -56,17 +52,16 @@ fun PantryScreen(
     // One is for adding a new ingredient and updates addImageBytes.
 
     val launchImagePickerForAdd = imagePicker { pickedUri ->
-
-        pickedUri?.let {
-            viewModel.updateAddImage(it)
-            viewModel.setPendingPantryImagePath(it.toString())
-        }
+        pickedUri?.let { viewModel.swapAddImage(context, it) }
     }
+
     // The other is for editing an existing ingredient.
     // It calls a ViewModel function (or could update local state) for the edit image.
+
     val launchImagePickerForEdit = imagePicker { pickedUri ->
-        viewModel.updateEditImage(pickedUri)
+        pickedUri?.let { viewModel.swapEditImage(context, it) }
     }
+
 
     // Filter ingredients based on search query.
     val filteredItems = pantryItems.filter {
@@ -79,6 +74,11 @@ fun PantryScreen(
         }
     }
 
+    LaunchedEffect(pantryItems) {
+        if (pantryItems.isNotEmpty()) {
+            viewModel.auditAndCleanOrphans(context)
+        }
+    }
 
     // Main screen scaffold
     Scaffold(
@@ -305,10 +305,18 @@ fun PantryScreen(
                 TextButton(onClick = {
                     showAddDialog = false
                     newIngredient = ""
+
+                    // Clean up draft image if present
+                    val imageUri = viewModel.uiState.value.addImageUri
+                    imageUri?.let {
+                        deleteImageFromStorage(it, context)
+                    }
+                    viewModel.clearAddImageUri()
                     viewModel.updateSelectedCategory(null)
                 }) {
                     Text("Cancel")
                 }
+
             }
         )
     }
@@ -559,16 +567,3 @@ fun PantryScreen(
 
 }
 
-
-fun uriToFile(savedPath: Uri?, context: Context): File? {
-    return savedPath?.let { uri ->
-        when (uri.scheme) {
-            "file" -> uri.path?.let { File(it) }
-            "content" -> {
-                val fileName = uri.lastPathSegment ?: return null
-                File(context.filesDir, fileName) // Assumes file was saved there
-            }
-            else -> null
-        }
-    }
-}

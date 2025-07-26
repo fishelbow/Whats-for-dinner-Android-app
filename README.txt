@@ -521,6 +521,17 @@ When I return I plan to map out again with log cat what is creating an orphan an
 
 not I may even add an on screen toast or file log for on device testing.
 
+found the cracks where files were falling through. decided to disable tab navigation during
 
+recipe edit. it was causing more issue than good.
 
+moving on to pantry to isolate behaviors that produce orphans
+
+so far it appears to be the multiple image switching that creates orphans.
+
+pantry screen has been tightened up,
+
+I am back to needing a orphan hunter that actually works properly in the event or accidental orphans
+
+app crash, app close at wrong time.
 
