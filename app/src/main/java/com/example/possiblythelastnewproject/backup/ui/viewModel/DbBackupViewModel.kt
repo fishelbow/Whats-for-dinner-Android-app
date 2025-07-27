@@ -1,12 +1,17 @@
-package com.example.possiblythelastnewproject.core.data.backup
+package com.example.possiblythelastnewproject.backup.ui.viewModel
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.possiblythelastnewproject.backup.data.BackupRepository
+import com.example.possiblythelastnewproject.backup.domain.BackupImporter
+import com.example.possiblythelastnewproject.backup.domain.BackupRestorer
 import com.example.possiblythelastnewproject.core.data.AppDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,16 +42,20 @@ class DbBackupViewModel @Inject constructor(
         result = null
     }
 
-    fun exportBackup(uri: Uri) {
-        // alias to unified export
-        exportUnifiedBackup(uri)
-    }
+    fun launchBackupImport(
+        context: Context,
+        zipUri: Uri,
+        backupRestorer: BackupRestorer
+    ) {
+        viewModelScope.launch {
+            val result = backupRestorer.restoreBundle(zipUri)
 
-    fun importBackup(uri: Uri) {
-        // alias to unified import
-        importUnifiedBackup(uri)
+            result.onSuccess {
+                Log.d("Import", "Imported: $it")
+                // 🟢 Show audit summary via ribbon/snackbar
+            }
+        }
     }
-
     private fun exportUnifiedBackup(uri: Uri) {
         launchWithLoading {
             val backup = buildBackup()

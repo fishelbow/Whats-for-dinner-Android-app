@@ -14,6 +14,8 @@ class MediaOrphanHunter @Inject constructor() {
         val skipped: List<String>
     )
 
+    private val internalKeepers = setOf("profileInstalled")
+
     fun clean(context: Context, referencedUris: Set<Uri>): CleanupReport {
         val referencedFilenames = referencedUris
             .mapNotNull { it.lastPathSegment }
@@ -27,6 +29,13 @@ class MediaOrphanHunter @Inject constructor() {
 
         for (file in files) {
             val name = file.name
+
+            if (internalKeepers.contains(name)) {
+                skipped += name
+                Log.i("OrphanHunter", "🛡️ Preserved internal file: $name")
+                continue
+            }
+
             if (!referencedFilenames.contains(name)) {
                 file.delete()
                 Log.i("OrphanHunter", "🗑️ Deleted: $name")

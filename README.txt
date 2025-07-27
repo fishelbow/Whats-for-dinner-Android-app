@@ -535,3 +535,11 @@ I am back to needing a orphan hunter that actually works properly in the event o
 
 app crash, app close at wrong time.
 
+created an MediaOrphanHunter that runs at start up to delete any files not associated with the db
+
+now on to import/export to zip all the images along with the json for the db.
+
+I am hoping this all works well with the MediaOrphanHunter.
+
+
+

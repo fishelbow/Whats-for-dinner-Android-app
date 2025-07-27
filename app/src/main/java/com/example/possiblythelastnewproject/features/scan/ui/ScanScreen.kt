@@ -27,12 +27,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.possiblythelastnewproject.core.data.backup.DbBackupViewModel
+import com.example.possiblythelastnewproject.backup.ui.viewModel.DbBackupViewModel
 import com.example.possiblythelastnewproject.debug.DebugToolsScreen
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
-import com.example.possiblythelastnewproject.features.scan.ui.componets.DbImportExportDialog
+import com.example.possiblythelastnewproject.backup.ui.DbImportExportDialog
 import kotlinx.coroutines.delay
 
 @Composable
@@ -231,7 +231,8 @@ fun ScanningTab(
             Button(onClick = { showDialog = true }) {
                 Text("⚙️ Import/Export")
             }
-            DebugToolsScreen()
+           //BackupDialog()
+           DebugToolsScreen()
         }
 
       //  Text("BuildConfig.DEBUG = ${BuildConfig.DEBUG}")

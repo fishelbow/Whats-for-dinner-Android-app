@@ -1,5 +1,6 @@
-package com.example.possiblythelastnewproject.core.data.backup
+package com.example.possiblythelastnewproject.backup.domain
 
+import com.example.possiblythelastnewproject.backup.ui.viewModel.FullDatabaseBackup
 import com.example.possiblythelastnewproject.core.data.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,27 +69,10 @@ data class ImportResult(
     val entries: Int,
     val selections: Int,
     val undoActions: Int
-)
-
-fun restoreImages(zipFile: File, targetDir: File): Result<List<String>> = runCatching {
-    val restoredFiles = mutableListOf<String>()
-
-    ZipInputStream(zipFile.inputStream()).use { zipIn ->
-        var entry = zipIn.nextEntry
-        while (entry != null) {
-            if (!entry.isDirectory) {
-                val fileName = entry.name
-                val outFile = File(targetDir, fileName)
-
-                outFile.outputStream().use { output ->
-                    zipIn.copyTo(output)
-                }
-                restoredFiles += fileName
-            }
-            zipIn.closeEntry()
-            entry = zipIn.nextEntry
-        }
+) {
+    fun onSuccess(action: (ImportResult) -> Unit): ImportResult {
+        action(this)
+        return this
     }
 
-    restoredFiles
 }

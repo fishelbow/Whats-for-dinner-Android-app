@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.scan.ui.componets
+package com.example.possiblythelastnewproject.backup.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
