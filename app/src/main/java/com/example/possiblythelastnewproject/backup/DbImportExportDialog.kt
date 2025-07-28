@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.backup.ui
+package com.example.possiblythelastnewproject.backup
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,15 +27,15 @@ fun DbImportExportDialog(
         title = { Text("Database Backup") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Export or import your entire database as a JSON file.")
+                Text("Export or import your entire database?")
                 if (isLoading) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
                 Button(onClick = onImportClick, enabled = !isLoading) {
-                    Text("📥 Import JSON")
+                    Text("📥 Import DB")
                 }
                 Button(onClick = onExportClick, enabled = !isLoading) {
-                    Text("📤 Export JSON")
+                    Text("📤 Export DB")
                 }
             }
         },

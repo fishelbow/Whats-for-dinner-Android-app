@@ -27,12 +27,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.possiblythelastnewproject.backup.ui.viewModel.DbBackupViewModel
+import com.example.possiblythelastnewproject.backup.BackupViewModel
 import com.example.possiblythelastnewproject.debug.DebugToolsScreen
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CustomCameraManager
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.DataExtractor
-import com.example.possiblythelastnewproject.backup.ui.DbImportExportDialog
+import com.example.possiblythelastnewproject.backup.DbImportExportDialog
 import kotlinx.coroutines.delay
 
 @Composable
@@ -41,7 +41,7 @@ fun ScanningTab(
     onScanResult: (String) -> Unit
 ) {
 
-    val viewModel: DbBackupViewModel = hiltViewModel()
+    val viewModel: BackupViewModel = hiltViewModel()
     val isLoading = viewModel.isLoading
     val result = viewModel.result
     var showDialog by remember { mutableStateOf(false) }
@@ -55,14 +55,13 @@ fun ScanningTab(
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri -> uri?.let { viewModel.importJson(it) } }
+        onResult = { uri -> uri?.let { viewModel.handleImportZip(it) } }
     )
 
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
-        onResult = { uri -> uri?.let { viewModel.exportJson(it) } }
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
+        onResult = { uri -> uri?.let { viewModel.handleExportZip(it) } }
     )
-
 
 
     // --- PERMISSION LOGIC ---
@@ -231,11 +230,8 @@ fun ScanningTab(
             Button(onClick = { showDialog = true }) {
                 Text("⚙️ Import/Export")
             }
-           //BackupDialog()
-           DebugToolsScreen()
+            DebugToolsScreen()
         }
-
-      //  Text("BuildConfig.DEBUG = ${BuildConfig.DEBUG}")
 
 
         DbImportExportDialog(
@@ -246,10 +242,10 @@ fun ScanningTab(
                 viewModel.clearResult()
             },
             onImportClick = {
-                importLauncher.launch(arrayOf("application/json"))
+                importLauncher.launch(arrayOf("application/zip"))
             },
             onExportClick = {
-                exportLauncher.launch("backup.json")
+                exportLauncher.launch("backup.zip")
             }
         )
 
@@ -261,7 +257,4 @@ fun ScanningTab(
             viewModel.clearResult()
         }
     }
-
-
-
 }

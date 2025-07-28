@@ -541,5 +541,7 @@ now on to import/export to zip all the images along with the json for the db.
 
 I am hoping this all works well with the MediaOrphanHunter.
 
+finished the backup up package. need to test between phones.
+
 
 
