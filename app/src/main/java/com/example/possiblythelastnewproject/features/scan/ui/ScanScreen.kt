@@ -233,28 +233,24 @@ fun ScanningTab(
             DebugToolsScreen()
         }
 
-
         DbImportExportDialog(
             showDialog = showDialog,
-            isLoading = isLoading,
+            isLoading = viewModel.isLoading,
+            progress = viewModel.progress,
+            statusMessage = viewModel.statusMessage,
             onDismiss = {
                 showDialog = false
                 viewModel.clearResult()
             },
-            onImportClick = {
-                importLauncher.launch(arrayOf("application/zip"))
-            },
-            onExportClick = {
-                exportLauncher.launch("backup.zip")
-            }
+            onImportClick = { importLauncher.launch(arrayOf("application/zip")) },
+            onExportClick = { exportLauncher.launch("backup.zip") }
         )
 
-    }
-
-    LaunchedEffect(result) {
-        result?.let {
-            Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
-            viewModel.clearResult()
+        LaunchedEffect(result) {
+            result?.let {
+                Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
+                viewModel.clearResult()
+            }
         }
     }
 }

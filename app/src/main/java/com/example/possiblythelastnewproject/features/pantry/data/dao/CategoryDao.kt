@@ -35,4 +35,7 @@ interface CategoryDao {
 
     @Query("DELETE FROM Category")
     suspend fun clearAll()
+
+    @Query("SELECT * FROM Category ORDER BY name LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<Category>
 }

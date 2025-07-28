@@ -51,6 +51,7 @@ interface PantryItemDao {
     @Query("SELECT imageUri FROM PantryItem WHERE imageUri IS NOT NULL")
     suspend fun getAllPantryImageUris(): List<String>
 
-
+    @Query("SELECT * FROM pantryItem LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<PantryItem>
 
 }

@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.debug
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +26,7 @@ class DebugViewModel @Inject constructor(
 ) : ViewModel() {
 
     val isLoading = mutableStateOf(false)
-    val progress = mutableStateOf(0f)
+    val progress = mutableFloatStateOf(0f)
     val loadingStage = mutableStateOf("Idle")
     val loadingDetail = mutableStateOf("")
 
@@ -50,7 +51,7 @@ class DebugViewModel @Inject constructor(
                     recipeCount = recipeCount,
                     ingredientCount = ingredientCount,
                     onInit = { loadingStage.value = "Inserting mock data..." },
-                    onProgress = { progress.value = it },
+                    onProgress = { progress.floatValue = it },
                     onDetail = { loadingDetail.value = it },
                     generateImage = generateImage // ✅ externally provided
                 )
@@ -88,12 +89,12 @@ class DebugViewModel @Inject constructor(
 
     fun beginLoading() {
         isLoading.value = true
-        progress.value = 0f
+        progress.floatValue = 0f
         loadingStage.value = "Starting..."
     }
 
     private fun finishLoading() {
-        progress.value = 1f
+        progress.floatValue = 1f
         isLoading.value = false
         loadingStage.value = "Idle"
     }

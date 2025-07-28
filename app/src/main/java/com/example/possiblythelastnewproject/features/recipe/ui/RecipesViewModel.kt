@@ -77,7 +77,7 @@ class RecipesViewModel @Inject constructor(
         else
             recipeDao.existsByName(trimmed)
     }
-
+/*
     // 🧼 Image Cleanup
     fun discardImagesIfNeeded(context: Context): Boolean {
         val state = State.value
@@ -103,7 +103,7 @@ class RecipesViewModel @Inject constructor(
         updateUi { rollbackImages().copy(preservedImageUri = null) }
         return deletable.isNotEmpty()
     }
-
+*/
     // 💾 Save New Recipe
     fun saveRecipeWithIngredientsUi(
         recipe: Recipe,

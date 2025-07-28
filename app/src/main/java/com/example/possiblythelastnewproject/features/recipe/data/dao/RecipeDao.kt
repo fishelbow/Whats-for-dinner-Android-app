@@ -59,4 +59,7 @@ interface RecipeDao {
     @Query("SELECT * FROM Recipe")
     fun observeAllRecipes(): Flow<List<Recipe>>
 
+    @Query("SELECT * FROM Recipe ORDER BY recipe_name LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<Recipe>
+
 }

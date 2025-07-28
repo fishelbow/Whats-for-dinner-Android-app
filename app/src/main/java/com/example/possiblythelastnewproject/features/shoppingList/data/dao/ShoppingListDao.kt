@@ -31,4 +31,7 @@ interface ShoppingListDao {
     @Query("DELETE FROM ShoppingList")
     suspend fun clearAll()
 
+    @Query("SELECT * FROM ShoppingList ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<ShoppingList>
+
 }

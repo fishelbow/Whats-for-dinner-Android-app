@@ -52,4 +52,7 @@ interface RecipePantryItemDao {
 
     @Query("DELETE FROM RecipePantryItemCrossRef")
     suspend fun clearAll()
+
+    @Query("SELECT * FROM RecipePantryItemCrossRef LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<RecipePantryItemCrossRef>
 }

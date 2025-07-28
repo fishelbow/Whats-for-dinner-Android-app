@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 fun DbImportExportDialog(
     showDialog: Boolean,
     isLoading: Boolean,
+    progress: Float,
+    statusMessage: String?,
     onDismiss: () -> Unit,
     onImportClick: () -> Unit,
     onExportClick: () -> Unit
@@ -28,9 +30,16 @@ fun DbImportExportDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Export or import your entire database?")
+
                 if (isLoading) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    statusMessage?.let { Text(it) }
+                    LinearProgressIndicator(
+                        progress =  progress ,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text("${(progress * 100).toInt()}% complete")
                 }
+
                 Button(onClick = onImportClick, enabled = !isLoading) {
                     Text("📥 Import DB")
                 }

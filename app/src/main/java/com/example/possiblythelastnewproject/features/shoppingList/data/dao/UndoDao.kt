@@ -31,4 +31,7 @@ interface UndoDao {
 
     @Query("SELECT * FROM UndoAction")
     suspend fun getAllOnce(): List<UndoAction>
+
+    @Query("SELECT * FROM UndoAction ORDER BY listId, timestamp DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<UndoAction>
 }

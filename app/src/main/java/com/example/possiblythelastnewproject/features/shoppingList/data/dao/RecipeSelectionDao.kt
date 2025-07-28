@@ -34,5 +34,6 @@ interface RecipeSelectionDao {
     @Query("SELECT * FROM RecipeSelection")
     suspend fun getAllOnce(): List<RecipeSelection>
 
-
+    @Query("SELECT * FROM RecipeSelection ORDER BY listId LIMIT :limit OFFSET :offset")
+    suspend fun getPaged(limit: Int, offset: Int): List<RecipeSelection>
 }

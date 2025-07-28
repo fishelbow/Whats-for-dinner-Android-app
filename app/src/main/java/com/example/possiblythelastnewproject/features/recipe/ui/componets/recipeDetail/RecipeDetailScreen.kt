@@ -82,17 +82,14 @@ fun RecipeDetailScreen(
                 coroutineScope.launch {
                     viewModel.rollbackImageUri()
                     delay(50)
-                    viewModel.discardImagesIfNeeded(context)
-                    performRecipeRollback(recipeId, context, viewModel).invoke()
-                    viewModel.removeOrphanedImages(context, viewModel.allRecipes.value, viewModel.uiState.value)
-                }
+                //    viewModel.discardImagesIfNeeded(context)
+                    performRecipeRollback(recipeId, context, viewModel).invoke() }
             },
             thenExit = {
                 editingGuard.isEditing = false
                 navController.navigateUp() // ✅ only if confirmed
             },
             cleanExit = {
-                viewModel.removeOrphanedImages(context, viewModel.allRecipes.value, viewModel.uiState.value)
                 editingGuard.isEditing = false
                 navController.navigateUp() // ✅ only if no changes
             }
@@ -125,22 +122,13 @@ fun RecipeDetailScreen(
                     hasChanges = hasChanges,
                     rollback = {
                         performRecipeRollback(recipeId, context, viewModel).invoke()
-                        viewModel.removeOrphanedImages(
-                            context = context,
-                            allRecipes = viewModel.allRecipes.value,
-                            uiState = viewModel.uiState.value
-                        )
+
                     },
                     thenExit = {
                         editingGuard.isEditing = false
                         navController.popBackStack() // ← only here after confirmation
                     },
                     cleanExit = {
-                        viewModel.removeOrphanedImages(
-                            context = context,
-                            allRecipes = viewModel.allRecipes.value,
-                            uiState = viewModel.uiState.value
-                        )
                         editingGuard.isEditing = false
                         navController.popBackStack() // ← only if no changes
                     }
@@ -149,19 +137,7 @@ fun RecipeDetailScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            if (editingGuard.isEditing) {
-                viewModel.discardImagesIfNeeded(context)
-                viewModel.removeOrphanedImages(
-                    context,
-                    viewModel.allRecipes.value,
-                    viewModel.uiState.value
-                )
-            }
-        }
-        onDispose {}
-    }
+
 
     Scaffold(
         topBar = {
@@ -267,13 +243,6 @@ fun RecipeDetailScreen(
 
                         // 👇 Commit image selection
                         viewModel.commitImageUri()
-
-                        // 🧹 Clean up unused images
-                        viewModel.removeOrphanedImages(
-                            context = context,
-                            allRecipes = viewModel.allRecipes.value,
-                            uiState = viewModel.uiState.value
-                        )
 
                         editingGuard.isEditing = false
                         navController.popBackStack()
