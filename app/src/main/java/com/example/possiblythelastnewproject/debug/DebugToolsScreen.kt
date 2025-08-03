@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -84,7 +83,7 @@ fun DebugToolsScreen() {
                 // Now copy returns a Uri (not a String path)
                 val copiedUri = compressUriToInternalStorage(context, source)
 
-                copiedUri ?: generateMockImage(context, "fallback") // ✅ No File(...) construction needed
+                copiedUri ?: generateMockImage(context, "fallback") //
             }
         }
 
@@ -101,12 +100,6 @@ fun DebugToolsScreen() {
     }
 
     val pickFromGallery = imagePicker { uri ->
-        selectedImageUri = uri
-        showImageSourceDialog = false
-        launchClonedGeneration(uri)
-    }
-
-    val captureFromCamera = imagePicker { uri ->
         selectedImageUri = uri
         showImageSourceDialog = false
         launchClonedGeneration(uri)
