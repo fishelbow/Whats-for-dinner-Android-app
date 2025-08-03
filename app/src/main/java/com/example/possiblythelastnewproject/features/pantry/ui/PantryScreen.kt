@@ -19,6 +19,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.possiblythelastnewproject.core.utils.MediaOrphanHunter
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
@@ -30,53 +32,35 @@ import com.example.possiblythelastnewproject.features.pantry.ui.componets.Ingred
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantryScreen(
-    viewModel: PantryViewModel = viewModel()
-) {
-    // State from ViewModel
+fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val pantryItems by viewModel.pantryItems.collectAsState()
     val inUseIds by viewModel.inUsePantryItemIds.collectAsState(emptySet())
+    val categories by viewModel.allCategories.collectAsState()
+    val lazyItems = viewModel.pagedPantryItems.collectAsLazyPagingItems()
 
-    // Common local variables
-    val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-    // Local UI state
-    var duplicateCodeDetected by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newIngredient by remember { mutableStateOf("") }
-
     var showScanDialog by remember { mutableStateOf(false) }
     var showDuplicateNameDialog by remember { mutableStateOf(false) }
     var showBlankNameDialog by remember { mutableStateOf(false) }
-    // Create two distinct image pickers by calling your universal function.
-    // One is for adding a new ingredient and updates addImageBytes.
+    var duplicateCodeDetected by remember { mutableStateOf(false) }
 
-    val launchImagePickerForAdd = imagePicker { pickedUri ->
-        pickedUri?.let { viewModel.swapAddImage(context, it) }
+    val launchImagePickerForAdd = imagePicker { uri ->
+        uri?.let { viewModel.swapAddImage(context, it) }
     }
-
-    // The other is for editing an existing ingredient.
-    // It calls a ViewModel function (or could update local state) for the edit image.
-
-    val launchImagePickerForEdit = imagePicker { pickedUri ->
-        pickedUri?.let { viewModel.swapEditImage(context, it) }
-    }
-
-
-    // Filter ingredients based on search query.
-    val filteredItems = pantryItems.filter {
-        uiState.searchQuery.isBlank() || it.name.contains(uiState.searchQuery, ignoreCase = true)
+    val launchImagePickerForEdit = imagePicker { uri ->
+        uri?.let { viewModel.swapEditImage(context, it) }
     }
 
     LaunchedEffect(showAddDialog) {
-        if (showAddDialog) {
-            viewModel.clearAddImageUri()
-        }
+        if (showAddDialog) viewModel.clearAddImageUri()
     }
 
-    // Main screen scaffold
     Scaffold(
         topBar = {
             IngredientSearchBar(
@@ -88,31 +72,25 @@ fun PantryScreen(
         },
         content = { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
-                if (filteredItems.isEmpty()) {
-                    Text(
-                        text = "No ingredients found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                if (lazyItems.itemCount == 0 && lazyItems.loadState.refresh is LoadState.NotLoading) {
+                    Text("No ingredients found", Modifier.align(Alignment.Center))
                 } else {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    )
-                    {
-                        items(filteredItems) { item ->
-                            pantryItems.find { it.id == item.id }?.let { validItem ->
-                                val displayName = truncateWithEllipsis(validItem.name)
-
+                    ) {
+                        items(lazyItems.itemCount) { index ->
+                            lazyItems[index]?.let { item ->
+                                val displayName = truncateWithEllipsis(item.name)
                                 IngredientCard(
                                     ingredient = displayName,
-                                    quantity = validItem.quantity,
-                                    imageUri = validItem.imageUri,
+                                    quantity = item.quantity,
+                                    imageUri = item.imageUri,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { selectedItem = validItem }
+                                        .clickable { selectedItem = item }
                                 )
                             }
                         }
@@ -121,6 +99,8 @@ fun PantryScreen(
             }
         }
     )
+
+
 
 // --- View Dialog (non-destructive) ---
     selectedItem?.let { item ->
