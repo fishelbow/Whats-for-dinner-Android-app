@@ -1,6 +1,9 @@
 package com.example.possiblythelastnewproject.features.pantry.data
 
 import android.content.Context
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.dao.CategoryDao
 import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
@@ -11,7 +14,6 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.paging.PagingSource
 
 @Singleton
 class PantryRepository @Inject constructor(
@@ -67,6 +69,10 @@ class PantryRepository @Inject constructor(
         pantryItemDao.clearAll()
     }
 
-    fun getPagedPantryItems(): PagingSource<Int, PantryItem> =
-        pantryItemDao.getPagedPantryItems()
+    fun getPagedPantryItems(): Flow<PagingData<PantryItem>> =
+        Pager(
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = { pantryItemDao.getPagedPantryItems() }
+        ).flow
+
 }

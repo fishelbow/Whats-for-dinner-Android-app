@@ -17,14 +17,16 @@ import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pan
 import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.EditIngredientDialog
 import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.IngredientDetailsDialog
 import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.ScanDialog
+import androidx.paging.compose.collectAsLazyPagingItems
 
 @Composable
 fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
-    val pantryItems by viewModel.pantryItems.collectAsState()
     val inUseIds by viewModel.inUsePantryItemIds.collectAsState(emptySet())
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
+
+    val pagedItems = viewModel.pagedItems.collectAsLazyPagingItems()
 
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -40,10 +42,6 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
 
     val launchImagePickerForEdit = imagePicker { uri ->
         uri?.let { viewModel.swapEditImage(context, it) }
-    }
-
-    val filteredItems = pantryItems.filter {
-        uiState.searchQuery.isBlank() || it.name.contains(uiState.searchQuery, ignoreCase = true)
     }
 
     LaunchedEffect(showAddDialog) {
@@ -62,7 +60,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             PantryGridSection(
-                filteredItems = filteredItems,
+                pagedItems = pagedItems,
                 onItemClick = { selectedItem = it }
             )
         }
@@ -81,6 +79,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     }
 
     if (showAddDialog) {
+        val pantryItemsSnapshot = pagedItems.itemSnapshotList.items
         AddIngredientDialog(
             newIngredient = newIngredient,
             onNameChange = { newIngredient = it },
@@ -95,7 +94,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
             },
             onConfirm = {
                 val trimmedName = newIngredient.trim()
-                val nameExists = pantryItems.any {
+                val nameExists = pantryItemsSnapshot.any {
                     it.name.equals(trimmedName, ignoreCase = true)
                 }
 
@@ -122,13 +121,15 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
             categories = viewModel.allCategories.collectAsState(),
             selectedCategory = uiState.selectedCategory,
             onCategorySelect = viewModel::updateSelectedCategory,
-            nameExists = pantryItems.any { it.name.equals(newIngredient.trim(), ignoreCase = true) }
+            nameExists = pantryItemsSnapshot.any {
+                it.name.equals(newIngredient.trim(), ignoreCase = true)
+            }
         )
     }
 
     EditIngredientDialog(
         uiState = uiState,
-        pantryItems = pantryItems,
+        pantryItems = pagedItems.itemSnapshotList.items,
         inUseIds = inUseIds,
         viewModel = viewModel,
         context = context,
@@ -151,7 +152,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     ScanDialog(
         showScanDialog = showScanDialog,
         onDismiss = { showScanDialog = false },
-        pantryItems = pantryItems,
+        pantryItems = pagedItems.itemSnapshotList.items,
         selectedItem = selectedItem,
         onScanSuccess = { id, code ->
             viewModel.updateScanCode(id, code, context)
@@ -161,7 +162,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
             showDuplicateCodeDialog = true
             showScanDialog = false
         },
-        onItemUpdate = { updated: PantryItem -> selectedItem = updated }
+        onItemUpdate = { updated -> selectedItem = updated }
     )
 
     DuplicateCodeDialog(

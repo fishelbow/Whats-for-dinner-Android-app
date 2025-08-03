@@ -5,8 +5,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
@@ -230,9 +229,10 @@ class PantryViewModel @Inject constructor(
         _uiState.update { it.copy(editImageUri = newUri?.toString()) }
     }
 
-    val pagedItems = Pager(PagingConfig(pageSize = 50)) {
-        repository.getPagedPantryItems()
-    }.flow.cachedIn(viewModelScope)
+    val pagedItems: StateFlow<PagingData<PantryItem>> = repository
+        .getPagedPantryItems()
+        .cachedIn(viewModelScope)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PagingData.empty())
 
 }
 
