@@ -9,7 +9,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.IngredientCard
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem as PantryItem1
 
 @Composable

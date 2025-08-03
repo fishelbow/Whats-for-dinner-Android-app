@@ -7,17 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.data.PantryRepository
-import com.example.possiblythelastnewproject.features.pantry.data.dao.PantryItemDao
-import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipePantryItemDao
-import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipePantryItemRepository
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.PantryUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -194,15 +190,15 @@ class PantryViewModel @Inject constructor(
             }
         }
     }
-    fun updateScanCode(id: Long, scannedCode: String, context: Context) {
+    fun updateScanCode(id: Int, scannedCode: String, context: Context) {
         viewModelScope.launch {
-            val duplicate = pantryItems.value.any { it.scanCode == scannedCode && it.id != id }
+            val duplicate = pantryItems.value.any { it.scanCode == scannedCode && it.id.toInt() != id }
             if (duplicate) {
                 Log.w("PantryViewModel", "Duplicate PLU/Barcode: $scannedCode already used.")
                 return@launch
             }
 
-            pantryItems.value.find { it.id == id }?.let { item ->
+            pantryItems.value.find { it.id.toInt() == id }?.let { item ->
                 val updated = item.copy(scanCode = scannedCode)
 
                 repository.update(
@@ -233,6 +229,11 @@ class PantryViewModel @Inject constructor(
         }
         _uiState.update { it.copy(editImageUri = newUri?.toString()) }
     }
+
+    val pagedItems = Pager(PagingConfig(pageSize = 50)) {
+        repository.getPagedPantryItems()
+    }.flow.cachedIn(viewModelScope)
+
 }
 
 

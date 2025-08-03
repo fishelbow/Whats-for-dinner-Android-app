@@ -6,7 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
-import com.example.possiblythelastnewproject.features.pantry.ui.PantryScreen
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.PantryScreen
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeDetail.RecipeDetailScreen
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.mainScreen.RecipeScreenWithSearch

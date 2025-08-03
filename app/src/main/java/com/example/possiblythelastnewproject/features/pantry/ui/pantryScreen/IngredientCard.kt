@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.componets
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
 
 import android.annotation.SuppressLint
 import android.net.Uri

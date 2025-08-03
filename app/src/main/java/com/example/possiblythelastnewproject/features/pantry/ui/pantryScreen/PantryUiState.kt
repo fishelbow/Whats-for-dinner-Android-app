@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
 
 import com.example.possiblythelastnewproject.core.utils.MediaOrphanHunter
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category

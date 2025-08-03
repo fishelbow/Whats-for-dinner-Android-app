@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
-import com.example.possiblythelastnewproject.features.pantry.ui.componets.IngredientCard
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.IngredientCard
 
 @Composable
 fun UpdateItemDialog(

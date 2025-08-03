@@ -706,66 +706,8 @@ StateFlow<List<PantryItem>> for duplicate checks and scan code logic—while the
 
    eliminate concurrent hydration, and make the pantry screen scalable even with large datasets.
 
-// maybe break down PantryScreen first!!
+// maybe break down PantryScreen first!! planning to break down pantry screen before implementing
 
-## 🧨 PantryScreen Scroll Crash — Analysis & Action Plan
+Pantry screen has been broken apart. still crashing from massive datat set 120k plus. will be trying
 
-### 🧠 What’s Happening
-
-OOM crash triggered by concurrent hydration of:
-- `StateFlow<List<PantryItem>>` — full entity list used for duplicate checks and UI logic
-- `PagingData<PantryItem>` — paged scrollable list in LazyVerticalGrid
-
-Compose retains prior UI instances, Room tries to serve both flows, and CursorWindow fails once memory crosses a threshold. The barcode scanner and `.any { ... }` calls amplify the pressure mid-scroll.
-
----
-
-### 🔥 Why This Is Unique to PantryScreen
-
-Unlike recipes (which don’t simultaneously hydrate paging and full lists), PantryScreen collects **both**:
-- `pantryItems: StateFlow<List<PantryItem>>`
-- `lazyPagingItems: Flow<PagingData<PantryItem>>`
-
-Every dialog, scan, and edit pulls from `pantryItems`, even while paging is active—creating dual Room queries and excessive memory retention.
-
----
-
-### ✅ Fix Checklist
-
-#### Data Layer
-- [ ] Add DAO projections:
-  - `getUsedScanCodes(): Flow<Set<String>>`
-  - `getAllPantryItemNames(): Flow<Set<String>>`
-  - Optional: `getPagedPantryPreviews(): PagingSource<Int, PantryPreview>`
-
-#### Repository
-- [ ] Expose flows for `usedScanCodes` and `pantryItemNames` to ViewModel
-- [ ] Deprecate `getAllPantryItems()` except for audits or exports
-
-#### ViewModel
-- [ ] Drop `StateFlow<List<PantryItem>>` from screen-level logic
-- [ ] Replace `.any` scans with `.contains(...)` from projection sets
-- [ ] Isolate full-entity access via `getById(id: Long)`
-
-#### Composable Cleanup
-- [ ] Remove `pantryItems.collectAsState()` from `PantryScreen`
-- [ ] Ensure paging flow is invalidated on tab switch using `DisposableEffect`
-
----
-
-### 🚀 Outcome
-
-Eliminates dual memory pressure, prevents CursorWindow crashes, and keeps UI responsive even with 10k+ pantry items. All trust flows (edit, scan, delete, preview) remain intact and memory-safe.
-
-Next steps: refactor DAO + ViewModel to match projection flow strategy and audit tab transitions for paging cleanup.
-
-Let me know if you'd like a Notion-style card, a Git commit footer, or a tab-switch memory hygiene snippet next.
-
-####################################################################################################
-
-at this point I am more curious about the means of switching over to release code. I am vaguely
-
-aware of buildTypes will look more also I would love to be able to make the if (BuildConfig.DEBUG)
-
-work for the generate data interface.
-
+again to implement paging 3.

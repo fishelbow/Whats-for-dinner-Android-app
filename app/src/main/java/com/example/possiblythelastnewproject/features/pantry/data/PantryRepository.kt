@@ -11,6 +11,7 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.paging.PagingSource
 
 @Singleton
 class PantryRepository @Inject constructor(
@@ -54,11 +55,6 @@ class PantryRepository @Inject constructor(
         pantryItemDao.deletePantryItem(item)
     }
 
-    /** Returns true only if no recipe cross-refs exist */
-    private suspend fun canDelete(itemId: Long): Boolean =
-        pantryItemDao.countRecipesUsing(itemId) == 0
-
-
     /**
      * A live Flow of every RecipePantryItemCrossRef in the DB.
      * Use this to see all pantryItemIds currently referenced by recipes.
@@ -70,4 +66,7 @@ class PantryRepository @Inject constructor(
     suspend fun clearAll() {
         pantryItemDao.clearAll()
     }
+
+    fun getPagedPantryItems(): PagingSource<Int, PantryItem> =
+        pantryItemDao.getPagedPantryItems()
 }

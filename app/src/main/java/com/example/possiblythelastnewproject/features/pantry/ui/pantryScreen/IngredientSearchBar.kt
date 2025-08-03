@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.componets
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
