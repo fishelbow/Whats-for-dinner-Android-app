@@ -1,6 +1,9 @@
 package com.example.possiblythelastnewproject.debug
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.net.Uri
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
+@SuppressLint("ContextCastToActivity")
 @Composable
 fun DebugToolsScreen() {
     val context = LocalContext.current
@@ -41,6 +45,9 @@ fun DebugToolsScreen() {
     val isLoading by viewModel.isLoading
     val progress by viewModel.progress
 
+
+    val activity = LocalContext.current as? Activity
+
     if (isLoading) BackHandler(enabled = true) {}
 
     // 🔧 Image Generators
@@ -59,7 +66,9 @@ fun DebugToolsScreen() {
                 pantryCount = pantryCount.toInt(),
                 recipeCount = recipeCount.toInt(),
                 ingredientCount = ingredientAmount.toInt(),
-                generateImage = generator
+                generateImage = generator,
+                keepScreenAwake = { activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) },
+                releaseScreenAwake = { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
             )
         }
     }

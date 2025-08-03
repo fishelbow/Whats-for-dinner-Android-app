@@ -231,7 +231,7 @@ fun ScanningTab(
             Button(onClick = { showDialog = true }) {
                 Text("⚙️ Import/Export")
             }
-            if (BuildConfig.DEBUG) {
+            if (BuildConfig.DEBUG) { // <- one day I will know how to work this lol.
                 DebugToolsScreen()
             }
         }
@@ -254,6 +254,20 @@ fun ScanningTab(
                 Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
                 viewModel.clearResult()
             }
+        }
+    }
+
+    // this disposable effect to keep the screen from timing out during long loads
+
+    DisposableEffect(isPaused) {
+        val window = activity.window
+        if (isPaused) {
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 }

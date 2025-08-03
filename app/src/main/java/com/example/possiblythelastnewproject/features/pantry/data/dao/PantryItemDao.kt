@@ -11,24 +11,24 @@ interface PantryItemDao {
 
     // ————— Flow Queries —————
 
-    @Query("SELECT * FROM PantryItem ORDER BY name")
+    @Query("SELECT * FROM PantryItem ORDER BY name ASC, id ASC")
     fun getAllPantryItems(): Flow<List<PantryItem>>
 
-    @Query("SELECT * FROM PantryItem WHERE category = :category ORDER BY name")
+    @Query("SELECT * FROM PantryItem WHERE category = :category ORDER BY name ASC, id ASC")
     fun getItemsByCategory(category: String): Flow<List<PantryItem>>
 
     // ————— Paging Queries —————
 
-    @Query("SELECT * FROM PantryItem WHERE LOWER(name) LIKE '%' || LOWER(:query) || '%' ORDER BY name")
+    @Query("SELECT * FROM PantryItem WHERE LOWER(name) LIKE '%' || LOWER(:query) || '%' ORDER BY name ASC, id ASC")
     fun getPagedPantryItems(query: String): PagingSource<Int, PantryItem>
 
-    @Query("SELECT id, name, imageUri, scanCode FROM PantryItem ORDER BY name")
+    @Query("SELECT id, name, imageUri, scanCode FROM PantryItem ORDER BY name ASC, id ASC")
     fun getPagedPantrySummaries(): PagingSource<Int, PantryItemSummary>
 
-    @Query("SELECT * FROM PantryItem WHERE category = :category ORDER BY name")
+    @Query("SELECT * FROM PantryItem WHERE category = :category ORDER BY name ASC, id ASC")
     fun getPagedItemsByCategory(category: String): PagingSource<Int, PantryItem>
 
-    @Query("SELECT * FROM PantryItem WHERE name LIKE '%' || :query || '%' ORDER BY name")
+    @Query("SELECT * FROM PantryItem WHERE name LIKE '%' || :query || '%' ORDER BY name ASC, id ASC")
     fun getPagedSearchResults(query: String): PagingSource<Int, PantryItem>
 
     // ————— Single Queries —————
@@ -42,7 +42,7 @@ interface PantryItemDao {
     @Query("SELECT * FROM PantryItem")
     suspend fun getAllOnce(): List<PantryItem>
 
-    @Query("SELECT * FROM PantryItem ORDER BY name")
+    @Query("SELECT * FROM PantryItem ORDER BY name ASC, id ASC")
     suspend fun getAll(): List<PantryItem>
 
     @Query("SELECT imageUri FROM PantryItem WHERE imageUri IS NOT NULL")

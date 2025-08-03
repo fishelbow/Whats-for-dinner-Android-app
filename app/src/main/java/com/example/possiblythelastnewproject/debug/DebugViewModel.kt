@@ -35,7 +35,9 @@ class DebugViewModel @Inject constructor(
         pantryCount: Int,
         recipeCount: Int,
         ingredientCount: Int,
-        generateImage: suspend (String) -> Uri
+        generateImage: suspend (String) -> Uri,
+        keepScreenAwake: () -> Unit = {},
+        releaseScreenAwake: () -> Unit = {}
     ) {
         viewModelScope.launch {
             beginLoading()

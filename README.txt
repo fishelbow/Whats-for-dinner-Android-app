@@ -715,3 +715,7 @@ again to implement paging 3.
 need to hold scroll spot in recipes and pantry
 
 also need to fix search, and naming
+
+search has been reconnected, and naming is functioning correctly however I think my mock data
+
+generator is somehow using same names.
