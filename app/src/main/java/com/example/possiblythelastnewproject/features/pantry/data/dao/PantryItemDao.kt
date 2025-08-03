@@ -3,7 +3,7 @@ package com.example.possiblythelastnewproject.features.pantry.data.dao
 import androidx.paging.PagingSource
 import androidx.room.*
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
-import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.PantryItemSummary
+import com.example.possiblythelastnewproject.features.pantry.data.dto.PantryItemSummary
 import kotlinx.coroutines.flow.Flow
 
 @Dao

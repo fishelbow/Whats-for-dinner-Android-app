@@ -11,6 +11,12 @@ import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.core.utils.imagePicker
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.AddIngredientDialog
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.DeleteConfirmationDialog
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.DuplicateCodeDialog
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.EditIngredientDialog
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.IngredientDetailsDialog
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs.ScanDialog
 
 @Composable
 fun PantryScreen(viewModel: PantryViewModel = viewModel()) {

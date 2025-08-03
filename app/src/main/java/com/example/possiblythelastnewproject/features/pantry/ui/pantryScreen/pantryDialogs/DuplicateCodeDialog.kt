@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text

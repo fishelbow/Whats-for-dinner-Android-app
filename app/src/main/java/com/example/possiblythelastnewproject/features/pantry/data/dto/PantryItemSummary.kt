@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.data.dto
 
 data class PantryItemSummary(
     val id: Long,

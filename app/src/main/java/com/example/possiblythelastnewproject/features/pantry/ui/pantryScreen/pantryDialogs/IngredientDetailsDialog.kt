@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.IngredientCard
 
 @Composable
 fun IngredientDetailsDialog(

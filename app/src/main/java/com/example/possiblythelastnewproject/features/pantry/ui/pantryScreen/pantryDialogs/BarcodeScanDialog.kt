@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding

@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +25,7 @@ import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.IngredientCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

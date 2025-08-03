@@ -1,4 +1,4 @@
-package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
+package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.pantryDialogs
 
 import android.content.Context
 import androidx.compose.foundation.layout.*
@@ -10,6 +10,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 import com.example.possiblythelastnewproject.features.pantry.ui.PantryViewModel
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.IngredientCard
+import com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen.PantryUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
