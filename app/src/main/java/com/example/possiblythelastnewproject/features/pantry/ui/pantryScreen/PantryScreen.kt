@@ -1,8 +1,11 @@
 package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
 
+import IngredientSearchBar
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -27,6 +30,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     val context = LocalContext.current
 
     val pagedItems = viewModel.pagedItems.collectAsLazyPagingItems()
+    val gridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
 
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -61,7 +65,8 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
         Box(Modifier.fillMaxSize().padding(padding)) {
             PantryGridSection(
                 pagedItems = pagedItems,
-                onItemClick = { selectedItem = it }
+                onItemClick = { selectedItem = it },
+                gridState = gridState
             )
         }
     }

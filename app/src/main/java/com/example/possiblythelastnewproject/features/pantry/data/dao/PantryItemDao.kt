@@ -19,8 +19,8 @@ interface PantryItemDao {
 
     // ————— Paging Queries —————
 
-    @Query("SELECT * FROM PantryItem ORDER BY name")
-    fun getPagedPantryItems(): PagingSource<Int, PantryItem>
+    @Query("SELECT * FROM PantryItem WHERE LOWER(name) LIKE '%' || LOWER(:query) || '%' ORDER BY name")
+    fun getPagedPantryItems(query: String): PagingSource<Int, PantryItem>
 
     @Query("SELECT id, name, imageUri, scanCode FROM PantryItem ORDER BY name")
     fun getPagedPantrySummaries(): PagingSource<Int, PantryItemSummary>
@@ -70,4 +70,6 @@ interface PantryItemDao {
 
     @Query("DELETE FROM PantryItem")
     suspend fun clearAll()
+
+
 }

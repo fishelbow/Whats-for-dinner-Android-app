@@ -711,3 +711,7 @@ StateFlow<List<PantryItem>> for duplicate checks and scan code logic—while the
 Pantry screen has been broken apart. still crashing from massive datat set 120k plus. will be trying
 
 again to implement paging 3.
+
+need to hold scroll spot in recipes and pantry
+
+also need to fix search, and naming

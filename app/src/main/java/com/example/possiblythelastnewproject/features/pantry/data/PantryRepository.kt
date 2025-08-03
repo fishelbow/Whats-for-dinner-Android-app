@@ -69,10 +69,12 @@ class PantryRepository @Inject constructor(
         pantryItemDao.clearAll()
     }
 
-    fun getPagedPantryItems(): Flow<PagingData<PantryItem>> =
+    fun getPagedPantryItems(query: String): Flow<PagingData<PantryItem>> =
         Pager(
             config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-            pagingSourceFactory = { pantryItemDao.getPagedPantryItems() }
+            pagingSourceFactory = { pantryItemDao.getPagedPantryItems(
+                query = "%${query.trim()}%"
+            ) }
         ).flow
 
 }

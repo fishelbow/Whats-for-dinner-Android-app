@@ -3,6 +3,7 @@ package com.example.possiblythelastnewproject.features.pantry.ui.pantryScreen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.MaterialTheme
@@ -15,23 +16,32 @@ import androidx.paging.compose.LazyPagingItems
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
 
 @Composable
-fun PantryGridSection(pagedItems: LazyPagingItems<PantryItem>, onItemClick: (PantryItem) -> Unit) {
+fun PantryGridSection(
+    pagedItems: LazyPagingItems<PantryItem>,
+    onItemClick: (PantryItem) -> Unit,
+    gridState: LazyGridState
+) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
+        state = gridState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(pagedItems.itemCount) { index ->
-            val item = pagedItems[index] ?: return@items
-            IngredientCard(
-                ingredient = item.name.truncateWithEllipsis(20),
-                quantity = item.quantity,
-                imageUri = item.imageUri,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onItemClick(item) }
-            )
+        items(
+            count = pagedItems.itemCount,
+            key = { index -> pagedItems[index]?.id ?: "placeholder_$index" }
+        ) { index ->
+            pagedItems[index]?.let { item ->
+                IngredientCard(
+                    ingredient = item.name.take(20),
+                    quantity = item.quantity,
+                    imageUri = item.imageUri,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onItemClick(item) }
+                )
+            }
         }
     }
 }
