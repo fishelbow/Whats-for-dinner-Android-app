@@ -31,10 +31,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PantryViewModel @Inject constructor(
-    private val repository: PantryRepository,
-    private val pantryItemDao: PantryItemDao
-
-
+    private val repository: PantryRepository
 ) : ViewModel() {
 
     fun toggleShoppingStatus(itemId: Long, context: Context) {
@@ -143,17 +140,11 @@ class PantryViewModel @Inject constructor(
         _uiState.update { it.copy(editingItem = null) }
     }
 
-
     fun updateEditFields(name: String, quantity: String) {
         _uiState.update {
             it.copy(editName = name, editQuantityText = quantity)
         }
     }
-
-    fun updateEditImage(uri: Uri?) {
-        _uiState.update { it.copy(editImageUri = uri?.toString()) }
-    }
-
 
     fun promptDelete(item: PantryItem) {
             _uiState.update { it.copy(itemToDelete = item) }
@@ -227,16 +218,6 @@ class PantryViewModel @Inject constructor(
         _uiState.update { it.copy(addImageUri = null) }
     }
 
-    fun updateAddImage(uri: Uri?) {
-        _uiState.update { it.copy(addImageUri = uri?.toString()) }
-    }
-
-    private var pendingPantryImagePath: String? = null
-
-    fun setPendingPantryImagePath(path: String) {
-        pendingPantryImagePath = path
-    }
-
     fun swapAddImage(context: Context, newUri: Uri?) {
         val previous = _uiState.value.addImageUri
         if (previous != null && previous != newUri?.toString()) {
@@ -252,27 +233,6 @@ class PantryViewModel @Inject constructor(
         }
         _uiState.update { it.copy(editImageUri = newUri?.toString()) }
     }
-
-    fun auditAndCleanOrphans(context: Context) {
-        val referencedUris = pantryItems.value
-            .mapNotNull { it.imageUri }
-            .toSet()
-
-        PantryImageCleaner.cleanUnreferencedImages(context, referencedUris)
-    }
-
-
-
-
-    val pagedPantryItems: Flow<PagingData<PantryItem>> = Pager(
-        config = PagingConfig(
-            pageSize = 30,
-            enablePlaceholders = false,
-            initialLoadSize = 60
-        ),
-        pagingSourceFactory = { pantryItemDao.getPagedPantryItems() }
-    ).flow
-        .cachedIn(viewModelScope)
 }
 
 
