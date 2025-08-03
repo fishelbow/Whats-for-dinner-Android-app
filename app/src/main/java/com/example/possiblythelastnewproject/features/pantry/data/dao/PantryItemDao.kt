@@ -16,6 +16,9 @@ interface PantryItemDao {
     @Query("SELECT * FROM PantryItem ORDER BY name")
     fun getAllPantryItems(): Flow<List<PantryItem>>
 
+    @Query("SELECT * FROM pantryItem WHERE category = :category ORDER BY name")
+    fun getItemsByCategory(category: String): Flow<List<PantryItem>>
+
     @Query("SELECT * FROM PantryItem WHERE scanCode = :code LIMIT 1")
     suspend fun getByScanCode(code: String): PantryItem?
 
@@ -33,9 +36,6 @@ interface PantryItemDao {
 
     @Query("SELECT * FROM pantryItem WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun getByName(name: String): PantryItem?
-
-    @Query("SELECT * FROM pantryItem WHERE category = :category ORDER BY name")
-    fun getItemsByCategory(category: String): Flow<List<PantryItem>>
 
     @Query("SELECT * FROM PantryItem")
     suspend fun getAllOnce(): List<PantryItem>
@@ -57,5 +57,7 @@ interface PantryItemDao {
 
     @Query("SELECT * FROM PantryItem ORDER BY name")
     fun getPagedPantryItems(): PagingSource<Int, PantryItem>
+
+
 
 }

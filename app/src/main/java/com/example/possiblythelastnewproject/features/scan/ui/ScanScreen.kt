@@ -27,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.possiblythelastnewproject.BuildConfig
 import com.example.possiblythelastnewproject.backup.BackupViewModel
 import com.example.possiblythelastnewproject.debug.DebugToolsScreen
 import com.example.possiblythelastnewproject.features.scan.domain.scanTools.CameraScanCallback
@@ -230,7 +231,9 @@ fun ScanningTab(
             Button(onClick = { showDialog = true }) {
                 Text("⚙️ Import/Export")
             }
-            DebugToolsScreen()
+            if (BuildConfig.DEBUG) {
+                DebugToolsScreen()
+            }
         }
 
         DbImportExportDialog(

@@ -655,7 +655,37 @@ pantry items next however, fun and all I want to tweak my recipe debug and move 
 
 I will then see how 10k handles lol. make it 15k its good to go need to hit pantryItems now for
 
-paging 3
+paging 3.
+
+
+update switched both recipe and pantry to paging 3. going to increase limits and overload it again.
+
+current numbers 100 ingredients, 19k recipes, 100k pantry items --> about to generate and test.
+
+upon testing it is snappier and more responsive, however switching between recipe and pantry will
+
+result in a OOM error eventually I need a way to clear both between switches. I am going to pursue
+
+leaky Canary to try and profile the issue.
+
+with paging 3.
+
+new numbers to try. 100 ingredients, 100k recipes, 500k pantry items -- insanity
+
+
+##
+## start here, pantry screen is crashing out may need to rollback. possibly figure way to
+##   refresh memory when switching between tabs.
+
+OOM occurs during pantry scroll due to simultaneous hydration of full
+
+entity list and paged items. Duplicate checks and scan logic query entire
+
+PantryItem set mid-scroll, triggering CursorWindow exhaustion. Fixes include
+
+swapping to projection-based paging (PantryPreview), converting duplicate logic
+
+to Set<String> checks, and isolating single-item lookups. Clean, scalable, and paging-safe.
 
 
 

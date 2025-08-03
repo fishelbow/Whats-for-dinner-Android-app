@@ -115,8 +115,8 @@ fun DebugToolsScreen() {
                 .verticalScroll(scrollState)
         ) {
             SliderWithLabel("Ingredients per Recipe", ingredientAmount, { ingredientAmount = it }, 1f..100f, !isLoading)
-            SliderWithLabel("Pantry Items", pantryCount, { pantryCount = it }, 0f..100_000f, !isLoading)
-            SliderWithLabel("Recipes", recipeCount, { recipeCount = it }, 0f..15_000f, !isLoading)
+            SliderWithLabel("Pantry Items", pantryCount, { pantryCount = it }, 0f..500_000f, !isLoading)
+            SliderWithLabel("Recipes", recipeCount, { recipeCount = it }, 0f..100_000f, !isLoading)
         }
 
         Column {
