@@ -24,7 +24,7 @@ class ZipExporter @Inject constructor(
     private val context: Context,
     private val db: AppDatabase
 ) {
-    private val json = Json { prettyPrint = true }
+    private val json = Json { prettyPrint = false }
 
     suspend fun export(
         uri: Uri,
@@ -33,7 +33,7 @@ class ZipExporter @Inject constructor(
         onProgress(0f, "📦 Starting export")
         val exportRoot = prepareExportFolders()
 
-        exportDatabaseChunked(exportRoot.resolve("data")) { msg, pct ->
+        exportDatabaseNdjson(exportRoot.resolve("data")) { msg, pct ->
             onProgress(pct * 0.6f, msg) // 0–60%
         }
 
@@ -43,7 +43,7 @@ class ZipExporter @Inject constructor(
             targetDir = exportRoot.resolve("media"),
             chunkSize = 100
         ) { copied, total ->
-            val pct = 0.6f + (copied.toFloat() / total.toFloat() * 0.25f)
+            val pct = 0.6f + (copied.toFloat() / total * 0.25f)
             onProgress(pct, "🖼 Copied $copied / $total images")
         }
 
@@ -70,7 +70,7 @@ class ZipExporter @Inject constructor(
         return root
     }
 
-    private suspend fun <T> dumpPagedData(
+    private suspend fun <T> dumpPagedNdjson(
         file: File,
         limit: Int,
         label: String,
@@ -79,27 +79,24 @@ class ZipExporter @Inject constructor(
         onStatus: (String) -> Unit = {}
     ) {
         file.bufferedWriter().use { writer ->
-            writer.write("[")
             var offset = 0
-            var first = true
             var total = 0
             while (true) {
                 val chunk = fetchPaged(limit, offset)
                 if (chunk.isEmpty()) break
                 for (item in chunk) {
-                    if (!first) writer.write(",") else first = false
                     writer.write(json.encodeToString(serializer, item))
+                    writer.newLine()
                     total++
                 }
                 onStatus("📘 [$label] Exported $total items so far")
                 offset += limit
             }
-            writer.write("]")
             onStatus("✅ [$label] Finished $total total")
         }
     }
 
-    private suspend fun exportDatabaseChunked(
+    private suspend fun exportDatabaseNdjson(
         dataDir: File,
         onStatus: (msg: String, pct: Float) -> Unit = { _, _ -> }
     ) {
@@ -112,21 +109,21 @@ class ZipExporter @Inject constructor(
             serializer: KSerializer<T>,
             fetch: suspend (Int, Int) -> List<T>
         ) {
-            dumpPagedData(dataDir.resolve(fileName), 5000, label, serializer, fetch) { msg ->
+            dumpPagedNdjson(dataDir.resolve(fileName), 5000, label, serializer, fetch) { msg ->
                 val pct = currentDao.toFloat() / daoCount
                 onStatus(msg, pct)
             }
             currentDao++
         }
 
-        nextProgress("Pantry Items", "pantry_items.json", PantryItem.serializer()) { l, o -> db.pantryItemDao().getPaged(l, o) }
-        nextProgress("Recipes", "recipes.json", Recipe.serializer()) { l, o -> db.recipeDao().getPaged(l, o) }
-        nextProgress("Recipe↔Pantry Links", "cross_refs.json", RecipePantryItemCrossRef.serializer()) { l, o -> db.recipePantryItemDao().getPaged(l, o) }
-        nextProgress("Shopping Lists", "shopping_lists.json", ShoppingList.serializer()) { l, o -> db.shoppingListDao().getPaged(l, o) }
-        nextProgress("Shopping Items", "shopping_list_items.json", ShoppingListItem.serializer()) { l, o -> db.shoppingListEntryDao().getPaged(l, o) }
-        nextProgress("Recipe Selections", "recipe_selections.json", RecipeSelection.serializer()) { l, o -> db.recipeSelectionDao().getPaged(l, o) }
-        nextProgress("Undo Actions", "undo_actions.json", UndoAction.serializer()) { l, o -> db.undoDao().getPaged(l, o) }
-        nextProgress("Categories", "categories.json", Category.serializer()) { l, o -> db.categoryDao().getPaged(l, o) }
+        nextProgress("Pantry Items", "pantry_items.ndjson", PantryItem.serializer()) { l, o -> db.pantryItemDao().getPaged(l, o) }
+        nextProgress("Recipes", "recipes.ndjson", Recipe.serializer()) { l, o -> db.recipeDao().getPaged(l, o) }
+        nextProgress("Recipe↔Pantry Links", "cross_refs.ndjson", RecipePantryItemCrossRef.serializer()) { l, o -> db.recipePantryItemDao().getPaged(l, o) }
+        nextProgress("Shopping Lists", "shopping_lists.ndjson", ShoppingList.serializer()) { l, o -> db.shoppingListDao().getPaged(l, o) }
+        nextProgress("Shopping Items", "shopping_list_items.ndjson", ShoppingListItem.serializer()) { l, o -> db.shoppingListEntryDao().getPaged(l, o) }
+        nextProgress("Recipe Selections", "recipe_selections.ndjson", RecipeSelection.serializer()) { l, o -> db.recipeSelectionDao().getPaged(l, o) }
+        nextProgress("Undo Actions", "undo_actions.ndjson", UndoAction.serializer()) { l, o -> db.undoDao().getPaged(l, o) }
+        nextProgress("Categories", "categories.ndjson", Category.serializer()) { l, o -> db.categoryDao().getPaged(l, o) }
     }
 
     private fun collectImagesChunked(
@@ -160,7 +157,8 @@ class ZipExporter @Inject constructor(
         val timestamp: Long,
         val version: Int,
         val source: String,
-        val mediaFileCount: Int
+        val mediaFileCount: Int,
+        val format: String = "ndjson"
     )
 
     private fun writeMeta(root: File, mediaCount: Int) {

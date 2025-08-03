@@ -531,7 +531,7 @@ so far it appears to be the multiple image switching that creates orphans.
 
 pantry screen has been tightened up,
 
-I am back to needing a orphan hunter that actually works properly in the event or accidental orphans
+I am back to needing a orphan hunter that actually works properly in the event of accidental orphans
 
 app crash, app close at wrong time.
 
@@ -543,5 +543,127 @@ I am hoping this all works well with the MediaOrphanHunter.
 
 finished the backup up package. need to test between phones.
 
+still haven't tested but took some time off and came back and finalized the import export
 
+to use NDJSON I am now trying to load the max data from debugtools and import export that will take
+
+a good while. ill report back!
+
+
+as a note I should mention that we are crashing from rapid tab switched with the app this full
+
+I think its like 10gb or more.
+
+export worked now trying import on new ndjson.
+
+I still need to look into paging possibly or set a hard limit on recipes.
+
+I was very focused on scalability, but my have gotten carried away as I doubt I will have
+
+5k recipes with 100 ingredients each, and 100k pantryItems. so this may be a non issue.
+
+however if its a simple fix why not.
+
+import/export worked even at max the NDJSON and chunking the data really helped.
+
+I am going to restart to check if duplicate images from the mocking are were included
+
+and or need to be deleted. thinking is this large data set seems to crash the app when moving too
+
+rapidly i'd like to understand this better honestly. I could hide from it and set limits way below
+
+this but it would be so cool to have a small tool that could lift the world if need be lol.
+
+maybe unrealistic. but I wonder if its orthogonal enough maybe.....
+
+at any rate dont forget to run cleanup after mocking images or exporting but no need after export
+
+check if its the mocking or the exporting that is causing double images this may be the crash
+
+culprit.
+
+
+because I'll tell you what I am rapidly jumping around the app now on max imported data from mocked
+
+images and its not crashing out the app? I think either the debug is making extra images or the
+
+exporting is will be digging in on this.
+
+
+### which process do I need  to run image clean up on?
+
+// adding to check import -- no issue here with the single image v--
+
+//Create mocking images -- did not create extra files no clean up needed v---
+
+//Create mock data with real image -- only deleted on file on restart negligible v--
+
+//Export db+images -- this too dose not trigger the clean up hmm v--
+
+// using generate mocked images on import/export to see if there is extra whats odd
+
+I dont seem to see the problem anymore with the extra images, I may have fixed this in the
+
+zipImport / zipExporter update.
+
+the final crash state I am seeing even at max data is the going from recipe details back to the
+
+recipe screen.
+
+going to run all these and then restart the app to see which on deletes images
+
+once discovered I will call OrphanMediaHunter to delete the extra performance hogging files.
+
+was not needed apparently. I am over loading the heap I should really use paging 3 lol.
+
+its such a trade off.
+
+I should add that although the above was a good search and pursuit the carsh is more to the fact
+
+that we are running out of memory in the heap. I think in the past I knew when switching from the
+
+blobs for the same reason that having a large dataset would cause OOM errors, and that paging would
+
+be needed. we have improved the image handling with coil and async image. and provided a
+
+MediaOrphanHunter to clean up the extra images. this has imported scalability also using
+
+NDJSON along with chunking the data for loading to prevent from OOM errors.
+
+I plan to apply paging 3 I think for recipes it should be RecipeScreen.kt and for
+
+pantry it should be PantryScreen.kt I shall report back.
+
+🧠 Why Paging Matters Here
+Loading all recipes up front:
+- Eats memory, especially with image previews.
+- Delays initial render—no feedback until everything's ready.
+- Makes filtering expensive if the dataset grows.
+Paging solves this by:
+- Loading only what's visible (plus a small prefetch buffer).
+- Streaming in new data as the user scrolls.
+- Giving you hooks for load state, retry, and audit overlays.
+
+
+added some dependencies for paging 3 and room to work with paging 3
+
+also update the RecipeDao and the viewModel,
+
+recipes is a lot more responsive than pantry now. awesome I should do the same paging for
+
+pantry items next however, fun and all I want to tweak my recipe debug and move it from 5k to 15k
+
+I will then see how 10k handles lol. make it 15k its good to go need to hit pantryItems now for
+
+paging 3
+
+
+
+####################################################################################################
+
+at this point I am more curious about the means of switching over to release code. I am vaguely
+
+aware of buildTypes will look more also I would love to be able to make the if (BuildConfig.DEBUG)
+
+work for the generate data interface.
 

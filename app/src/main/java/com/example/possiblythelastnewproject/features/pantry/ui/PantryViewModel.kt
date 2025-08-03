@@ -5,6 +5,10 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.pantry.data.entities.Category
 import com.example.possiblythelastnewproject.features.pantry.data.entities.PantryItem
@@ -256,4 +260,16 @@ class PantryViewModel @Inject constructor(
 
         PantryImageCleaner.cleanUnreferencedImages(context, referencedUris)
     }
+
+    val pagedPantryItems: Flow<PagingData<PantryItem>> = Pager(
+        config = PagingConfig(
+            pageSize = 30,
+            enablePlaceholders = false,
+            initialLoadSize = 60
+        ),
+        pagingSourceFactory = { pantryItemDao.getPagedPantryItems() }
+    ).flow
+        .cachedIn(viewModelScope)
 }
+
+

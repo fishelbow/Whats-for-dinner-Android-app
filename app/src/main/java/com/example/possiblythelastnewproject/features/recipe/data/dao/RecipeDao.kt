@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.recipe.data.dao
 
+import androidx.paging.PagingSource
 import androidx.room.*
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
@@ -62,4 +63,17 @@ interface RecipeDao {
     @Query("SELECT * FROM Recipe ORDER BY recipe_name LIMIT :limit OFFSET :offset")
     suspend fun getPaged(limit: Int, offset: Int): List<Recipe>
 
+    // these 2 below are for paging
+
+    @Query("""
+        SELECT * FROM Recipe
+        WHERE recipe_name LIKE '%' || :query || '%'
+        OR category LIKE '%' || :query || '%'
+        OR instructions LIKE '%' || :query || '%'
+        ORDER BY recipe_name ASC
+    """)
+    fun getPagedRecipesFiltered(query: String): PagingSource<Int, RecipeWithIngredients>
 }
+
+
+

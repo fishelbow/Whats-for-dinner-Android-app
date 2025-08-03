@@ -76,13 +76,6 @@ fun PantryScreen(
         }
     }
 
-/*
-    LaunchedEffect(pantryItems) {
-        if (pantryItems.isNotEmpty()) {
-            viewModel.auditAndCleanOrphans(context)
-        }
-    }
-*/
     // Main screen scaffold
     Scaffold(
         topBar = {

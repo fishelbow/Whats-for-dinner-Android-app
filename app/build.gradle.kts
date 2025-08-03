@@ -54,6 +54,17 @@ android {
 
 dependencies {
 
+    //room paging support
+    implementation("androidx.room:room-paging:2.7.2")
+
+    //paging 3 implementation
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
+    implementation(libs.androidx.paging.compose.v100alpha18)
+
+
+
+    //json
     implementation(libs.kotlinx.serialization.json.v160)
 
     implementation(libs.androidx.compose.foundation.foundation)

@@ -7,6 +7,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.example.possiblythelastnewproject.core.utils.deleteImageFromStorage
 import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngredients
 import com.example.possiblythelastnewproject.features.recipe.data.dao.RecipeDao
@@ -16,6 +20,8 @@ import com.example.possiblythelastnewproject.features.recipe.data.repository.Rec
 import com.example.possiblythelastnewproject.features.recipe.data.repository.RecipeRepository
 import com.example.possiblythelastnewproject.features.recipe.ui.componets.recipeCreation.RecipeIngredientUI
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -236,6 +242,23 @@ class RecipesViewModel @Inject constructor(
         }
 
         return orphaned.map { it.absolutePath }
+    }
+    private val queryFlow = MutableStateFlow("") // Holds current search query
+
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+    val pagedRecipes: Flow<PagingData<RecipeWithIngredients>> =
+        queryFlow
+            .debounce(300)
+            .distinctUntilChanged()
+            .flatMapLatest { query ->
+                Pager(
+                    config = PagingConfig(pageSize = 20),
+                    pagingSourceFactory = { recipeDao.getPagedRecipesFiltered(query) }
+                ).flow.cachedIn(viewModelScope)
+            }
+
+    fun updateQuery(newQuery: String) {
+        queryFlow.value = newQuery
     }
 
 

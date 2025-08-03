@@ -23,6 +23,8 @@ import com.example.possiblythelastnewproject.features.recipe.data.RecipeWithIngr
 import com.example.possiblythelastnewproject.features.recipe.data.entities.Recipe
 import com.example.possiblythelastnewproject.features.recipe.ui.RecipesViewModel
 import androidx.core.net.toUri
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
@@ -32,32 +34,25 @@ fun RecipeScreenWithSearch(
     onAddClick: () -> Unit,
     viewModel: RecipesViewModel = hiltViewModel()
 ) {
-    val allRecipes by viewModel.recipes.collectAsState()
     var query by remember { mutableStateOf(TextFieldValue("")) }
     val focusManager = LocalFocusManager.current
-
-    val filtered = remember(query.text, allRecipes) {
-        if (query.text.isBlank()) allRecipes
-        else allRecipes.filter { container ->
-            val recipe = container.recipe
-            recipe.name.contains(query.text, ignoreCase = true) ||
-                    recipe.category.contains(query.text, ignoreCase = true) ||
-                    recipe.instructions.contains(query.text, ignoreCase = true)
-        }
-    }
+    val pagedRecipes = viewModel.pagedRecipes.collectAsLazyPagingItems()
 
     Scaffold(
         topBar = {
             RecipeSearchBar(
                 query = query.text,
-                onQueryChange = { query = TextFieldValue(it) },
+                onQueryChange = {
+                    query = TextFieldValue(it)
+                    viewModel.updateQuery(it) // 🔄 Trigger paging flow
+                },
                 onAddNewRecipe = onAddClick,
                 focusManager = focusManager
             )
         }
     ) { innerPadding ->
         RecipeGridScreen(
-            recipes = filtered,
+            recipes = pagedRecipes,
             onRecipeClick = onRecipeClick,
             modifier = Modifier
                 .fillMaxSize()
@@ -68,7 +63,7 @@ fun RecipeScreenWithSearch(
 
 @Composable
 fun RecipeGridScreen(
-    recipes: List<RecipeWithIngredients>,
+    recipes: LazyPagingItems<RecipeWithIngredients>,
     onRecipeClick: (Recipe) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -79,9 +74,12 @@ fun RecipeGridScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(recipes) { container ->
-            RecipeTile(recipe = container.recipe) {
-                onRecipeClick(container.recipe)
+        items(recipes.itemCount) { index ->
+            val container = recipes[index]
+            container?.let {
+                RecipeTile(recipe = it.recipe) {
+                    onRecipeClick(it.recipe)
+                }
             }
         }
     }

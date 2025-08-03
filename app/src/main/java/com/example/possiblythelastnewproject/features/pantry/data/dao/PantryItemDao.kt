@@ -1,5 +1,6 @@
 package com.example.possiblythelastnewproject.features.pantry.data.dao
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -53,5 +54,8 @@ interface PantryItemDao {
 
     @Query("SELECT * FROM pantryItem LIMIT :limit OFFSET :offset")
     suspend fun getPaged(limit: Int, offset: Int): List<PantryItem>
+
+    @Query("SELECT * FROM PantryItem ORDER BY name")
+    fun getPagedPantryItems(): PagingSource<Int, PantryItem>
 
 }

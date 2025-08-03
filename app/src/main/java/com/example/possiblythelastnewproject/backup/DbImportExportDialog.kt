@@ -34,7 +34,7 @@ fun DbImportExportDialog(
                 if (isLoading) {
                     statusMessage?.let { Text(it) }
                     LinearProgressIndicator(
-                        progress =  progress ,
+                        progress = { progress },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text("${(progress * 100).toInt()}% complete")
