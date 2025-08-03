@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -32,9 +33,9 @@ fun DebugToolsScreen() {
     val scrollState = rememberScrollState()
 
     // UI state
-    var pantryCount by remember { mutableFloatStateOf(0f) }
-    var recipeCount by remember { mutableFloatStateOf(0f) }
-    var ingredientAmount by remember { mutableFloatStateOf(0f) }
+    var pantryCount by viewModel.pantryCount
+    var recipeCount by viewModel.recipeCount
+    var ingredientAmount by viewModel.ingredientAmount
 
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -123,9 +124,32 @@ fun DebugToolsScreen() {
                 .weight(1f)
                 .verticalScroll(scrollState)
         ) {
-            SliderWithLabel("Ingredients per Recipe", ingredientAmount, { ingredientAmount = it }, 1f..100f, !isLoading)
-            SliderWithLabel("Pantry Items", pantryCount, { pantryCount = it }, 0f..500_000f, !isLoading)
-            SliderWithLabel("Recipes", recipeCount, { recipeCount = it }, 0f..100_000f, !isLoading)
+            SliderWithLabel(
+                label = "Ingredients per Recipe",
+                value = ingredientAmount,
+                onValueChange = { ingredientAmount = it },
+                scale = 1f,
+                max = 100f,
+                enabled = !isLoading
+            )
+
+            SliderWithLabel(
+                label = "Pantry Items",
+                value = pantryCount,
+                onValueChange = { pantryCount = it },
+                scale = 10f, // granularity of x items per step
+                max = 500_000f,
+                enabled = !isLoading
+            )
+
+            SliderWithLabel(
+                label = "Recipes",
+                value = recipeCount,
+                onValueChange = { recipeCount = it },
+                scale = 10f,
+                max = 100_000f,
+                enabled = !isLoading
+            )
         }
 
         Column {
@@ -220,12 +244,25 @@ fun SliderWithLabel(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    enabled: Boolean,
-    steps: Int = 20
+    scale: Float,
+    max: Float,
+    enabled: Boolean
 ) {
-    Text("$label: ${value.toInt()}", style = MaterialTheme.typography.bodySmall)
-    Slider(value = value, onValueChange = onValueChange, valueRange = valueRange, steps = steps, enabled = enabled)
+    val steps = (max / scale).toInt().coerceAtLeast(0)
+    val normalizedValue = value / max
+
+    val displayValue = remember(value) { value.toInt() }
+
+    Text("$label: $displayValue", style = MaterialTheme.typography.bodySmall)
+
+    Slider(
+        value = normalizedValue,
+        onValueChange = { onValueChange(it * max) },
+        valueRange = 0f..1f,
+        steps = steps,
+        enabled = enabled
+    )
+
     Spacer(modifier = Modifier.height(8.dp))
 }
 

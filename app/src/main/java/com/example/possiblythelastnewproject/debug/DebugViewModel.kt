@@ -30,6 +30,12 @@ class DebugViewModel @Inject constructor(
     val loadingStage = mutableStateOf("Idle")
     val loadingDetail = mutableStateOf("")
 
+    val pantryCount = mutableFloatStateOf(0f)
+    val recipeCount = mutableFloatStateOf(0f)
+    val ingredientAmount = mutableFloatStateOf(0f)
+
+
+
     fun loadTestData(
         context: Context,
         pantryCount: Int,

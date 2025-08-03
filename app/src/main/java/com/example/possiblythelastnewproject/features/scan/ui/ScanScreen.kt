@@ -1,14 +1,17 @@
 package com.example.possiblythelastnewproject.features.scan.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -36,6 +39,7 @@ import com.example.possiblythelastnewproject.features.scan.domain.scanTools.Data
 import com.example.possiblythelastnewproject.backup.DbImportExportDialog
 import kotlinx.coroutines.delay
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun ScanningTab(
     shouldScan: Boolean,
@@ -43,7 +47,6 @@ fun ScanningTab(
 ) {
 
     val viewModel: BackupViewModel = hiltViewModel()
-    val isLoading = viewModel.isLoading
     val result = viewModel.result
     var showDialog by remember { mutableStateOf(false) }
 
@@ -65,6 +68,7 @@ fun ScanningTab(
     )
 
 
+
     // --- PERMISSION LOGIC ---
     var hasPermission by remember {
         mutableStateOf(
@@ -79,6 +83,9 @@ fun ScanningTab(
     LaunchedEffect(Unit) {
         if (!hasPermission) launcher.launch(Manifest.permission.CAMERA)
     }
+
+
+
     if (!hasPermission) {
         Box(
             Modifier
@@ -106,6 +113,19 @@ fun ScanningTab(
             cameraManager = null
         }
     }
+
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
+
+    val previewHeightTarget = if (isPaused) {
+        screenWidthDp * 0.33f // Shrinks to ~⅓ of screen width when paused
+    } else {
+        screenWidthDp * 0.75f // Expands to ~¾ of screen width when active
+    }
+
+    val previewHeight by animateDpAsState(
+        targetValue = previewHeightTarget,
+        label = "PreviewHeight"
+    )
 
     // Automatically pause/resume scanning from shouldScan
     LaunchedEffect(shouldScan) {
@@ -139,10 +159,50 @@ fun ScanningTab(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(4f / 3f)
+                    .height(previewHeight) // ✅ dynamic height here
+                    .clip(RoundedCornerShape(8.dp))
                     .border(stroke, Color.White, RoundedCornerShape(8.dp))
-                    .background(Color.Black)
-            )
+            ) {
+                val innerMod = Modifier.matchParentSize().padding(stroke)
+
+                AndroidView(
+                    modifier = innerMod,
+                    factory = { ctx ->
+                        PreviewView(ctx).apply {
+                            addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                                override fun onViewAttachedToWindow(v: View) {
+                                    cameraManager = CustomCameraManager(
+                                        activity, lifecycleOwner, this@apply,
+                                        DataExtractor(),
+                                        object : CameraScanCallback {
+                                            override fun onScanResult(data: String) = onScanResult(data)
+                                            override fun onScanError(e: Exception) {
+                                                Log.e("ScanningTab", "scan error: ${e.message}", e)
+                                            }
+                                        }
+                                    ).also { it.startCamera() }
+                                    removeOnAttachStateChangeListener(this)
+                                }
+
+                                override fun onViewDetachedFromWindow(v: View) = Unit
+                            })
+                        }
+                    }
+                )
+
+                if (showPulse) {
+                    Box(
+                        Modifier.align(Alignment.Center)
+                            .size(100.dp)
+                            .graphicsLayer {
+                                scaleX = 1.2f
+                                scaleY = 1.2f
+                                alpha = 0.6f
+                            }
+                            .background(Color.Green.copy(alpha = 0.5f), shape = CircleShape)
+                    )
+                }
+            }
             Spacer(Modifier.height(16.dp))
             var previewPaused by remember { mutableStateOf(false) }
             Button(onClick = { previewPaused = !previewPaused }) {
@@ -163,20 +223,25 @@ fun ScanningTab(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(4f / 3f)
+                .height(previewHeight) // ✅ dynamic height now respected
                 .border(stroke, Color.White, RoundedCornerShape(8.dp))
                 .clip(RoundedCornerShape(8.dp))
         ) {
-            val innerMod = Modifier
-                .matchParentSize()
-                .padding(stroke)
-
             AndroidView(
-                modifier = innerMod,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(stroke),
                 factory = { ctx ->
+                    val density = ctx.resources.displayMetrics.density
+                    val previewHeightPx = (previewHeight.value * density).toInt()
+
                     PreviewView(ctx).apply {
-                        addOnAttachStateChangeListener(object :
-                            View.OnAttachStateChangeListener {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            previewHeightPx // 👈 forces native view to follow Compose height
+                        )
+
+                        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                             override fun onViewAttachedToWindow(v: View) {
                                 cameraManager = CustomCameraManager(
                                     activity,
@@ -184,9 +249,7 @@ fun ScanningTab(
                                     this@apply,
                                     DataExtractor(),
                                     object : CameraScanCallback {
-                                        override fun onScanResult(data: String) =
-                                            onScanResult(data)
-
+                                        override fun onScanResult(data: String) = onScanResult(data)
                                         override fun onScanError(e: Exception) {
                                             Log.e("ScanningTab", "scan error: ${e.message}", e)
                                         }
@@ -200,7 +263,6 @@ fun ScanningTab(
                     }
                 }
             )
-
             if (showPulse) {
                 Box(
                     Modifier
@@ -234,40 +296,40 @@ fun ScanningTab(
             if (BuildConfig.DEBUG) { // <- one day I will know how to work this lol.
                 DebugToolsScreen()
             }
-        }
 
-        DbImportExportDialog(
-            showDialog = showDialog,
-            isLoading = viewModel.isLoading,
-            progress = viewModel.progress,
-            statusMessage = viewModel.statusMessage,
-            onDismiss = {
-                showDialog = false
-                viewModel.clearResult()
-            },
-            onImportClick = { importLauncher.launch(arrayOf("application/zip")) },
-            onExportClick = { exportLauncher.launch("backup.zip") }
-        )
+            DbImportExportDialog(
+                showDialog = showDialog,
+                isLoading = viewModel.isLoading,
+                progress = viewModel.progress,
+                statusMessage = viewModel.statusMessage,
+                onDismiss = {
+                    showDialog = false
+                    viewModel.clearResult()
+                },
+                onImportClick = { importLauncher.launch(arrayOf("application/zip")) },
+                onExportClick = { exportLauncher.launch("backup.zip") }
+            )
 
-        LaunchedEffect(result) {
-            result?.let {
-                Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
-                viewModel.clearResult()
+            LaunchedEffect(result) {
+                result?.let {
+                    Toast.makeText(ctx, it, Toast.LENGTH_LONG).show()
+                    viewModel.clearResult()
+                }
             }
         }
-    }
 
-    // this disposable effect to keep the screen from timing out during long loads
+        // this disposable effect to keep the screen from timing out during long loads
 
-    DisposableEffect(isPaused) {
-        val window = activity.window
-        if (isPaused) {
-            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-        onDispose {
-            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        DisposableEffect(isPaused) {
+            val window = activity.window
+            if (isPaused) {
+                window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            onDispose {
+                window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
     }
 }
