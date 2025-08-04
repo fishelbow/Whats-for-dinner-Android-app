@@ -46,7 +46,7 @@ class ZipImporter @Inject constructor(
             step(spanSetup, 0.005f, "📦 Starting import")
             dataDir.mkdirs(); step(spanSetup, 0.015f, "📘 Data folder ready")
             mediaDir.mkdirs(); step(spanSetup, 0.027f, "🖼 Media folder ready")
-            step(spanSetup, 0.03f, "🧱 Folder prep complete")
+            step(spanSetup, 0.03f, "🧱 Starting Zip Extraction please wait")
 
             unzipToDirectory(uri, importRoot, spanZip, onProgress)
             step(spanZip, 1.0f, "🗃 Zip extraction complete")
@@ -67,23 +67,25 @@ class ZipImporter @Inject constructor(
     }
 
     private fun unzipToDirectory(uri: Uri, targetDir: File, span: ProgressSpan, onProgress: (Float, String) -> Unit) {
-        val rawInputStream = context.contentResolver.openInputStream(uri)
+        val rawStream = context.contentResolver.openInputStream(uri)
             ?: throw IllegalStateException("Couldn't open input stream for URI")
-        val zipStream = ZipInputStream(rawInputStream)
 
-        val entryNames = mutableListOf<String>()
-        var scanEntry = zipStream.nextEntry
-        while (scanEntry != null) {
-            entryNames.add(scanEntry.name)
-            zipStream.closeEntry()
-            scanEntry = zipStream.nextEntry
-        }
+        // Step 1: Count total entries
+        val totalEntries = ZipInputStream(rawStream).use { zip ->
+            var count = 0
+            while (zip.nextEntry != null) {
+                count++
+                zip.closeEntry()
+            }
+            count
+        }.coerceAtLeast(1) // avoid divide-by-zero
 
-        val total = entryNames.size.coerceAtLeast(1)
+        // Step 2: Actual extraction pass
         context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
                 var index = 0
                 var entry = zip.nextEntry
+
                 while (entry != null) {
                     val outFile = File(targetDir, entry.name)
                     outFile.parentFile?.mkdirs()
@@ -95,15 +97,15 @@ class ZipImporter @Inject constructor(
                         "jpg", "jpeg", "png" -> "🖼"
                         else -> "📦"
                     }
+                    val msg = "$emoji Extracted ${entry.name} (${index + 1}/$totalEntries)"
+                    onProgress(span.scale(index.toFloat() / totalEntries), msg)
 
-                    val pct = index / total.toFloat()
-                    val msg = "$emoji Extracted ${entry.name} (${index + 1}/$total)"
-                    onProgress(span.scale(pct), msg)
-                    if (index == 0) onProgress(span.scale(0.07f), "🔧 First entry written")
-                    if (index == 1) onProgress(span.scale(0.085f), "⏳ Continuing extraction…")
-                    index++
+                    if (index == 0) onProgress(span.scale(0.07f), "🔧First entry written")
+                    if (index == 1) onProgress(span.scale(0.085f), "⏳Continuing extraction…")
+
                     zip.closeEntry()
                     entry = zip.nextEntry
+                    index++
                 }
             }
         }
@@ -179,16 +181,41 @@ class ZipImporter @Inject constructor(
     }
 
     private fun restoreMedia(sourceDir: File, span: ProgressSpan, onProgress: (Float, String) -> Unit) {
-        val images = sourceDir.listFiles()?.filter { it.extension == "jpg" } ?: return
-        val total = images.size.coerceAtLeast(1)
-        images.forEachIndexed { i, file ->
-            val pct = i / total.toFloat()
-            val progress = span.scale(pct)
-            val msg = "🖼 Importing ${file.name} (${i + 1}/$total)"
-            onProgress(progress, msg)
-            file.copyTo(File(context.filesDir, file.name), overwrite = true)
-            if (i < 3) {
-                onProgress(span.scale(pct + 0.001f), "📥 Copied ${file.length()} bytes")
+        val bufferSize = 64 * 1024
+        val flushInterval = 500
+        val startTime = System.currentTimeMillis()
+        var index = 0
+        val images = sourceDir.walkTopDown().filter { it.isFile && it.extension.lowercase() == "jpg" }
+        val total = images.count().coerceAtLeast(1)
+
+        images.forEach { file ->
+            try {
+                val target = File(context.filesDir, file.name)
+                file.inputStream().buffered(bufferSize).use { input ->
+                    target.outputStream().buffered(bufferSize).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val progressPct = index.toFloat() / total
+                val scaled = span.scale(progressPct)
+
+                if (index % flushInterval == 0 || index < 3) {
+                    val elapsedMs = System.currentTimeMillis() - startTime
+                    val etaMs = (elapsedMs.toFloat() / (index + 1)) * total - elapsedMs
+                    val etaMin = (etaMs / 1000 / 60).toInt()
+                    onProgress(scaled, "🖼Copied ${file.name} (${index + 1}/$total)\n⏳ETA ~${etaMin}min")
+                }
+
+                if (index < 3) {
+                    val sizeKb = file.length() / 1024
+                    onProgress(span.scale(progressPct + 0.001f), "📥Copied ${sizeKb}KB")
+                }
+
+                index++
+            } catch (e: Exception) {
+                logPhase("⚠️Failed ${file.name}: ${e.message}")
+                e.printStackTrace()
+                onProgress(span.scale(1.0f), "⚠️Failed ${file.name}: ${e.message}")
             }
         }
     }
@@ -234,23 +261,31 @@ class ZipImporter @Inject constructor(
     data class BackupMeta(val timestamp: Long, val version: Int, val source: String)
 
     @OptIn(ExperimentalSerializationApi::class)
-    private inline fun <reified T> decodeStream(file: File, onProgress: (Float, String) -> Unit): List<T> {
+    private inline fun <reified T> decodeStream(file: File, crossinline onProgress: (Float, String) -> Unit): List<T> {
         val ext = file.extension.lowercase()
         return if (ext == "ndjson") {
-            val lines = file.readLines()
-            val total = lines.size.coerceAtLeast(1)
-            lines.mapIndexedNotNull { index, line ->
-                val pct = index / total.toFloat()
-                onProgress(pct, "📘 Parsing ${file.name} (${index + 1}/$total)")
+            val lineSeq = file.bufferedReader().lineSequence()
+            val result = mutableListOf<T>()
+            var index = 0
+            var totalEst = 0
+
+            lineSeq.forEach {
+                totalEst++ // count as we go, just for x/x
+            }
+
+            file.bufferedReader().lineSequence().forEachIndexed { idx, line ->
+                val pct = idx.toFloat() / totalEst.coerceAtLeast(1)
+                val msg = "📘Parsing ${file.name} (${idx + 1}/$totalEst)"
+                onProgress(pct, msg)
                 try {
-                    json.decodeFromString(serializer<T>(), line)
+                    result += json.decodeFromString(serializer<T>(), line)
                 } catch (e: Exception) {
-                    println("⚠️ Malformed NDJSON line $index: ${e.message}")
-                    null
+                    logPhase("⚠️Malformed NDJSON line $idx: ${e.message}")
                 }
             }
+            result
         } else {
-            onProgress(0f, "📘 Parsing ${file.name} as JSON array (${file.length()} bytes)")
+            onProgress(0f, "📘Parsing ${file.name} as JSON array (${file.length()} bytes)")
             file.inputStream().use {
                 json.decodeFromStream(ListSerializer(serializer<T>()), it)
             }

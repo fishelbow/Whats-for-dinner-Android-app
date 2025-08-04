@@ -718,4 +718,34 @@ also need to fix search, and naming
 
 search has been reconnected, and naming is functioning correctly however I think my mock data
 
-generator is somehow using same names.
+generator is somehow using same names. after some investigating it may have just been a data double
+
+gen from running it twice possibly or some other user error. I did update the naming scheme for
+
+mock data so it would appear sequential in the recipe and pantry screen. I changed the sliders to
+
+remember there state while in app. The scan screen shrinks now on pause to make room for the sliders
+
+and mock data loading. also codded in for the screen not to time out while scanning is paused
+
+this is to cover import/export plus generate mock data. big files might time out otherwise.
+
+currently loading in
+
+15098 recipes with
+
+100 ingredients
+
+and 101617 pantry items
+
+going to test the import and export
+
+normal use seems solid.
+
+I know export works well but import will crash without some work but I need to create the mock
+
+data first.
+
+update zip importer to handle larger files sizes, still tweaking this. I would like a better progress
+
+tracker on deleting the db and the importer hangs at 39% i'd like to improve this as well.

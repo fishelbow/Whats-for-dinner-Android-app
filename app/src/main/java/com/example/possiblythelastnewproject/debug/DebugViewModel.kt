@@ -106,4 +106,23 @@ class DebugViewModel @Inject constructor(
         isLoading.value = false
         loadingStage.value = "Idle"
     }
+
+    fun beginLoading(initialStage: String = "") {
+        isLoading.value = true
+        progress.value = 0f
+        loadingStage.value = initialStage
+        loadingDetail.value = ""
+    }
+
+    fun updateProgress(percent: Float) {
+        viewModelScope.launch {
+            progress.value = percent.coerceIn(0f, 1f)
+        }
+    }
+
+    fun endLoading() {
+        isLoading.value = false
+        loadingStage.value = ""
+        loadingDetail.value = ""
+    }
 }
