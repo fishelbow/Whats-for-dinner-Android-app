@@ -70,22 +70,37 @@ class DebugViewModel @Inject constructor(
     }
 
     fun wipeDatabase(context: Context) = viewModelScope.launch {
-        beginLoading()
-        loadingStage.value = "Wiping database..."
+        beginLoading("Wiping database...")
 
         withContext(Dispatchers.IO) {
+            // Stage 1: Pre-check
+            updateProgress(0.05f)
+            loadingStage.value = "Scanning internal files"
             val internalFiles = listFilesInAppStorage(context)
             Log.d("ImageCleanup", "Files in internal storage: $internalFiles")
 
-            val imageDir = File(context.filesDir, "images")
+            // Stage 2: DB cleanup
+            updateProgress(0.30f)
+            loadingStage.value = "Clearing DB entries"
+            loadingDetail.value = "Calling debugRepo.clearDbEntries()"
             debugRepo.clearDbEntries()
+
+            // Stage 3: Image deletion
+            updateProgress(0.70f)
+            loadingStage.value = "Deleting Images"
+            loadingDetail.value = "Calling debugRepo.deleteAllAppImages(context)"
             debugRepo.deleteAllAppImages(context)
 
-            val remainingImages = imageDir.listFiles()?.size ?: 0
+            val remainingImages = File(context.filesDir, "images").listFiles()?.size ?: 0
             Log.d("ImageCleanup", "Images remaining after wipe: $remainingImages")
+
+            // Final cleanup
+            updateProgress(1.0f)
+            loadingStage.value = "Final cleanup"
+            loadingDetail.value = "Reset complete"
         }
 
-        finishLoading()
+        endLoading()
     }
 
     private fun listFilesInAppStorage(context: Context): List<String> {
@@ -95,10 +110,11 @@ class DebugViewModel @Inject constructor(
             ?: emptyList()
     }
 
-    fun beginLoading() {
+    fun beginLoading(initialStage: String = "Starting...") {
         isLoading.value = true
         progress.floatValue = 0f
-        loadingStage.value = "Starting..."
+        loadingStage.value = initialStage
+        loadingDetail.value = ""
     }
 
     private fun finishLoading() {
@@ -107,20 +123,14 @@ class DebugViewModel @Inject constructor(
         loadingStage.value = "Idle"
     }
 
-    fun beginLoading(initialStage: String = "") {
-        isLoading.value = true
-        progress.value = 0f
-        loadingStage.value = initialStage
-        loadingDetail.value = ""
-    }
 
-    fun updateProgress(percent: Float) {
+    private fun updateProgress(percent: Float) {
         viewModelScope.launch {
-            progress.value = percent.coerceIn(0f, 1f)
+            progress.floatValue = percent.coerceIn(0f, 1f)
         }
     }
 
-    fun endLoading() {
+    private fun endLoading() {
         isLoading.value = false
         loadingStage.value = ""
         loadingDetail.value = ""
