@@ -24,11 +24,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
+import androidx.compose.foundation.lazy.grid.LazyGridState
+
 
 @HiltViewModel
 class PantryViewModel @Inject constructor(
     private val repository: PantryRepository
 ) : ViewModel() {
+
+    val gridState = LazyGridState()
 
     fun toggleShoppingStatus(itemId: Long, context: Context) {
         viewModelScope.launch {
@@ -239,7 +243,6 @@ class PantryViewModel @Inject constructor(
             repository.getPagedPantryItems(query)
         }
         .cachedIn(viewModelScope)
-
 }
 
 

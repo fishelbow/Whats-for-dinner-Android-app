@@ -5,11 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -27,6 +28,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun RecipeScreenWithSearch(
@@ -36,7 +38,30 @@ fun RecipeScreenWithSearch(
 ) {
     var query by remember { mutableStateOf(TextFieldValue("")) }
     val focusManager = LocalFocusManager.current
+
     val pagedRecipes = viewModel.pagedRecipes.collectAsLazyPagingItems()
+    val savedOffset = viewModel.gridScrollOffset.collectAsState().value
+
+    val gridState = rememberSaveable(saver = LazyGridState.Saver) {
+        LazyGridState()
+    }
+
+    LaunchedEffect(pagedRecipes.itemCount > 0) {
+        gridState.scrollToItem(savedOffset.first, savedOffset.second)
+    }
+
+
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
+        }
+            .distinctUntilChanged()
+            .collect { offset ->
+                viewModel.updateGridScrollOffset(offset)
+            }
+    }
+
+
 
     Scaffold(
         topBar = {
@@ -44,7 +69,7 @@ fun RecipeScreenWithSearch(
                 query = query.text,
                 onQueryChange = {
                     query = TextFieldValue(it)
-                    viewModel.updateQuery(it) // 🔄 Trigger paging flow
+                    viewModel.updateQuery(it)
                 },
                 onAddNewRecipe = onAddClick,
                 focusManager = focusManager
@@ -56,7 +81,8 @@ fun RecipeScreenWithSearch(
             onRecipeClick = onRecipeClick,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            state = gridState
         )
     }
 }
@@ -65,9 +91,11 @@ fun RecipeScreenWithSearch(
 fun RecipeGridScreen(
     recipes: LazyPagingItems<RecipeWithIngredients>,
     onRecipeClick: (Recipe) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    state: LazyGridState
 ) {
     LazyVerticalGrid(
+        state = state, // ✅ Apply scroll state
         columns = GridCells.Fixed(2),
         modifier = modifier.padding(8.dp),
         contentPadding = PaddingValues(8.dp),

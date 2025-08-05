@@ -749,3 +749,57 @@ data first.
 update zip importer to handle larger files sizes, still tweaking this. I would like a better progress
 
 tracker on deleting the db and the importer hangs at 39% i'd like to improve this as well.
+
+have progress for delete instead of just hanging on 0%
+
+I have noticed that the lazyColumns are not remembering there position on tab switches,
+
+I will be working on this next.
+
+so pantry screen was super easy just a little bit of boiler plate and it remembers its position
+
+recipeScreen however was another beast due to the fact that its a couple composables.  after a lot
+
+of digging we are now persiting it with a rememberSavable and using a launch effect.
+
+
+
+at this point I am only noticing crashes when scrolling very fast and flipping between tabs, with
+
+large data sets unrealistic data sets honestly. I am going to switch over to using things like
+
+memory profiler and leakyCanary to see if the target data sets are working well.
+
+I overloaded the data sets in testing to find the limits.
+
+On a spare phone I created 500k pantry items 100k recipes with 100 ingredients each.
+
+the app scrolled and tabbed just fine. It of course failed to export, as current export is not
+
+suited for that volume. Honestly does it need to be? I think not this is for home use not warehouse
+
+The data set I have been using and playing with on my phone has been about
+
+109k pantry items 19k recipes with 100 ingredients, and it has been a smooth experience. A data set
+
+of this size is still way beyond what a typical house would use. At this data set the app performs
+
+with only slight hick up in scrolling fast and tab switching rapidly. This is something that could
+
+be addressed if a data set of this volume or higher was needed, however this is not the use case, or
+
+intention of that app. it has just been nice to see what can be done. I am making a smaller data
+
+set now with 1k recipes at 100 ingredients each and 49k pantry items. This I consider still way too
+
+high. But will be interesting to see if memeory issues need addressed still or if the app at a lower
+
+data set will be battle hardened from working with the higher data set.
+
+I have not done the best job recording the development but it has been growing both in size and
+
+performance and size has driven said performance along the way.
+
+
+
+any hoo I have a couple more odds and ends but I may try to figure out how to finalize this.

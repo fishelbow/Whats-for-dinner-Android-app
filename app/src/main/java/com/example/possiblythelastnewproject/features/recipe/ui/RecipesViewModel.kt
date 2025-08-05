@@ -37,6 +37,13 @@ class RecipesViewModel @Inject constructor(
     val State = MutableStateFlow(RecipeEditUiState())
     val uiState: StateFlow<RecipeEditUiState> = State.asStateFlow()
 
+    private val _gridScrollOffset = MutableStateFlow(Pair(0, 0))
+    val gridScrollOffset: StateFlow<Pair<Int, Int>> = _gridScrollOffset.asStateFlow()
+
+    fun updateGridScrollOffset(offset: Pair<Int, Int>) {
+        _gridScrollOffset.value = offset
+    }
+
     inline fun updateUi(transform: RecipeEditUiState.() -> RecipeEditUiState) {
         State.update { it.transform() }
     }
@@ -83,33 +90,7 @@ class RecipesViewModel @Inject constructor(
         else
             recipeDao.existsByName(trimmed)
     }
-/*
-    // 🧼 Image Cleanup
-    fun discardImagesIfNeeded(context: Context): Boolean {
-        val state = State.value
 
-        // 🛡️ Always protect currently displayed image
-        val protected = buildSet {
-            state.imageUri?.let { add(it) }
-            state.pendingImageUris.getOrNull(state.currentImageIndex)?.let { add(it) }
-            state.preservedImageUri?.let { add(it) } // ✅ Protect explicitly restored URI
-        }
-
-        val deletable = state.pendingImageUris
-            .filter { uri -> !protected.contains(uri) }
-
-        deletable.forEach {
-            if (protected.contains(it)) {
-                Log.w("ImageCleanup", "⚠️ Skipping delete of protected image: $it")
-            } else {
-                deleteImageFromStorage(it, context)
-            }
-        }
-
-        updateUi { rollbackImages().copy(preservedImageUri = null) }
-        return deletable.isNotEmpty()
-    }
-*/
     // 💾 Save New Recipe
     fun saveRecipeWithIngredientsUi(
         recipe: Recipe,
@@ -177,7 +158,7 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    // 🔄 Restore From Snapshot
+    //  Restore From Snapshot
     fun restoreRecipeState(
         restoredRecipe: Recipe,
         restoredIngredients: List<RecipeIngredientUI>
@@ -196,14 +177,14 @@ class RecipesViewModel @Inject constructor(
         ingredientRepository.replaceIngredientsForRecipe(restoredRecipe.id, refs)
     }
 
-    // 🎯 Snapshot Getter
+    //  Snapshot Getter
     suspend fun getRecipeWithIngredients(recipeId: Long): RecipeWithIngredients? {
         return recipeRepository.getRecipeWithIngredients(recipeId)
     }
 
     // 🖼 Image Switching + Cleanup
     fun replaceImageUri(uri: String, context: Context) {
-        commitImageUri() // 💾 ensure imageUri is finalized
+        commitImageUri() //  ensure imageUri is finalized
 
         val state = uiState.value
         val deletable = state.pendingImageUris
@@ -214,35 +195,6 @@ class RecipesViewModel @Inject constructor(
         updateUi { copy(pendingImageUris = listOf(uri), currentImageIndex = 0) }
     }
 
-    fun removeOrphanedImages(
-        context: Context,
-        allRecipes: List<Recipe>,
-        uiState: RecipeEditUiState
-    ): List<String> {
-        val filesDir = context.filesDir
-        val allStoredImages = filesDir.listFiles()
-            ?.filter { it.name.endsWith(".jpg") || it.name.endsWith(".png") }
-            ?: emptyList()
-
-        // ✅ This is where your validFilenames set goes:
-        val validFilenames = buildSet {
-            allRecipes.mapNotNull { it.imageUri?.substringAfterLast("/") }.forEach { add(it) }
-            uiState.imageUri?.substringAfterLast("/")?.let { add(it) }
-            uiState.pendingImageUris.map { it.substringAfterLast("/") }.forEach { add(it) }
-        }
-
-        val orphaned = allStoredImages.filterNot { file ->
-            validFilenames.contains(file.name)
-        }
-
-        orphaned.forEach {
-            val deleted = deleteImageFromStorage(it.absolutePath, context)
-            if (deleted) Log.d("StorageCleanup", "🧹 Deleted: ${it.name}")
-            else Log.w("StorageCleanup", "❌ Failed to delete: ${it.name}")
-        }
-
-        return orphaned.map { it.absolutePath }
-    }
     private val queryFlow = MutableStateFlow("") // Holds current search query
 
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -260,6 +212,4 @@ class RecipesViewModel @Inject constructor(
     fun updateQuery(newQuery: String) {
         queryFlow.value = newQuery
     }
-
-
 }

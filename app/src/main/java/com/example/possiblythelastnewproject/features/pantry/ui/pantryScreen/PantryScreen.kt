@@ -30,7 +30,7 @@ fun PantryScreen(viewModel: PantryViewModel = viewModel()) {
     val context = LocalContext.current
 
     val pagedItems = viewModel.pagedItems.collectAsLazyPagingItems()
-    val gridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val gridState = viewModel.gridState
 
     var selectedItem by remember { mutableStateOf<PantryItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
